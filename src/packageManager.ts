@@ -9,7 +9,8 @@ const supportedPackageManagers = makeSupportedPackageManagers({
     yarn: true,
 })
 
-const getSupportedPackageManager = async (cwd: string) => {
+/** Get package manager that was used to install deps and create node_modules */
+const getUsedPackageManager = async (cwd: string) => {
     const { name } = await whichPm(cwd)
     if (!Object.keys(supportedPackageManagers).includes(name as any)) throw new TypeError(`Unsupported package manager ${name}`)
     return name as keyof typeof supportedPackageManagers

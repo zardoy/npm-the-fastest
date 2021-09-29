@@ -10,6 +10,11 @@
                 "title": "Offline Install NPM Packages"
             },
             {
+                "command": "run-depcheck",
+                "category": "PNPM",
+                "title": "Show Depcheck View"
+            },
+            {
                 "command": "install-packages",
                 "title": "Install NPM Packages"
             },
@@ -17,14 +22,33 @@
                 "command": "remove-packages",
                 "title": "Remove NPM Packages"
             }
-        ]
+        ],
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "dependencies-explorer",
+                    "title": "Dependencies Explorer",
+                    "icon": "all_inbox_black_24dp.svg"
+                }
+            ]
+        },
+        "views": {
+            "dependencies-explorer": [
+                {
+                    "id": "nodeDependencies",
+                    "name": "Node Dependencies"
+                }
+            ]
+        }
     },
+    "activationEvents": [
+        "*",
+        "workspaceContains:package.json"
+    ],
     "categories": [
         "Other"
     ],
-    "version": "1.0.0",
-    "main": "index.js",
-    "repository": "https://github.com/zardoy/npm-the-fastest.git",
+    "version": "0.0.1",
     "author": "Vitaly Turovsky <vital2580@icloud.com>",
     "license": "MIT",
     "private": true,
@@ -32,14 +56,22 @@
         "start": "vscode-framework start"
     },
     "devDependencies": {
+        "@types/vscode": "^1.60.0",
         "@zardoy/tsconfig": "^1.2.2",
+        "type-fest": "^2.3.4",
         "typescript": "^4.4.3"
     },
     "dependencies": {
+        "@hediet/node-reload": "^0.7.3",
+        "@types/jsonfile": "^6.0.1",
         "@types/node": "^16.10.1",
+        "depcheck": "^1.4.2",
         "esbuild": "^0.13.3",
+        "execa": "^5.1.1",
         "globby": "^12.0.2",
-        "vscode-framework": "^0.0.1",
+        "jsonfile": "^6.1.0",
+        "ts-node": "^10.2.1",
+        "vscode-framework": "^0.0.5",
         "which-pm": "^2.0.0"
     }
 }
