@@ -1,11 +1,8 @@
-import { showQuickPick, VscodeFramework } from 'vscode-framework'
-import vscode from 'vscode'
-import jsonfile from 'jsonfile'
 import { PackageJson } from 'type-fest'
-import { join } from 'path'
-import depcheck from 'depcheck'
-import { readPackageJson } from './packageJson'
+import vscode from 'vscode'
+import { VscodeFramework } from 'vscode-framework'
 import { NodeDependenciesProvider } from './nodeDependencies'
+import { readPackageJson } from './packageJson'
 
 const getPrefferedScriptOrThrow = (packageJson: PackageJson, scripts: string[]) => {
     if (packageJson.scripts) {
@@ -21,7 +18,19 @@ const getPrefferedScriptOrThrow = (packageJson: PackageJson, scripts: string[]) 
 export const activate = ctx => {
     const framework = new VscodeFramework(ctx)
 
-    vscode.window.registerTreeDataProvider('nodeDependencies', new NodeDependenciesProvider(vscode.workspace.workspaceFolders![0]!.uri.fsPath))
+    const treeProvider = new NodeDependenciesProvider(vscode.workspace.workspaceFolders![0]!.uri.fsPath)
+    const treeView = vscode.window.createTreeView('nodeDependencies', {
+        treeDataProvider: treeProvider,
+    })
+
+    treeView.onDidChangeVisibility(({ visible }) => {
+        treeProvider.hidden = !visible
+        if (visible === false) return
+        treeView.message = 'Scanning dependencies'
+        treeProvider.hidden = false
+        treeProvider.refresh()
+        treeProvider.onLoad = (setMessage = '') => (treeView.message = setMessage)
+    })
 
     framework.registerCommand('install-packages', async () => {
         const { workspaceFolders } = vscode.workspace
