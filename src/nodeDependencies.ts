@@ -1,7 +1,7 @@
 import vscode from 'vscode'
 import depcheck, { Results } from 'depcheck'
 import { PackageJson } from 'type-fest'
-import { readPackageJson } from './packageJson'
+import { readPackageJsonWithMetadata } from './packageJson'
 
 export class NodeDependenciesProvider implements vscode.TreeDataProvider<TreeItem> {
     constructor(private workspaceRoot: string) {}
@@ -40,7 +40,7 @@ export class NodeDependenciesProvider implements vscode.TreeDataProvider<TreeIte
                 // TODO find a list with runtime-only deps
                 if (!this.usingDeps) this.usingDeps = (await depcheck(cwd, { skipMissing: true })).using
                 if (!this.usingDeps) return []
-                if (!this.packageJson) this.packageJson = await readPackageJson(cwd)
+                if (!this.packageJson) this.packageJson = (await readPackageJsonWithMetadata(cwd)).packageJson
                 const pickDeps: (keyof PackageJson)[] = ['dependencies', 'devDependencies', 'optionalDependencies']
                 return Object.entries(this.usingDeps!).map(([dep, files], i) => {
                     const fileUrls = files.map(fsPath => vscode.Uri.file(fsPath))

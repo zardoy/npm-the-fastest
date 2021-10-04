@@ -21,8 +21,43 @@
             {
                 "command": "remove-packages",
                 "title": "Remove NPM Packages"
+            },
+            {
+                "command": "start-npm-script",
+                "title": "Start NPM Script"
+            },
+            {
+                "command": "start-main-npm-script",
+                "title": "Start Main NPM Script"
+            },
+            {
+                "command": "open-closest-package-json",
+                "title": "Open Closest Package.json to Current Editor",
+                "enablement": ""
+            },
+            {
+                "command": "open-workspace-package-json",
+                "title": "Open Workspace Package.json"
+            },
+            {
+                "command": "enforce-package-manager-use",
+                "title": "Enforce Package Manager Use"
             }
         ],
+        "configuration": {
+            "properties": {
+                "main-npm-script": {
+                    "title": "Main NPM script to run",
+                    "type": "array",
+                    "default": [
+                        "test",
+                        "tees2"
+                    ],
+                    "uniqueItems": true,
+                    "description": "Run first script from this list on Start Main NPM Script command"
+                }
+            }
+        },
         "viewsContainers": {
             "activitybar": [
                 {
@@ -48,14 +83,23 @@
     "categories": [
         "Other"
     ],
+    "keywords": [
+        "npm",
+        "yarn",
+        "pnpm",
+        "dependencies",
+        "depcheck"
+    ],
     "version": "0.0.1",
     "author": "Vitaly Turovsky <vital2580@icloud.com>",
     "license": "MIT",
     "private": true,
     "scripts": {
+        "preinstall": "npx =y only-allow pnpm",
         "start": "vscode-framework start"
     },
     "devDependencies": {
+        "@types/fs-extra": "^9.0.13",
         "@types/vscode": "^1.60.0",
         "@zardoy/tsconfig": "^1.2.2",
         "type-fest": "^2.3.4",
@@ -68,8 +112,10 @@
         "depcheck": "^1.4.2",
         "esbuild": "^0.13.3",
         "execa": "^5.1.1",
-        "globby": "^12.0.2",
+        "fs-extra": "^10.0.0",
+        "globby": "^11",
         "jsonfile": "^6.1.0",
+        "pkg-dir": "^6.0.0",
         "ts-node": "^10.2.1",
         "vscode-framework": "^0.0.5",
         "which-pm": "^2.0.0"
