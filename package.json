@@ -76,6 +76,7 @@
             ]
         }
     },
+    "type": "commonjs",
     "activationEvents": [
         "*",
         "workspaceContains:package.json"
@@ -94,14 +95,15 @@
     "author": "Vitaly Turovsky <vital2580@icloud.com>",
     "license": "MIT",
     "private": true,
+    "preview": true,
     "scripts": {
-        "preinstall": "npx =y only-allow pnpm",
         "start": "vscode-framework start"
     },
     "devDependencies": {
         "@types/fs-extra": "^9.0.13",
         "@types/vscode": "^1.60.0",
         "@zardoy/tsconfig": "^1.2.2",
+        "eslint-plugin-zardoy-config": "^0.0.1",
         "type-fest": "^2.3.4",
         "typescript": "^4.4.3"
     },
@@ -111,13 +113,17 @@
         "@types/node": "^16.10.1",
         "depcheck": "^1.4.2",
         "esbuild": "^0.13.3",
+        "eslint": "^7.32.0",
         "execa": "^5.1.1",
+        "filesize": "^8.0.3",
+        "find-up": "^6.1.0",
         "fs-extra": "^10.0.0",
         "globby": "^11",
+        "got": "^11.8.2",
         "jsonfile": "^6.1.0",
-        "pkg-dir": "^6.0.0",
+        "pkg-dir": "^5",
         "ts-node": "^10.2.1",
-        "vscode-framework": "^0.0.5",
+        "vscode-framework": "^0.0.6",
         "which-pm": "^2.0.0"
     }
 }
