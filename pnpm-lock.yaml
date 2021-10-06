@@ -4,6 +4,7 @@ specifiers:
   '@hediet/node-reload': ^0.7.3
   '@types/fs-extra': ^9.0.13
   '@types/jsonfile': ^6.0.1
+  '@types/lodash': ^4.14.175
   '@types/node': ^16.10.1
   '@types/vscode': ^1.60.0
   '@zardoy/tsconfig': ^1.2.2
@@ -18,7 +19,9 @@ specifiers:
   globby: ^11
   got: ^11.8.2
   jsonfile: ^6.1.0
+  lodash: ^4.17.21
   pkg-dir: ^5
+  slash: ^3
   ts-node: ^10.2.1
   type-fest: ^2.3.4
   typescript: ^4.4.3
@@ -28,6 +31,7 @@ specifiers:
 dependencies:
   '@hediet/node-reload': 0.7.3
   '@types/jsonfile': 6.0.1
+  '@types/lodash': 4.14.175
   '@types/node': 16.10.1
   depcheck: 1.4.2
   esbuild: 0.13.3
@@ -39,7 +43,9 @@ dependencies:
   globby: 11.0.4
   got: 11.8.2
   jsonfile: 6.1.0
+  lodash: 4.17.21
   pkg-dir: 5.0.0
+  slash: 3.0.0
   ts-node: 10.2.1_e0bf20b7c5ed5b194f21284475beb32f
   vscode-framework: link:../vscode-framework/packages/vscode-framework
   which-pm: 2.0.0
@@ -488,6 +494,10 @@ packages:
     resolution: {integrity: sha512-FXCJgyyN3ivVgRoml4h94G/p3kY+u/B86La+QptcqJaWtBWtmc6TtkNfS40n9bIvyLteHh7zXOtgbobORKPbDg==}
     dependencies:
       '@types/node': 16.10.1
+    dev: false
+
+  /@types/lodash/4.14.175:
+    resolution: {integrity: sha512-XmdEOrKQ8a1Y/yxQFOMbC47G/V2VDO1GvMRnl4O75M4GW/abC5tnfzadQYkqEveqRM1dEJGFFegfPNA2vvx2iw==}
     dev: false
 
   /@types/minimatch/3.0.5:

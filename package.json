@@ -110,6 +110,7 @@
     "dependencies": {
         "@hediet/node-reload": "^0.7.3",
         "@types/jsonfile": "^6.0.1",
+        "@types/lodash": "^4.14.175",
         "@types/node": "^16.10.1",
         "depcheck": "^1.4.2",
         "esbuild": "^0.13.3",
@@ -121,7 +122,9 @@
         "globby": "^11",
         "got": "^11.8.2",
         "jsonfile": "^6.1.0",
+        "lodash": "^4.17.21",
         "pkg-dir": "^5",
+        "slash": "^3",
         "ts-node": "^10.2.1",
         "vscode-framework": "^0.0.6",
         "which-pm": "^2.0.0"

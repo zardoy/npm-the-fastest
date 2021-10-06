@@ -6,25 +6,13 @@ import { pickInstalledDeps } from './commands-core/packageJson'
 // import { NodeDependenciesProvider } from './nodeDependencies'
 import { getPrefferedScriptOrThrow } from './core/packageJson'
 import { pnpmCommand } from './core/packageManager'
+import { getPnpmOfflinePackages } from './core/pnpmOffline'
 
 // remove unused
 export const activate = ctx => {
     const framework = new VscodeFramework(ctx).registerAllCommands({
         'install-packages': () => {
-            // input.buttons = [{
-            // }]
-            // const quickPick = vscode.window.createQuickPick()
             // quickPick.onDidHide(quickPick.dispose)
-            // quickPick.buttons
-            // quickPick.items = [{ label: 'test' }, { label: 'yes' }]
-            // quickPick.onDidChangeSelection(items => {
-            //     console.log(items)
-            // })
-            // quickPick.onDidAccept(items => {
-            //     console.log('accept')
-            // })
-            // quickPick.onDidChangeValue(value => {
-            // })
             // quickPick.show()
         },
         'remove-packages': async () => {
@@ -43,8 +31,12 @@ export const activate = ctx => {
                 },
             )
         },
-        'pnpm-offline-install'() {
-            showQuickPick()
+        async 'pnpm-offline-install'() {
+            const offlinePackages = await getPnpmOfflinePackages()
+            const quickPick = vscode.window.createQuickPick()
+            quickPick.items = Object.entries(offlinePackages).map(([name, versions]) => ({ label: name, description: `${versions.length}` }))
+            quickPick.onDidHide(quickPick.dispose)
+            quickPick.show()
         },
         'run-depcheck'() {
             const { workspaceFolders } = vscode.workspace
