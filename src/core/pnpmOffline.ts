@@ -18,6 +18,7 @@ export const getPnpmVersionOrThrow = async () => {
     return version
 }
 
+/** List packages, installable with `--offline` flag */
 export const getPnpmOfflinePackages = async () => {
     console.time('get-offline')
     await getPnpmVersionOrThrow()
