@@ -14,7 +14,7 @@ export const getPnpmVersion = async () => {
 
 export const getPnpmVersionOrThrow = async () => {
     const version = await getPnpmVersion()
-    if (!version) throw new Error('pnpm is not installed')
+    if (!version) throw new Error('pnpm is not installed. You can install it with `npm i -g pnpm`')
     return version
 }
 
@@ -22,7 +22,7 @@ export const getPnpmVersionOrThrow = async () => {
 export const getPnpmOfflinePackages = async () => {
     console.time('get-offline')
     await getPnpmVersionOrThrow()
-    const globalStorePath = (await execa('pnpm', 'store path'.split(' '))).stdout
+    const { stdout: globalStorePath } = await execa('pnpm', 'store path'.split(' '))
     const searchPath = slash(join(globalStorePath, 'files/**/*-index.json'))
     const indexFiles = await globby(searchPath)
     const packageVersions: { [packageName: string]: string[] } = {} // version[]

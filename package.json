@@ -77,6 +77,12 @@
         }
     },
     "type": "commonjs",
+    "capabilities": {
+        "untrustedWorkspaces": {
+            "supported": false,
+            "description": "This extension needs to run arbitrary commands provided by package manager, installed on your system"
+        }
+    },
     "activationEvents": [
         "*",
         "workspaceContains:package.json"

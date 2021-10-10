@@ -1,6 +1,3 @@
 {
-    "extends": ["plugin:zardoy-config/recommended"],
-    "rules": {
-        "zardoy-config/@typescript-eslint/no-unsafe-assignment": "off"
-    }
+    "extends": ["plugin:zardoy-config/recommended"]
 }
