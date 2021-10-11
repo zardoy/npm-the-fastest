@@ -34,8 +34,18 @@ export const readPackageJsonWithMetadata = async ({ type, fallback }: { type: Pa
     return { packageJson: await readDirPackageJson(cwd), dir: cwd, workspaceFolder }
 }
 
+type PickedDeps = string[] & {
+    realDepsCount: number
+}
+
 // for: remove
-export const pickInstalledDeps = async ({ commandTitle, packageJson }: { commandTitle: string; packageJson?: PackageJson }) => {
+export const pickInstalledDeps = async ({
+    commandTitle,
+    packageJson,
+}: {
+    commandTitle: string
+    packageJson?: PackageJson
+}): Promise<PickedDeps | undefined> => {
     if (!packageJson) packageJson = (await readPackageJsonWithMetadata({ type: 'closest', fallback: true })).packageJson
     const depsPick: Array<keyof PackageJson> = ['dependencies', 'devDependencies', 'optionalDependencies']
     const depsIconMap = {
@@ -51,7 +61,7 @@ export const pickInstalledDeps = async ({ commandTitle, packageJson }: { command
 
     const packagesWithTypes = [] as string[]
 
-    const pickedDeps = await showQuickPick(
+    const pickedDeps = (await showQuickPick(
         depsPick.flatMap(depKey => {
             const deps = (packageJson![depKey] as PackageJson['dependencies']) ?? {}
             return Object.entries(deps)
@@ -73,8 +83,9 @@ export const pickInstalledDeps = async ({ commandTitle, packageJson }: { command
                 .filter(Boolean)
         }),
         { canPickMany: true, title: commandTitle, ignoreFocusOut: true },
-    )
+    )) as PickedDeps
     if (pickedDeps === undefined) return
+    pickedDeps.realDepsCount = pickedDeps.length
 
     for (const pkg of packagesWithTypes) if (pickedDeps.includes(pkg)) pickedDeps.push(AT_TYPES + pkg)
     return pickedDeps

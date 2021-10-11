@@ -1,5 +1,5 @@
 import vscode from 'vscode'
-import { showQuickPick, VscodeFramework } from 'vscode-framework'
+import { showQuickPick, VSCodeFramework } from 'vscode-framework'
 import got from 'got'
 import { launchNpmTask } from './commands-core/npmScripts'
 import { pickInstalledDeps } from './commands-core/packageJson'
@@ -10,7 +10,7 @@ import { getPnpmOfflinePackages } from './core/pnpmOffline'
 
 // remove unused
 export const activate = ctx => {
-    const framework = new VscodeFramework(ctx).registerAllCommands({
+    new VSCodeFramework(ctx).registerAllCommands({
         'install-packages': () => {
             // quickPick.onDidHide(quickPick.dispose)
             // quickPick.show()
@@ -22,8 +22,7 @@ export const activate = ctx => {
             await vscode.window.withProgress(
                 {
                     location: vscode.ProgressLocation.Notification,
-                    // title: `Removing ${selectedDeps.length}`,
-                    title: `Removing system32`,
+                    title: `Removing ${selectedDeps.realDepsCount} packages`,
                     cancellable: true,
                 },
                 async (progress, token) => {
