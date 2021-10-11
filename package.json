@@ -10,11 +10,6 @@
                 "title": "Offline Install NPM Packages"
             },
             {
-                "command": "run-depcheck",
-                "category": "PNPM",
-                "title": "Show Depcheck View"
-            },
-            {
                 "command": "install-packages",
                 "title": "Install NPM Packages"
             },

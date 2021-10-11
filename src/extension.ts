@@ -12,8 +12,14 @@ import { getPnpmOfflinePackages } from './core/pnpmOffline'
 export const activate = ctx => {
     new VSCodeFramework(ctx).registerAllCommands({
         'install-packages': () => {
-            // quickPick.onDidHide(quickPick.dispose)
-            // quickPick.show()
+            // TODO just need to implement some kind of routing
+            const quickPick = vscode.window.createQuickPick()
+            quickPick.title = 'Install packages: foo, bar'
+            quickPick.placeholder = 'Hit Enter to install 2 packages'
+            quickPick.items = ['foo', 'bar'].map(s => ({ label: s }))
+            quickPick.onDidHide(quickPick.dispose)
+            quickPick.show()
+            // got(`https://api.npms.io/v2/search?q=${}&size=20`)
         },
         'remove-packages': async () => {
             const selectedDeps = await pickInstalledDeps({ commandTitle: 'Remove packages' })
