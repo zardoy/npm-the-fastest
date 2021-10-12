@@ -5,13 +5,17 @@
     "contributes": {
         "commands": [
             {
+                "command": "install-packages",
+                "title": "Install NPM Packages"
+            },
+            {
+                "command": "install",
+                "title": "Install workspace dependencies"
+            },
+            {
                 "command": "pnpm-offline-install",
                 "category": "PNPM",
                 "title": "Offline Install NPM Packages"
-            },
-            {
-                "command": "install-packages",
-                "title": "Install NPM Packages"
             },
             {
                 "command": "remove-packages",
@@ -27,8 +31,7 @@
             },
             {
                 "command": "open-closest-package-json",
-                "title": "Open Closest Package.json to Current Editor",
-                "enablement": ""
+                "title": "Open Closest Package.json to Current Editor"
             },
             {
                 "command": "open-workspace-package-json",
@@ -39,6 +42,26 @@
                 "title": "Enforce Package Manager Use"
             }
         ],
+        "menus": {
+            "commandPalette": [
+                {
+                    "command": "install",
+                    "when": "!virtualWorkspace"
+                },
+                {
+                    "command": "pnpm-offline-install",
+                    "when": "!virtualWorkspace"
+                },
+                {
+                    "command": "start-npm-script",
+                    "when": "!virtualWorkspace"
+                },
+                {
+                    "command": "start-npm-script",
+                    "when": "!virtualWorkspace"
+                }
+            ]
+        },
         "configuration": {
             "properties": {
                 "main-npm-script": {
@@ -76,6 +99,10 @@
         "untrustedWorkspaces": {
             "supported": false,
             "description": "This extension needs to run arbitrary commands provided by package manager, installed on your system"
+        },
+        "virtualWorkspaces": {
+            "supported": "limited",
+            "description": "In virtual workspaces (or web), only basic commands and manipulation with package.json are supported."
         }
     },
     "activationEvents": [
@@ -98,7 +125,7 @@
     "private": true,
     "preview": true,
     "scripts": {
-        "start": "vscode-framework start"
+        "start": "vscode-framework start --skip-launching"
     },
     "devDependencies": {
         "@types/fs-extra": "^9.0.13",

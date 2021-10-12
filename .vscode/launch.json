@@ -1,11 +1,11 @@
 {
     "configurations": [
         {
-            "args": ["--extensionDevelopmentPath=${workspaceFolder}/out", "--disable-extensions"],
+            "args": ["--extensionDevelopmentPath=${workspaceFolder}/out"],
             "name": "Launch Extension",
             "outFiles": ["${workspaceFolder}/out/**/*.js"],
             "request": "launch",
-            "type": "pwa-extensionHost"
+            "type": "extensionHost"
         }
     ]
 }
