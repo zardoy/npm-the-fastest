@@ -38,6 +38,10 @@
                 "title": "Open Workspace Package.json"
             },
             {
+                "command": "run-bin-command",
+                "title": "Run bin Command of Locally Installed Package"
+            },
+            {
                 "command": "enforce-package-manager-use",
                 "title": "Enforce Package Manager Use"
             }
@@ -53,11 +57,15 @@
                     "when": "!virtualWorkspace"
                 },
                 {
-                    "command": "start-npm-script",
+                    "command": "start-main-npm-script",
                     "when": "!virtualWorkspace"
                 },
                 {
                     "command": "start-npm-script",
+                    "when": "!virtualWorkspace"
+                },
+                {
+                    "command": "run-bin-command",
                     "when": "!virtualWorkspace"
                 }
             ]
@@ -117,7 +125,7 @@
         "yarn",
         "pnpm",
         "dependencies",
-        "depcheck"
+        "corepack"
     ],
     "version": "0.0.1",
     "author": "Vitaly Turovsky <vital2580@icloud.com>",
@@ -125,36 +133,37 @@
     "private": true,
     "preview": true,
     "scripts": {
-        "start": "vscode-framework start --skip-launching"
+        "start": "cross-env DEBUG=vscode-framework:* vscode-framework start --skip-launching"
     },
     "devDependencies": {
         "@types/fs-extra": "^9.0.13",
         "@types/vscode": "^1.61.0",
         "@zardoy/tsconfig": "^1.2.2",
         "eslint-plugin-zardoy-config": "^0.1.0",
-        "type-fest": "^2.3.4",
-        "typescript": "^4.4.3"
+        "type-fest": "^2.5.0",
+        "typescript": "^4.4.4"
     },
     "dependencies": {
         "@hediet/node-reload": "^0.7.3",
-        "@mui/icons-material": "^5.0.3",
+        "@mui/icons-material": "^5.0.4",
         "@types/jsonfile": "^6.0.1",
         "@types/lodash": "^4.14.175",
-        "@types/node": "^16.10.3",
+        "@types/node": "^16.11.0",
+        "cross-env": "^7.0.3",
         "depcheck": "^1.4.2",
-        "esbuild": "^0.13.4",
+        "esbuild": "^0.13.6",
         "eslint": "^7.32.0",
         "execa": "^5.1.1",
         "filesize": "^8.0.3",
         "find-up": "^6.2.0",
         "fs-extra": "^10.0.0",
-        "globby": "^11",
+        "globby": "^11.0.4",
         "got": "^11.8.2",
         "jsonfile": "^6.1.0",
         "lodash": "^4.17.21",
-        "pkg-dir": "^5",
-        "slash": "^3",
-        "ts-node": "^10.2.1",
+        "pkg-dir": "^5.0.0",
+        "slash": "^3.0.0",
+        "ts-node": "^10.3.0",
         "vscode-framework": "^0.0.7",
         "which-pm": "^2.0.0"
     }
