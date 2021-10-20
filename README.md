@@ -16,3 +16,10 @@ Under heavy development, I want to make it the most comprehensive tool for worki
 - `src/commands-core` - command-related code
 - `src/core` general code, that can be used outside of vscode
 <!-- TODO: linter don't allow to use vscode module inside src/core -->
+
+## Unrelated Functionality
+
+This functionality can be enabled, however it will be removed.
+
+- TypeScript top-line snippets
+- TypeScript advanced fixes
