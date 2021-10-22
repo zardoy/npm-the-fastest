@@ -1,20 +1,40 @@
 import vscode from 'vscode'
-import { showQuickPick, VSCodeFramework } from 'vscode-framework'
-import got from 'got'
+import { registerAllExtensionCommands, showQuickPick } from 'vscode-framework'
 import { launchNpmTask } from './commands-core/npmScripts'
 import { pickInstalledDeps } from './commands-core/packageJson'
+import { runBinCommand } from './commands/runBinCommand'
 // import { NodeDependenciesProvider } from './nodeDependencies'
 import { getPrefferedScriptOrThrow } from './core/packageJson'
 import { pnpmCommand } from './core/packageManager'
 import { getPnpmOfflinePackages } from './core/pnpmOffline'
+import { registerCompletions } from './tsSnippets'
 
-// remove unused
+// remove
 export const activate = ctx => {
-    //@ts-ignore
-    new VSCodeFramework(ctx).registerAllCommands({
+    // @ts-ignore
+    registerAllExtensionCommands({
+        // @ts-ignore
+        async 'run-bin-command'() {
+            await runBinCommand()
+        },
         'install-packages': () => {
             // TODO just need to implement some kind of routing
-            console.log(vscode.window.visibleTextEditors[0]?.document.uri)
+            const { fs } = vscode.workspace
+
+            // vscode.workspace.applyEdit(new vscode.WorkspaceEdit().delete)
+            // vscode.workspace.openTextDocument
+
+            // vscode.workspace.textDocuments - not clear
+
+            // vscode.window.showTextDocument('', {
+            // revieow options
+            // })
+
+            // const uri = vscode.window.activeTextEditor!.document.uri.path
+            // console.log(uri)
+
+            // vscode.window.activeTextEditor
+
             // const quickPick = vscode.window.createQuickPick()
             // quickPick.title = 'Install packages: foo, bar'
             // quickPick.placeholder = 'Hit Enter to install 2 packages'
@@ -90,6 +110,8 @@ export const activate = ctx => {
     //     treeProvider.refresh()
     //     treeProvider.onLoad = (setMessage = '') => (treeView.message = setMessage)
     // })
+
+    registerCompletions()
 
     // enforce: select pm, package.json location, check preinstall - if stats with -override.
 }

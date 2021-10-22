@@ -81,6 +81,11 @@
                     ],
                     "uniqueItems": true,
                     "description": "Run first script from this list on Start Main NPM Script command"
+                },
+                "enable-ts-snippets": {
+                    "type": "boolean",
+                    "default": false,
+                    "deprecationMessage": "This will be removed"
                 }
             }
         },
@@ -133,7 +138,7 @@
     "private": true,
     "preview": true,
     "scripts": {
-        "start": "cross-env DEBUG=vscode-framework:* vscode-framework start --skip-launching"
+        "start": "cross-env DEBUG=vscode-framework:* vscode-framework start"
     },
     "devDependencies": {
         "@types/fs-extra": "^9.0.13",
