@@ -58,7 +58,6 @@ export interface AlgoliaSearchResultItem {
     keywords: string[]
     computedKeywords: string[]
     computedMetadata: Record<string, unknown>
-    // 1_627_359_890_054
     created: number
     modified: number
     lastPublisher: Owner

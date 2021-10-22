@@ -1,5 +1,5 @@
 import vscode from 'vscode'
-import { registerAllExtensionCommands, showQuickPick } from 'vscode-framework'
+import { registerActiveDevelopmentCommand, registerAllExtensionCommands, showQuickPick } from 'vscode-framework'
 import { launchNpmTask } from './commands-core/npmScripts'
 import { pickInstalledDeps } from './commands-core/packageJson'
 import { runBinCommand } from './commands/runBinCommand'
@@ -11,6 +11,10 @@ import { registerCompletions } from './tsSnippets'
 
 // remove
 export const activate = ctx => {
+    // registerActiveDevelopmentCommand(() => {
+    //     vscode.window.activeTextEditor
+    // })
+
     // @ts-ignore
     registerAllExtensionCommands({
         // @ts-ignore
@@ -21,27 +25,9 @@ export const activate = ctx => {
             // TODO just need to implement some kind of routing
             const { fs } = vscode.workspace
 
-            // vscode.workspace.applyEdit(new vscode.WorkspaceEdit().delete)
             // vscode.workspace.openTextDocument
 
             // vscode.workspace.textDocuments - not clear
-
-            // vscode.window.showTextDocument('', {
-            // revieow options
-            // })
-
-            // const uri = vscode.window.activeTextEditor!.document.uri.path
-            // console.log(uri)
-
-            // vscode.window.activeTextEditor
-
-            // const quickPick = vscode.window.createQuickPick()
-            // quickPick.title = 'Install packages: foo, bar'
-            // quickPick.placeholder = 'Hit Enter to install 2 packages'
-            // quickPick.items = ['foo', 'bar'].map(s => ({ label: s }))
-            // quickPick.onDidHide(quickPick.dispose)
-            // quickPick.show()
-            // got(`https://api.npms.io/v2/search?q=${}&size=20`)
         },
         'remove-packages': async () => {
             const selectedDeps = await pickInstalledDeps({ commandTitle: 'Remove packages' })
