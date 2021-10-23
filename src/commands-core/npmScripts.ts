@@ -5,11 +5,11 @@ type PromiseType<T> = T extends Promise<infer U> ? U : never
 
 export const launchedTasks: { [workspacePath: string]: { [npmScript: string]: vscode.TaskExecution } } = {}
 
-const scriptNamespaceIcon = {
-    test: 'test-view-icon',
-    generate: 'code',
-    compile: 'file-binary',
-    build: 'tools', // debug-configure - gear
+const detectAndAssignProblemMatcher = (task: vscode.Task, scriptContent: string) => {
+    // TODO! simple cmd parser &&
+    // TODO! resolve final command with links
+    if (scriptContent.startsWith('tsc')) task.problemMatchers = ['$tsc']
+    if (scriptContent.startsWith('esbuild')) task.problemMatchers = scriptContent.includes('--watch') ? ['$esbuild-watch'] : ['$esbuild']
 }
 
 /**
@@ -45,6 +45,8 @@ export const launchNpmTask = async (getNpmScript: (params: PromiseType<ReturnTyp
         'npm',
         new vscode.ShellExecution(packageManager, ['run', npmScript], { cwd: workspacePath }),
     )
+    detectAndAssignProblemMatcher(task, packageJson.scripts[npmScript]!)
+
     launchedTasks[workspacePath]?.[npmScript]?.terminate()
     const taskExecution = await vscode.tasks.executeTask(task)
     if (!launchedTasks[workspacePath]) launchedTasks[workspacePath] = {}

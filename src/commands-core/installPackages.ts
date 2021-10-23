@@ -2,7 +2,7 @@ import { throttle } from 'lodash'
 import vscode from 'vscode'
 import { NpmSearchResult, performAlgoliaSearch } from '../core/npmSearch'
 
-export const installPackages = () => {
+export const installPackages = (location: 'closest' | 'workspace') => {
     const quickPick = vscode.window.createQuickPick()
     // quickPick.buttons = []
     quickPick.title = 'Add packages to the project'
@@ -12,6 +12,7 @@ export const installPackages = () => {
     // TODO!
     let currentRequestSignal: AbortSignal | undefined
 
+    // TODO tab expansion
     const throttledSearch = throttle(
         async (search: string) => {
             console.time('request')
@@ -63,6 +64,7 @@ export const installPackages = () => {
         } else {
             selectedPackages.unshift({ ...activeItem })
         }
+        if (selectedPackages.length > 0)
     })
     quickPick.onDidChangeValue(async search => {
         quickPick.items = selectedPackages
