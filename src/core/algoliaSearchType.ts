@@ -7,6 +7,8 @@ type MatchLevel = 'none' | 'full'
 
 type Owner = Record<'name' | 'email' | 'avatar' | 'link', string>
 
+// TODO! setup auto testsing with TJS
+
 export interface AlgoliaSearchResultItem {
     name: string
     downloadsLast30Days: number
@@ -63,7 +65,7 @@ export interface AlgoliaSearchResultItem {
     lastPublisher: Owner
     owners: Owner[]
     bin: PackageJson['bin']
-    types: { ts: false | 'included' | '@types/module' }
+    types: { ts: false | 'included' | 'definitely-typed' }
     // TODO
     moduleTypes: ['unknown'] | ['cjs'] | ['esm'] | ['cjs' | 'esm']
     // 2021-07-30T01:39:21.322Z

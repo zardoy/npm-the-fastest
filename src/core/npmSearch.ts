@@ -48,21 +48,16 @@ export const performAlgoliaSearch = async (search: string): Promise<NpmSearchRes
     // return results.hits.map(({ name, version, owner }) => ({ name, version, owner: owner.name }))
 }
 
-// export const performNpmsSearch = async (search: string): Promise<SearchResult> => {
-//     const currentRequest = got(`https://api.npms.io/v2/search?q=${search}&size=20`, {
-//         responseType: 'json',
-//     })
-//     const successfullRequest: Response<any> = await currentRequest
-//     const response: NpmsSearchResult = successfullRequest.body
-//     return response.results.map(({ package: pkg }) => ({
-//         name: pkg.name,
-//         owner: pkg.author?.username ?? pkg.author?.name ?? pkg.maintainers[0]!.username,
-//         version: pkg.version,
-//     }))
-// }
-
-console.time('search')
-
-performAlgoliaSearch('material-uiz')
-    .finally(() => console.timeEnd('search'))
-    .then(console.log)
+export const performNpmsSearch = async (search: string): Promise<NpmSearchResult> => {
+    const currentRequest = got(`https://api.npms.io/v2/search?q=${search}&size=20`, {
+        responseType: 'json',
+    })
+    const successfullRequest: Response<any> = await currentRequest
+    const response: NpmsSearchResult = successfullRequest.body
+    return response.results.map(({ package: pkg }) => ({
+        name: pkg.name,
+        owner: pkg.author?.username ?? pkg.author?.name ?? pkg.maintainers[0]!.username,
+        version: pkg.version,
+        description: pkg.description,
+    }))
+}

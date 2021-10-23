@@ -1,14 +1,15 @@
 import { throttle } from 'lodash'
-import { NpmSearchResult, performAlgoliaSearch } from '../core/npmSearch'
 import vscode from 'vscode'
+import { NpmSearchResult, performAlgoliaSearch } from '../core/npmSearch'
 
-const installPackages = () => {
+export const installPackages = () => {
     const quickPick = vscode.window.createQuickPick()
     // quickPick.buttons = []
     quickPick.title = 'Add packages to the project'
     let selectedPackages: vscode.QuickPickItem[] = []
     /** Force using cache as got and algoliasearch won't cache */
     const internalCache = new Map<string, { date: number; data: NpmSearchResult }>() // query-results
+    // TODO!
     let currentRequestSignal: AbortSignal | undefined
 
     const throttledSearch = throttle(
@@ -33,12 +34,10 @@ const installPackages = () => {
 
                 if (humanDownloadsLast30Days !== undefined) detail += ` $(extensions-install-count) ${humanDownloadsLast30Days}`
 
-                if (bin) {
-                    const commands = Object.keys(bin)
-                    detail += ` $(terminal) ${commands.join(', ')}`
-                }
+                const commands = Object.keys(bin ?? {})
+                if (commands.length > 0) detail += ` $(terminal) ${commands.join(', ')}`
 
-                if (types !== undefined) detail += ` $(symbol-type-parameter) ${types === false ? 'No' : types === '@types/module' ? '@types' : types}`
+                if (types !== undefined) detail += ` $(symbol-type-parameter) ${types === false ? 'No' : types === 'definitely-typed' ? '@types' : types}`
 
                 if (owner) detail += ` $(account) ${owner}`
 
