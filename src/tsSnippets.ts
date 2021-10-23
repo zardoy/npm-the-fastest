@@ -3,7 +3,7 @@ import { getExtensionSetting } from 'vscode-framework'
 
 export const registerCompletions = () => {
     // TODO
-    if (!getExtensionSetting('enable-ts-snippets')) return
+    if (!getExtensionSetting('experimental.includeTsSnippets')) return
 
     // react
     vscode.languages.registerCompletionItemProvider('typescript', {

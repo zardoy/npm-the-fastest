@@ -82,29 +82,26 @@
                     "uniqueItems": true,
                     "description": "Run first script from this list on Start Main NPM Script command"
                 },
-                "enable-ts-snippets": {
+                "search.provder": {
+                    "type": "string",
+                    "description": "Provider that will be used when adding new packages from NPM. Algolia provides more info and 2x faster",
+                    "default": "algolia",
+                    "enum": [
+                        "algolia",
+                        "npms"
+                    ]
+                },
+                "search.includeDeprecated": {
+                    "type": "boolean",
+                    "description": "Include deprecated packages into search results",
+                    "default": false
+                },
+                "experimental.includeTsSnippets": {
                     "type": "boolean",
                     "default": false,
                     "deprecationMessage": "This will be removed"
                 }
             }
-        },
-        "viewsContainers": {
-            "activitybar": [
-                {
-                    "id": "dependencies-explorer",
-                    "title": "Dependencies Explorer",
-                    "icon": "all_inbox_black_24dp.svg"
-                }
-            ]
-        },
-        "views": {
-            "dependencies-explorer": [
-                {
-                    "id": "nodeDependencies",
-                    "name": "Node Dependencies"
-                }
-            ]
         }
     },
     "type": "commonjs",
@@ -176,6 +173,7 @@
         "slash": "^3.0.0",
         "ts-node": "^10.3.0",
         "vscode-framework": "^0.0.7",
+        "vscode-uri": "^3.0.2",
         "which-pm": "^2.0.0"
     }
 }

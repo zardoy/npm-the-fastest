@@ -1,7 +1,9 @@
+import { posix } from 'path'
 import vscode from 'vscode'
 import { registerActiveDevelopmentCommand, registerAllExtensionCommands, showQuickPick } from 'vscode-framework'
+import { Utils } from 'vscode-uri'
 import { launchNpmTask } from './commands-core/npmScripts'
-import { pickInstalledDeps } from './commands-core/packageJson'
+import { findUpPackageJson, pickInstalledDeps } from './commands-core/packageJson'
 import { runBinCommand } from './commands/runBinCommand'
 // import { NodeDependenciesProvider } from './nodeDependencies'
 import { getPrefferedScriptOrThrow } from './core/packageJson'
@@ -11,13 +13,23 @@ import { registerCompletions } from './tsSnippets'
 
 // remove
 export const activate = ctx => {
-    // registerActiveDevelopmentCommand(() => {
-    //     vscode.window.activeTextEditor
-    // })
+    registerActiveDevelopmentCommand(async () => {
+        const uri = vscode.window.activeTextEditor?.document.uri
+        if (uri === undefined) return
+        const closestPackageJson = await findUpPackageJson(uri)
+        if (closestPackageJson === undefined) {
+            await vscode.window.showWarningMessage('No closest package.json found')
+            return
+        }
 
-    // @ts-ignore
+        const uriToOpen = Utils.joinPath(closestPackageJson, 'package.json')
+        console.log(uriToOpen)
+        await vscode.workspace.openTextDocument(uriToOpen)
+    })
+
+    // @ts-expect-error
     registerAllExtensionCommands({
-        // @ts-ignore
+        // @ts-expect-error
         async 'run-bin-command'() {
             await runBinCommand()
         },

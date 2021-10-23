@@ -1,4 +1,5 @@
 import { findUp } from 'find-up'
+import { posix } from 'path'
 import { PackageJson } from 'type-fest'
 import vscode from 'vscode'
 import { showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
@@ -32,6 +33,28 @@ export const readPackageJsonWithMetadata = async ({ type, fallback }: { type: Pa
     // TODO remove
     if (cwd.endsWith('package.json')) cwd = cwd.slice(0, -'package.json'.length)
     return { packageJson: await readDirPackageJson(cwd), dir: cwd, workspaceFolder }
+}
+
+// TODO-implement find-up for vscode ? or use fs
+/**
+ * @param uri Initial URI (e.g. of textEditor, but not directory!)
+ * @returns Uri with path of closest directory with package.json
+ */
+export const findUpPackageJson = async (uri: vscode.Uri) => {
+    const currentWorkspacePath = vscode.workspace.getWorkspaceFolder(uri)
+    // TODO maybe allow?
+    if (!currentWorkspacePath) throw new Error('Opening closest package.json is not supported for files that are not part of opened workspace')
+    const { fs } = vscode.workspace
+
+    let currentPath = posix.join(uri.path, '..')
+    while (true) {
+        const scanDirUri = uri.with({ path: currentPath })
+        const fileList = await fs.readDirectory(scanDirUri)
+        const packageJsonFile = fileList.find(([name, type]) => name === 'package.json' && type === vscode.FileType.File)
+        if (packageJsonFile) return scanDirUri
+        currentPath = posix.join(currentPath, '..')
+        if (posix.relative(currentPath, currentWorkspacePath.uri.path) === '') return undefined
+    }
 }
 
 type PickedDeps = string[] & {
