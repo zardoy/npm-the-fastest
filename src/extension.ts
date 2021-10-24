@@ -98,7 +98,7 @@ export const activate = () => {
                     // TODO multistep
                     const action = await showQuickPick(
                         [
-                            { label: '$(debug-console) Reveal Terminal', value: 'reveal' },
+                            { label: '$(debug-console) Focus Terminal', value: 'focus' },
                             { label: '$(terminal-kill) Kill the Process', value: 'kill' },
                             { label: '$(debug-restart) Restart the Process', value: 'restart' },
                         ],
@@ -107,7 +107,7 @@ export const activate = () => {
                         },
                     )
                     if (action === undefined) return
-                    if (action === 'reveal') {
+                    if (action === 'focus') {
                         vscode.window.terminals.find(({ name }) => name === npmScript)!.show()
                         return
                     }
