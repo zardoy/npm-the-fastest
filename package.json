@@ -1,48 +1,57 @@
 {
     "name": "npm-the-fastest",
     "displayName": "NPM THE FASTEST",
+    "description": "Full-featured extension for npm ecosystem",
     "publisher": "zardoy",
     "contributes": {
         "commands": [
             {
-                "command": "install-packages",
-                "title": "Install NPM Packages"
+                "command": "installPackages",
+                "title": "Install npm Packages"
             },
             {
                 "command": "install",
                 "title": "Install workspace dependencies"
             },
             {
-                "command": "pnpm-offline-install",
+                "command": "pnpmOfflineInstall",
                 "category": "PNPM",
-                "title": "Offline Install NPM Packages"
+                "title": "Install Offline npm Packages"
             },
             {
-                "command": "remove-packages",
-                "title": "Remove NPM Packages"
+                "command": "removePackages",
+                "title": "Remove npm Packages"
             },
             {
-                "command": "start-npm-script",
-                "title": "Start NPM Script"
+                "command": "runNpmScript",
+                "title": "Run npm Script"
             },
             {
-                "command": "start-main-npm-script",
-                "title": "Start Main NPM Script"
+                "command": "runMainNpmScript",
+                "title": "Run Main npm Script"
             },
             {
-                "command": "open-closest-package-json",
-                "title": "Open Closest Package.json to Current Editor"
+                "command": "openClosestPackageJson",
+                "title": "Open Closest package.json to Current Editor"
             },
             {
-                "command": "open-workspace-package-json",
+                "command": "openWorkspacePackageJson",
+                "title": "Open package.json of current workspace"
+            },
+            {
+                "command": "openPackageJsonFrom",
+                "title": "Open package.json from..."
+            },
+            {
+                "command": "openWorkspacePackageJson",
                 "title": "Open Workspace Package.json"
             },
             {
-                "command": "run-bin-command",
+                "command": "runBinCommand",
                 "title": "Run bin Command of Locally Installed Package"
             },
             {
-                "command": "enforce-package-manager-use",
+                "command": "enforcePackageManagerUse",
                 "title": "Enforce Package Manager Use"
             }
         ],
@@ -53,34 +62,50 @@
                     "when": "!virtualWorkspace"
                 },
                 {
-                    "command": "pnpm-offline-install",
+                    "command": "pnpmOfflineInstall",
                     "when": "!virtualWorkspace"
                 },
                 {
-                    "command": "start-main-npm-script",
+                    "command": "runMainNpmScript",
                     "when": "!virtualWorkspace"
                 },
                 {
-                    "command": "start-npm-script",
+                    "command": "runNpmScript",
                     "when": "!virtualWorkspace"
                 },
                 {
-                    "command": "run-bin-command",
+                    "command": "runBinCommand",
                     "when": "!virtualWorkspace"
                 }
             ]
         },
         "configuration": {
             "properties": {
-                "main-npm-script": {
-                    "title": "Main NPM script to run",
-                    "type": "array",
-                    "default": [
-                        "test",
-                        "tees2"
+                "install.handleMutlirootWorkspaces": {
+                    "type": "string",
+                    "enum": [
+                        "disabled",
+                        "parallel",
+                        "serial"
                     ],
-                    "uniqueItems": true,
-                    "description": "Run first script from this list on Start Main NPM Script command"
+                    "enumDescriptions": [
+                        "Always perform install only for active editor workspace",
+                        "Install packages for each workspace at the same time. Several progress notifications will be showed",
+                        "Install packages for each workspace in sequence"
+                    ],
+                    "default": "parallel"
+                },
+                "install.packs": {
+                    "type": "object",
+                    "patternProperties": {
+                        ".*": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "minLength": 1
+                        }
+                    }
                 },
                 "search.provder": {
                     "type": "string",
@@ -91,6 +116,35 @@
                         "npms"
                     ]
                 },
+                "scripts.mainScripts": {
+                    "type": "array",
+                    "description": "The first script will be run from this list on `start-npm-script` command.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "uniqueItems": true,
+                    "default": [
+                        "dev",
+                        "start",
+                        "watch"
+                    ]
+                },
+                "scripts.searchLocation": {
+                    "type": "string",
+                    "description": "This affects `runScript` and `runMainScript` commands. From where pick scripts",
+                    "enum": [
+                        "closest",
+                        "currentWorkspaceFolderRoot"
+                    ],
+                    "enumDescriptions": [
+                        "Closest package.json file of active text editor",
+                        "Root of current workspace folder (based on active text editor in "
+                    ]
+                },
+                "statusbar.showMainScriptStatus": {
+                    "type": "boolean",
+                    "default": true
+                },
                 "search.includeDeprecated": {
                     "type": "boolean",
                     "description": "Include deprecated packages into search results",
@@ -99,7 +153,7 @@
                 "experimental.includeTsSnippets": {
                     "type": "boolean",
                     "default": false,
-                    "deprecationMessage": "This will be removed"
+                    "deprecationMessage": "This feature will be removed"
                 }
             }
         }
