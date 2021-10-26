@@ -6,16 +6,16 @@
     "contributes": {
         "commands": [
             {
-                "command": "installPackages",
-                "title": "Install npm Packages"
+                "command": "addPackages",
+                "title": "Add npm Packages"
             },
             {
-                "command": "install",
-                "title": "Install workspace dependencies"
+                "command": "runInstall",
+                "title": "Install Workspace Dependencies"
             },
             {
                 "command": "pnpmOfflineInstall",
-                "category": "PNPM",
+                "category": "NPM THE FASTEST (pnpm)",
                 "title": "Install Offline npm Packages"
             },
             {
@@ -58,7 +58,7 @@
         "menus": {
             "commandPalette": [
                 {
-                    "command": "install",
+                    "command": "runInstall",
                     "when": "!virtualWorkspace"
                 },
                 {
@@ -197,9 +197,12 @@
     "devDependencies": {
         "@types/fs-extra": "^9.0.13",
         "@types/lodash": "^4.14.175",
+        "@types/mocha": "^9.0.0",
         "@types/vscode": "^1.61.0",
+        "@vscode/test-electron": "^1.6.2",
         "@zardoy/tsconfig": "^1.2.2",
         "eslint-plugin-zardoy-config": "^0.1.0",
+        "mocha": "^9.1.3",
         "type-fest": "^2.5.0",
         "typescript": "^4.4.4"
     },

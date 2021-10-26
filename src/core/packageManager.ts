@@ -19,15 +19,26 @@ const getUsedPackageManager = async (cwd: string) => {
     return name as keyof typeof supportedPackageManagers
 }
 
-export const pnpmCommand = (
-    command: 'remove' | 'add',
-    deps: string[],
-    reportProgress: (_: { message: string }) => void,
-    cancellationToken: vscode.CancellationToken,
-) => {
-    const pnpm = execa('pnpm', [command, ...deps, '--reporter', 'ndjson'])
+export const pnpmCommand = ({
+    command,
+    packages,
+    reportProgress,
+    cwd,
+    cancellationToken,
+}: {
+    command: 'remove' | 'add'
+    packages: string[]
+    cwd: string
+    reportProgress: (_: { message: string }) => void
+    cancellationToken: vscode.CancellationToken
+}) => {
+    const pnpm = execa('pnpm', [command, ...packages, '--reporter', 'ndjson'], { cwd })
 
     // TODO! pipe stderr to the output pane
+
+    pnpm.stderr?.on?.('data', err => {
+        console.log(err)
+    })
 
     cancellationToken.onCancellationRequested(() => pnpm.kill())
 

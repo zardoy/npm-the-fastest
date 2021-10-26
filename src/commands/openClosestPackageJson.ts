@@ -12,7 +12,5 @@ export const openClosestPackageJson = async () => {
     }
 
     const uriToOpen = Utils.joinPath(closestPackageJson, 'package.json')
-    console.log(uriToOpen)
-    // TODO doesn't work!
-    await vscode.workspace.openTextDocument(uriToOpen)
+    await vscode.window.showTextDocument(uriToOpen)
 }

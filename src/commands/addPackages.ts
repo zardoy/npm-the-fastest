@@ -1,8 +1,15 @@
 import { throttle } from 'lodash'
 import vscode from 'vscode'
+import { performInstallAction } from '../commands-core/installPackages'
+import { getCurrentWorkspaceRoot } from '../commands-core/core'
 import { NpmSearchResult, performAlgoliaSearch } from '../core/npmSearch'
+import { throwIfNowPackageJson } from '../commands-core/packageJson'
 
-export const installPackages = (location: 'closest' | 'workspace') => {
+export const installPackages = async (location: 'closest' | 'workspace') => {
+    // in pm-workspaces: select workspace, root at bottom, : to freeChoice
+    // otherwise: freeChoice
+    const currentWorkspaceRoot = getCurrentWorkspaceRoot()
+    await throwIfNowPackageJson(currentWorkspaceRoot.uri, true)
     const quickPick = vscode.window.createQuickPick()
     // quickPick.buttons = []
     quickPick.title = 'Add packages to the project'
@@ -77,11 +84,15 @@ export const installPackages = (location: 'closest' | 'workspace') => {
         quickPick.busy = true
         await throttledSearch(search)
     })
-    quickPick.onDidAccept(() => {
+    quickPick.onDidAccept(async () => {
         // quickPick.value = ''
         const activeItem = quickPick.selectedItems[0]!
         if ((activeItem as unknown as typeof acceptInstallItem).installAction) {
-            performInstallAction(selectedPackages.map(({ label }) => label))
+            // TODO! workspaces
+            await performInstallAction(
+                currentWorkspaceRoot.uri.fsPath,
+                selectedPackages.map(({ label }) => label),
+            )
             quickPick.hide()
         } else if (activeItem.alwaysShow) {
             selectedPackages.splice(selectedPackages.indexOf(activeItem), 1)
@@ -94,5 +105,3 @@ export const installPackages = (location: 'closest' | 'workspace') => {
     quickPick.onDidHide(quickPick.dispose)
     quickPick.show()
 }
-
-const performInstallAction = (packages: string[]) => {}

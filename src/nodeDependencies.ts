@@ -1,7 +1,6 @@
 import vscode from 'vscode'
 import depcheck, { Results } from 'depcheck'
 import { PackageJson } from 'type-fest'
-import { readDirPackageJson } from './core/packageJson'
 
 export class NodeDependenciesProvider implements vscode.TreeDataProvider<TreeItem> {
     onLoad: ((setMessage?: string) => void) | undefined

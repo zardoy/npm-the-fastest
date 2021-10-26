@@ -61,9 +61,13 @@ Example:
 }
 ```
 
-### Extension Development Notes
+## Extension Development Notes
 
-## `src` Directory Structure
+### Terms
+
+- pm-workspace – Package Manager workspaces (npm / yarn / pnpm workspaces)
+
+### `src` Directory Structure
 
 - `src/commands-core` - command-related code
 - `src/core` general code, that can be used outside of vscode
