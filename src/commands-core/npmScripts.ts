@@ -3,7 +3,7 @@ import { readPackageJsonWithMetadata } from './packageJson'
 
 type PromiseType<T> = T extends Promise<infer U> ? U : never
 
-export const launchedTasks: { [workspacePath: string]: { [npmScript: string]: vscode.TaskExecution } } = {}
+// export const launchedTasks: { [workspacePath: string]: { [npmScript: string]: vscode.TaskExecution } } = {}
 
 const detectAndAssignProblemMatcher = (task: vscode.Task, scriptContent: string) => {
     // TODO! simple cmd parser &&
@@ -43,12 +43,14 @@ export const launchNpmTask = async (getNpmScript: (params: PromiseType<ReturnTyp
         workspaceFolder!,
         npmScript,
         'npm',
-        new vscode.ShellExecution(packageManager, ['run', npmScript], { cwd: workspacePath }),
+        new vscode.ShellExecution(packageManager, ['run', npmScript], { cwd: workspacePath.fsPath }),
     )
     detectAndAssignProblemMatcher(task, packageJson.scripts[npmScript]!)
 
-    launchedTasks[workspacePath]?.[npmScript]?.terminate()
-    const taskExecution = await vscode.tasks.executeTask(task)
-    if (!launchedTasks[workspacePath]) launchedTasks[workspacePath] = {}
-    launchedTasks[workspacePath]![npmScript] = taskExecution
+    // launchedTasks[workspacePath]?.[npmScript]?.terminate()
+    const runningNpmTasks = vscode.tasks.taskExecutions.filter(({ task }) => task.source === 'npm')
+    runningNpmTasks.find(({ task }) => task.name === npmScript)?.terminate()
+    await vscode.tasks.executeTask(task)
+    // if (!launchedTasks[workspacePath]) launchedTasks[workspacePath] = {}
+    // launchedTasks[workspacePath]![npmScript] = taskExecution
 }

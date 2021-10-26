@@ -4,7 +4,7 @@ import { getPrefferedScriptOrThrow } from '../core/packageJson'
 
 export const startMainNpmScript = async () => {
     await launchNpmTask(async ({ packageJson }) => {
-        const npmScript = getPrefferedScriptOrThrow(packageJson, getExtensionSetting('start-npm-script'))
+        const npmScript = getPrefferedScriptOrThrow(packageJson, getExtensionSetting('scripts.mainScripts'))
         return npmScript
     })
 }

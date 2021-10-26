@@ -20,7 +20,7 @@ export const startNpmScript = async () => {
 
         const runningNpmTasks = vscode.tasks.taskExecutions.filter(({ task }) => task.source === 'npm')
         const npmScript = await showQuickPick(
-            Object.entries(packageJson.scripts!).map(([scriptName, contents]) => ({
+            Object.entries(packageJson.scripts || {}).map(([scriptName, contents]) => ({
                 label: runningNpmTasks.some(({ task }) => task.name === scriptName)
                     ? `$(loading~spin)${getIconForScript(scriptName)} ${scriptName}`
                     : scriptName,

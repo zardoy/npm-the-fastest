@@ -16,6 +16,7 @@ import { registerCompletions } from './tsSnippets'
 
 export const activate = () => {
     registerAllExtensionCommands({
+        runBinCommand,
         openClosestPackageJson,
         async addPackages(_, { packages }: { packages?: string[] } = {}) {
             if (packages) return performInstallAction(getCurrentWorkspaceRoot().uri.fsPath, packages)

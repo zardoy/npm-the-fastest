@@ -15,6 +15,7 @@ export const readPackageJsonWithMetadata = async ({ type, fallback }: { type: Pa
         workspaceFolder = workspaceFolders[0]!
         if (type === 'workspacesFirst') return workspaceFolder.uri
 
+        // TODO refactor. hope we don't use closest
         const documentUri = vscode.window.activeTextEditor?.document.uri // + pkdDir to find closest compared to opened editor
         if (!documentUri && fallback) return workspaceFolder.uri
         if (!documentUri) throw new Error('Open file first')
