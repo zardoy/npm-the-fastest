@@ -10,17 +10,20 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
     // otherwise: freeChoice
     const currentWorkspaceRoot = getCurrentWorkspaceRoot()
     await throwIfNowPackageJson(currentWorkspaceRoot.uri, true)
-    const quickPick = vscode.window.createQuickPick()
+    type ItemType = vscode.QuickPickItem & {
+        itemType?: 'install-action' | 'selectedToInstall'
+    }
+
+    const quickPick = vscode.window.createQuickPick<ItemType>()
     // quickPick.buttons = []
     quickPick.title = 'Add packages to the project'
     quickPick.matchOnDescription = true
 
-    const selectedPackages: vscode.QuickPickItem[] = []
+    const selectedPackages: ItemType[] = []
     /** Force use cache as got and algoliasearch don't cache */
     const internalCache = new Map<string, { date: number; data: NpmSearchResult }>() // query-results
     // TODO!
     let currentRequestSignal: AbortSignal | undefined
-    const acceptInstallItem = { installAction: true }
 
     // TODO tab expansion on `
 
@@ -30,26 +33,29 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
         else if (selectedPackages.length === 0) quickPick.items = []
         else
             quickPick.items = [
-                { label: `Install ${selectedPackages.length} packages`, description: selectedPackages.join(', '), ...acceptInstallItem },
+                { label: `Install ${selectedPackages.length} packages`, description: selectedPackages.join(', '), itemType: 'install-action' },
                 ...selectedPackages.map(item => ({ ...item, alwaysShow: true })),
             ]
     }
 
     const throttledSearch = throttle(async (search: string) => {
-        console.time('fetch packages list')
         const results = await (async () => {
             const cached = internalCache.get(search)
             if (cached) {
-                if (Date.now() - cached.date > 1000 * 60 * 60 * 24 * 2) return cached.data
+                if (Date.now() - cached.date < 1000 * 60 * 60 * 24 * 2) {
+                    console.log('used cached data')
+                    return cached.data
+                }
 
                 internalCache.delete(search)
             }
 
+            console.time('fetch packages list')
             const results = await performAlgoliaSearch(search)
+            console.timeEnd('fetch packages list')
             internalCache.set(search, { data: results, date: Date.now() })
             return results
         })()
-        console.timeEnd('fetch packages list')
         quickPick.busy = false
         setItems(
             results.map(({ name, owner, version, description, bin, humanDownloadsLast30Days, types }) => {
@@ -74,32 +80,39 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
         )
     }, 200)
     quickPick.onDidChangeValue(async search => {
-        if (search.endsWith('`')) {
-            quickPick.value = quickPick.selectedItems[0]!.label
-            return
-        }
-
         setItems(false)
         if (search.length < 3) return
         quickPick.busy = true
         await throttledSearch(search)
     })
+    let previousActiveLabel: string | undefined
+    quickPick.onDidChangeActive(async () => {
+        const activeItem = quickPick.activeItems[0]
+        console.log(activeItem?.label, activeItem?.label.endsWith('`'), previousActiveLabel)
+        if (!activeItem) return
+        if (activeItem.label.endsWith('`') && previousActiveLabel) {
+            console.log('gonna replace', previousActiveLabel)
+            quickPick.value = previousActiveLabel
+        } else previousActiveLabel = activeItem.label
+    })
     quickPick.onDidAccept(async () => {
-        // quickPick.value = ''
-        const activeItem = quickPick.selectedItems[0]!
-        if ((activeItem as unknown as typeof acceptInstallItem).installAction) {
+        const activeItem = quickPick.activeItems[0]
+        if (!activeItem) return
+        quickPick.value = ''
+        if (activeItem.itemType === 'install-action') {
             // TODO! workspaces
             await performInstallAction(
                 currentWorkspaceRoot.uri.fsPath,
                 selectedPackages.map(({ label }) => label),
             )
             quickPick.hide()
-        } else if (activeItem.alwaysShow) {
-            selectedPackages.splice(selectedPackages.indexOf(activeItem), 1)
-            setItems(false)
-        } else {
-            selectedPackages.unshift({ ...activeItem })
+            return
         }
+
+        if (activeItem.itemType === 'selectedToInstall') selectedPackages.splice(selectedPackages.indexOf(activeItem), 1)
+        else selectedPackages.unshift({ ...activeItem, itemType: 'selectedToInstall' })
+
+        setItems(false)
     })
 
     quickPick.onDidHide(quickPick.dispose)
