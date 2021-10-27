@@ -10,6 +10,7 @@ out/**
 .next
 .nuxt
 .cache
+src/generated.ts
 
 coverage
 *.lcov

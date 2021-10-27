@@ -43,16 +43,17 @@
                 "title": "Open package.json from..."
             },
             {
-                "command": "openWorkspacePackageJson",
-                "title": "Open Workspace Package.json"
-            },
-            {
                 "command": "runBinCommand",
                 "title": "Run bin Command of Locally Installed Package"
             },
             {
                 "command": "enforcePackageManagerUse",
                 "title": "Enforce Package Manager Use"
+            },
+            {
+                "command": "openNodeModulesFileAtGithub",
+                "title": "Open node_modules file at GitHub",
+                "icon": "$(github-inverted)"
             }
         ],
         "menus": {
@@ -76,6 +77,17 @@
                 {
                     "command": "runBinCommand",
                     "when": "!virtualWorkspace"
+                },
+                {
+                    "command": "openNodeModulesFileAtGithub",
+                    "when": "resourcePath =~ /node_modules/"
+                }
+            ],
+            "editor/title": [
+                {
+                    "command": "openNodeModulesFileAtGithub",
+                    "group": "navigation",
+                    "when": "resourcePath =~ /node_modules/"
                 }
             ]
         },
@@ -106,6 +118,16 @@
                             "minLength": 1
                         }
                     }
+                },
+                "install.watch": {
+                    "type": "boolean",
+                    "description": "Invoke package maanger on dependencies change in package.json",
+                    "default": true
+                },
+                "install.watchDelay": {
+                    "type": "number",
+                    "description": "Delay, before package manager invoke. Uses debounce",
+                    "default": 500
                 },
                 "search.provder": {
                     "type": "string",
