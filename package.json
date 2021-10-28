@@ -129,6 +129,25 @@
                     "description": "Delay, before package manager invoke. Uses debounce",
                     "default": 500
                 },
+                "openWorkspaceAutoInstall": {
+                    "type": "string",
+                    "description": "Whether to perform out-of-date packages auto-install with project package manager",
+                    "enum": [
+                        "disabled",
+                        "prompt",
+                        "withoutPrompt"
+                    ],
+                    "enumDescriptions": [
+                        "Don't do anything",
+                        "Display confirmation prompt to perform packages install",
+                        "Perform packages install without any confirmation prompts"
+                    ]
+                },
+                "yarnBerry.workspaceAutoInstall": {
+                    "type": "boolean",
+                    "markdownDescription": "Applies only if project uses yarn 2 or greater and #openWorkspaceAutoInstall# is withoutPrompt. In this case project script, instead of your system-wide package manager will be used",
+                    "default": false
+                },
                 "search.provder": {
                     "type": "string",
                     "description": "Provider that will be used when adding new packages from NPM. Algolia provides more info and 2x faster",
@@ -213,9 +232,6 @@
     "scripts": {
         "start": "cross-env DEBUG=vscode-framework:* vscode-framework start"
     },
-    "extensionDependencies": [
-        "github.remotehub"
-    ],
     "devDependencies": {
         "@types/fs-extra": "^9.0.13",
         "@types/lodash": "^4.14.175",

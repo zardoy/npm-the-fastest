@@ -1,5 +1,5 @@
 import vscode from 'vscode'
-import { registerAllExtensionCommands } from 'vscode-framework'
+import { registerActiveDevelopmentCommand, registerAllExtensionCommands } from 'vscode-framework'
 import { registerCodeActions } from './codeActions'
 import { performInstallAction } from './commands-core/installPackages'
 import { getCurrentWorkspaceRoot } from './commands-core/core'
@@ -15,6 +15,7 @@ import { registerCompletions } from './tsSnippets'
 // TODO command for package diff
 
 export const activate = () => {
+    // @ts-expect-error
     registerAllExtensionCommands({
         runBinCommand,
         openClosestPackageJson,
@@ -60,6 +61,8 @@ export const activate = () => {
 
     registerCodeActions()
     registerCompletions()
+
+    vscode.workspace.onDidChangeWorkspaceFolders(({ added }) => {})
 
     // enforce: select pm, package.json location, check preinstall - if stats with -override.
 }
