@@ -4,9 +4,7 @@ node_modules
 
 build
 dist
-out/**
-!out/resources
-!out/resources/**
+out
 .next
 .nuxt
 .cache

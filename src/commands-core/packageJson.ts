@@ -1,5 +1,4 @@
 import { posix } from 'path'
-import { findUp } from 'find-up'
 import { PackageJson } from 'type-fest'
 import vscode from 'vscode'
 import { showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
@@ -28,7 +27,8 @@ export const readPackageJsonWithMetadata = async ({ type, fallback }: { type: Pa
     return { packageJson: await readDirPackageJson(cwd), dir: cwd, workspaceFolder }
 }
 
-export const readDirPackageJson = async (cwd: vscode.Uri) => JSON.parse(String(await vscode.workspace.fs.readFile(vscode.Uri.joinPath(cwd, 'package.json'))))
+export const readDirPackageJson = async (cwd: vscode.Uri) =>
+    JSON.parse(String(await vscode.workspace.fs.readFile(vscode.Uri.joinPath(cwd, 'package.json')))) as PackageJson
 
 // TODO-implement find-up for vscode ? or use fs
 /**

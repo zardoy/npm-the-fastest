@@ -1,8 +1,9 @@
 import vscode from 'vscode'
 import { registerActiveDevelopmentCommand, registerAllExtensionCommands } from 'vscode-framework'
 import { registerCodeActions } from './codeActions'
+import { getPmFolders } from './commands-core/getPmFolders'
 import { performInstallAction } from './commands-core/installPackages'
-import { getCurrentWorkspaceRoot } from './commands-core/core'
+import { getCurrentWorkspaceRoot } from './commands-core/util'
 import { installPackages } from './commands/addPackages'
 import { openClosestPackageJson } from './commands/openClosestPackageJson'
 import { pnpmOfflineInstall } from './commands/pnpmOfflineInstall'
@@ -25,25 +26,14 @@ export const activate = () => {
             await installPackages('workspace')
         },
         async removePackages() {
-            const workspaceFolder = vscode.workspace.workspaceFolders?.[0]
-            if (!workspaceFolder) throw new Error('Open workspace first')
-            // const cwd = (await findUpPackageJson(workspaceFolder!.uri))?.fsPath
-            const cwd = workspaceFolder.uri.fsPath
-            if (!cwd) throw new Error('No package.json found in first workspace. run init first')
-
-            await removePackages(cwd)
+            const moduleFolders = await getPmFolders()
+            // const activeEditorFolder = vscode.workspace.getWorkspaceFolder()
+            // await removePackages(cwd)
         },
         pnpmOfflineInstall,
         runNpmScript: startNpmScript,
         runMainNpmScript: startMainNpmScript,
     })
-
-    if (process.env.PLATFORM === 'node') {
-        const watcher = vscode.workspace.createFileSystemWatcher('**/package.json', true, false, true)
-        watcher.onDidChange(uri => {
-            // PNPM only detect shameful hoist
-        })
-    }
 
     // const treeProvider = new NodeDependenciesProvider(vscode.workspace.workspaceFolders![0]!.uri.fsPath)
     // const treeView = vscode.window.createTreeView('nodeDependencies', {
@@ -61,6 +51,28 @@ export const activate = () => {
 
     registerCodeActions()
     registerCompletions()
+
+    registerActiveDevelopmentCommand(() => {
+        const quickPick = vscode.window.createQuickPick()
+        quickPick.items = ['foo', 'bar', 'test-item'].map(label => ({ label }))
+        let timeout: NodeJS.Timeout | undefined
+        let selectedLabel: string | undefined
+        quickPick.onDidChangeValue(value => {
+            if (timeout) clearTimeout(timeout)
+            if (value.endsWith('`') && selectedLabel) {
+                quickPick.value = selectedLabel
+                selectedLabel = undefined
+            }
+        })
+        quickPick.onDidChangeActive(() => {
+            if (timeout) clearTimeout(timeout)
+            timeout = setTimeout(() => {
+                selectedLabel = quickPick.activeItems[0]?.label
+                console.log('record', selectedLabel)
+            }, 50)
+        })
+        quickPick.show()
+    })
 
     vscode.workspace.onDidChangeWorkspaceFolders(({ added }) => {})
 

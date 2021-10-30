@@ -1,7 +1,8 @@
 import { throttle } from 'lodash'
 import vscode from 'vscode'
+import { extensionCtx } from 'vscode-framework'
 import { performInstallAction } from '../commands-core/installPackages'
-import { getCurrentWorkspaceRoot } from '../commands-core/core'
+import { getCurrentWorkspaceRoot } from '../commands-core/util'
 import { NpmSearchResult, performAlgoliaSearch } from '../core/npmSearch'
 import { throwIfNowPackageJson } from '../commands-core/packageJson'
 
@@ -15,9 +16,21 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
     }
 
     const quickPick = vscode.window.createQuickPick<ItemType>()
-    // quickPick.buttons = []
+    const openPackageJsonButton = {
+        iconPath: {
+            dark: vscode.Uri.file(extensionCtx.asAbsolutePath('./assets/dark/go-to-file.svg')),
+            light: vscode.Uri.file(extensionCtx.asAbsolutePath('./assets/light/go-to-file.svg')),
+        },
+        tooltip: 'Open package.json',
+    }
+    quickPick.buttons = [openPackageJsonButton]
     quickPick.title = 'Add packages to the project'
     quickPick.matchOnDescription = true
+    quickPick.onDidTriggerButton(button => {
+        if (button === openPackageJsonButton) {
+            // TODO! handle action
+        }
+    })
 
     const selectedPackages: ItemType[] = []
     /** Force use cache as got and algoliasearch don't cache */
@@ -93,7 +106,9 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
         if (activeItem.label.endsWith('`') && previousActiveLabel) {
             console.log('gonna replace', previousActiveLabel)
             quickPick.value = previousActiveLabel
-        } else previousActiveLabel = activeItem.label
+        } else {
+            previousActiveLabel = activeItem.label
+        }
     })
     quickPick.onDidAccept(async () => {
         const activeItem = quickPick.activeItems[0]

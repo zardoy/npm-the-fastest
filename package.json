@@ -107,31 +107,19 @@
                     ],
                     "default": "parallel"
                 },
-                "install.packs": {
-                    "type": "object",
-                    "patternProperties": {
-                        ".*": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            },
-                            "minLength": 1
-                        }
-                    }
-                },
-                "install.watch": {
+                "install.watchPackageJson": {
                     "type": "boolean",
-                    "description": "Invoke package maanger on dependencies change in package.json",
+                    "description": "Invoke package maanger install whenever you change dependencies in opened package.json",
                     "default": true
                 },
                 "install.watchDelay": {
                     "type": "number",
-                    "description": "Delay, before package manager invoke. Uses debounce",
+                    "description": "Delay, before package manager invoke. Uses debounce. Relies on #install.watchPackageJson#",
                     "default": 500
                 },
-                "openWorkspaceAutoInstall": {
+                "install.watchPackageLocks": {
                     "type": "string",
-                    "description": "Whether to perform out-of-date packages auto-install with project package manager",
+                    "description": "Invoke package manager install whenever lockfile is changed (usually after git operations)",
                     "enum": [
                         "disabled",
                         "prompt",
@@ -143,10 +131,40 @@
                         "Perform packages install without any confirmation prompts"
                     ]
                 },
+                "install.runOnOpen": {
+                    "type": "boolean",
+                    "description": "Force run install whenever new workspace is opened, to ensure that you have up-to-date deps",
+                    "default": false
+                },
+                "runBinCommand.searchLocation": {
+                    "type": "string",
+                    "description": "From where to pick bin commands",
+                    "enum": [
+                        "allUpToRoot",
+                        "nearest"
+                    ],
+                    "enumDescriptions": [
+                        "All bin commands from all node_modules from cwd up to root of workspace",
+                        "All bin commands from nearest node_modules"
+                    ]
+                },
                 "yarnBerry.workspaceAutoInstall": {
                     "type": "boolean",
                     "markdownDescription": "Applies only if project uses yarn 2 or greater and #openWorkspaceAutoInstall# is withoutPrompt. In this case project script, instead of your system-wide package manager will be used",
                     "default": false
+                },
+                "install.packs": {
+                    "type": "object",
+                    "description": "Create your own sets of package to install at once",
+                    "patternProperties": {
+                        ".*": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "minLength": 1
+                        }
+                    }
                 },
                 "search.provder": {
                     "type": "string",
@@ -211,8 +229,8 @@
         }
     },
     "activationEvents": [
-        "*",
-        "workspaceContains:package.json"
+        "workspaceContains:package.json",
+        "onCommands"
     ],
     "categories": [
         "Other"
@@ -237,6 +255,7 @@
         "@types/lodash": "^4.14.175",
         "@types/mocha": "^9.0.0",
         "@types/vscode": "^1.61.0",
+        "@types/yamljs": "^0.2.31",
         "@vscode/test-electron": "^1.6.2",
         "@zardoy/tsconfig": "^1.2.2",
         "eslint-plugin-zardoy-config": "^0.1.0",
@@ -269,6 +288,7 @@
         "ts-node": "^10.3.0",
         "vscode-framework": "^0.0.7",
         "vscode-uri": "^3.0.2",
-        "which-pm": "^2.0.0"
+        "which-pm": "^2.0.0",
+        "yamljs": "^0.3.0"
     }
 }
