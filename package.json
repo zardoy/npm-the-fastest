@@ -3,6 +3,7 @@
     "displayName": "NPM THE FASTEST",
     "description": "Full-featured extension for npm ecosystem",
     "publisher": "zardoy",
+    "icon": "./icon-stub.png",
     "contributes": {
         "commands": [
             {
