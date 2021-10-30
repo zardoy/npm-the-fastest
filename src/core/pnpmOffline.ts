@@ -23,5 +23,3 @@ export const getPnpmOfflinePackages = async () => {
     console.timeEnd('get-offline')
     return packageVersions
 }
-
-getPnpmOfflinePackages().then(console.log)
