@@ -51,29 +51,6 @@ export const activate = () => {
 
     registerCodeActions()
     registerCompletions()
-
-    registerActiveDevelopmentCommand(() => {
-        const quickPick = vscode.window.createQuickPick()
-        quickPick.items = ['foo', 'bar', 'test-item'].map(label => ({ label }))
-        let timeout: NodeJS.Timeout | undefined
-        let selectedLabel: string | undefined
-        quickPick.onDidChangeValue(value => {
-            if (timeout) clearTimeout(timeout)
-            if (value.endsWith('`') && selectedLabel) {
-                quickPick.value = selectedLabel
-                selectedLabel = undefined
-            }
-        })
-        quickPick.onDidChangeActive(() => {
-            if (timeout) clearTimeout(timeout)
-            timeout = setTimeout(() => {
-                selectedLabel = quickPick.activeItems[0]?.label
-                console.log('record', selectedLabel)
-            }, 50)
-        })
-        quickPick.show()
-    })
-
     vscode.workspace.onDidChangeWorkspaceFolders(({ added }) => {})
 
     // enforce: select pm, package.json location, check preinstall - if stats with -override.
