@@ -66,6 +66,21 @@ export const findUpPackageJson = async <T extends boolean = false>(
     }
 }
 
+export const findUpNodeModules = async (dirUri: vscode.Uri): Promise<vscode.Uri> => {
+    const { fs } = vscode.workspace
+
+    let currentUri = dirUri
+    while (true) {
+        // eslint-disable-next-line no-await-in-loop
+        const fileList = await fs.readDirectory(currentUri)
+        const packageJsonFile = fileList.find(([name, type]) => name === 'node_modules' && type === vscode.FileType.Directory)
+        if (packageJsonFile) return currentUri
+        if (posix.relative(currentUri.path, '/') === '') throw new Error('There is no closest node_modules from current dir (findUp reached root)')
+
+        currentUri = vscode.Uri.joinPath(currentUri, '..')
+    }
+}
+
 type PickedDeps = string[] & {
     realDepsCount: number
 }

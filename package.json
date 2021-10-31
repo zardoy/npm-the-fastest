@@ -55,6 +55,14 @@
                 "command": "openNodeModulesFileAtGithub",
                 "title": "Open node_modules file at GitHub",
                 "icon": "$(github-inverted)"
+            },
+            {
+                "command": "openPackageReadmePreview",
+                "title": "Open Package Readme Preview"
+            },
+            {
+                "command": "openPackageRepository",
+                "title": "Open Package Repository"
             }
         ],
         "menus": {
@@ -82,6 +90,14 @@
                 {
                     "command": "openNodeModulesFileAtGithub",
                     "when": "resourcePath =~ /node_modules/"
+                },
+                {
+                    "command": "openPackageRepository",
+                    "when": "false"
+                },
+                {
+                    "command": "openPackageReadmePreview",
+                    "when": "false"
                 }
             ],
             "editor/title": [
@@ -249,7 +265,8 @@
     "private": true,
     "preview": true,
     "scripts": {
-        "start": "cross-env DEBUG=vscode-framework:* vscode-framework start"
+        "start": "cross-env DEBUG=vscode-framework:* vscode-framework start",
+        "build": "vscode-framework build --skip-typechecking"
     },
     "devDependencies": {
         "@types/fs-extra": "^9.0.13",
