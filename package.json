@@ -6,7 +6,7 @@
     "contributes": {
         "commands": [
             {
-                "command": "addPackages",
+                "command": "yes",
                 "title": "Add npm Packages"
             },
             {
@@ -190,11 +190,6 @@
                     "type": "boolean",
                     "description": "Include deprecated packages into search results",
                     "default": false
-                },
-                "experimental.includeTsSnippets": {
-                    "type": "boolean",
-                    "default": false,
-                    "deprecationMessage": "This feature will be removed"
                 }
             }
         }
