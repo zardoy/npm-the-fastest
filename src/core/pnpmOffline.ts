@@ -4,24 +4,9 @@ import globby from 'globby'
 import slash from 'slash'
 import fsExtra from 'fs-extra'
 
-export const getPnpmVersion = async () => {
-    try {
-        return (await execa('pnpm', ['-v'])).stdout
-    } catch {
-        return undefined
-    }
-}
-
-export const getPnpmVersionOrThrow = async () => {
-    const version = await getPnpmVersion()
-    if (!version) throw new Error('pnpm is not installed. You can install it with `npm i -g pnpm`')
-    return version
-}
-
 /** List packages, installable with `--offline` flag */
 export const getPnpmOfflinePackages = async () => {
     console.time('get-offline')
-    await getPnpmVersionOrThrow()
     const { stdout: globalStorePath } = await execa('pnpm', 'store path'.split(' '))
     const searchPath = slash(join(globalStorePath, 'files/**/*-index.json'))
     const indexFiles = await globby(searchPath)

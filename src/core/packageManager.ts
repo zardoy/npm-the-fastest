@@ -3,14 +3,28 @@ import execa from 'execa'
 import filesize from 'filesize'
 import vscode from 'vscode'
 
-const makeSupportedPackageManagers = <T extends string>(i: Record<T, true | string>) => i
+type PackageManagerConfig = {
+    detectFile: string
+    // minVersion?: string
+    // fileWatchChanges?: boolean
+}
+
+const makeSupportedPackageManagers = <T extends string>(i: Record<T, PackageManagerConfig>) => i
 
 /** Should be enhanced with package manager - min version map */
-const supportedPackageManagers = makeSupportedPackageManagers({
-    npm: true,
-    pnpm: true,
-    yarn: true,
+export const supportedPackageManagers = makeSupportedPackageManagers({
+    npm: {
+        detectFile: 'package-lock.json',
+    },
+    pnpm: {
+        detectFile: 'pnpm-lock.yaml',
+    },
+    // yarn v1
+    yarn: {
+        detectFile: 'yarn.lock',
+    },
 })
+export type SupportedPackageManagersNames = keyof typeof supportedPackageManagers
 
 /** Get package manager that was used to install deps and create node_modules */
 const getUsedPackageManager = async (cwd: string) => {
@@ -19,20 +33,20 @@ const getUsedPackageManager = async (cwd: string) => {
     return name as keyof typeof supportedPackageManagers
 }
 
-export const pnpmCommand = ({
+export const pnpmCommand = async ({
     command,
     packages,
     reportProgress,
     cwd,
     cancellationToken,
 }: {
-    command: 'remove' | 'add'
-    packages: string[]
+    command: 'remove' | 'add' | 'install'
+    packages?: string[]
     cwd: string
     reportProgress: (_: { message: string }) => void
     cancellationToken: vscode.CancellationToken
 }) => {
-    const pnpm = execa('pnpm', [command, ...packages, '--reporter', 'ndjson'], { cwd })
+    const pnpm = execa('pnpm', [command, ...(packages ?? []), '--reporter', 'ndjson'], { cwd })
 
     // TODO! pipe stderr to the output pane
 
@@ -94,4 +108,6 @@ export const pnpmCommand = ({
             throw error
         }
     })
+
+    await pnpm
 }

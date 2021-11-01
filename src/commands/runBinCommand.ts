@@ -1,8 +1,8 @@
 import fs from 'fs'
 import { posix } from 'path'
-import { findUpMultiple } from 'find-up'
+import { findUp, findUpMultiple } from 'find-up'
 import vscode from 'vscode'
-import { showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
+import { getExtensionSetting, showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
 const { join } = posix
 
 export const runBinCommand = async () => {
@@ -21,18 +21,27 @@ export const runBinCommand = async () => {
     if (!workspacePath) throw new Error('available only in workspace')
 
     const nodeModulesPaths = await (async () => {
-        if (documentPath)
-            return findUpMultiple('node_modules', {
-                cwd: documentPath,
-                stopAt: workspacePath,
-                type: 'directory',
-            })
+        if (documentPath) {
+            const findUpArgs = [
+                'node_modules',
+                {
+                    cwd: documentPath,
+                    stopAt: workspacePath,
+                    type: 'directory',
+                },
+            ] as const
+            if (getExtensionSetting('runBinCommand.searchLocation') === 'nearest') {
+                const path = await findUp(...findUpArgs)
+                return path !== undefined && [path]
+            }
+            return findUpMultiple(...findUpArgs)
+        }
 
         const nodeModulesPath = join(workspacePath, 'node_modules')
         if (fs.existsSync(nodeModulesPath)) return [nodeModulesPath]
         return []
     })()
-    if (nodeModulesPaths.length === 0) throw new Error('no node_modules in current workspace')
+    if (!nodeModulesPaths || nodeModulesPaths.length === 0) throw new Error('no node_modules in current workspace')
 
     const showDescription = nodeModulesPaths.length > 0
 

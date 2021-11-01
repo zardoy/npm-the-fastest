@@ -9,6 +9,7 @@ specifiers:
   '@types/mocha': ^9.0.0
   '@types/node': ^16.11.0
   '@types/vscode': ^1.61.0
+  '@types/yamljs': ^0.2.31
   '@vscode/test-electron': ^1.6.2
   '@zardoy/tsconfig': ^1.2.2
   algoliasearch: ^4.11.0
@@ -36,6 +37,7 @@ specifiers:
   vscode-framework: ^0.0.7
   vscode-uri: ^3.0.2
   which-pm: ^2.0.0
+  yamljs: ^0.3.0
 
 dependencies:
   '@hediet/node-reload': 0.7.3
@@ -63,12 +65,14 @@ dependencies:
   vscode-framework: link:../vscode-framework/packages/vscode-framework
   vscode-uri: 3.0.2
   which-pm: 2.0.0
+  yamljs: 0.3.0
 
 devDependencies:
   '@types/fs-extra': 9.0.13
   '@types/lodash': 4.14.175
   '@types/mocha': 9.0.0
   '@types/vscode': 1.61.0
+  '@types/yamljs': 0.2.31
   '@vscode/test-electron': 1.6.2
   '@zardoy/tsconfig': 1.2.2_typescript@4.4.4
   eslint-plugin-zardoy-config: 0.1.0_eslint@7.32.0+typescript@4.4.4
@@ -680,6 +684,10 @@ packages:
     dependencies:
       '@types/node': 16.11.0
     dev: false
+
+  /@types/yamljs/0.2.31:
+    resolution: {integrity: sha512-QcJ5ZczaXAqbVD3o8mw/mEBhRvO5UAdTtbvgwL/OgoWubvNBh6/MxLBAigtcgIFaq3shon9m3POIxQaLQt4fxQ==}
+    dev: true
 
   /@typescript-eslint/eslint-plugin/4.33.0_cc617358c89d3f38c52462f6d809db4c:
     resolution: {integrity: sha512-aINiAxGVdOl1eJyVjaWn/YcVAq4Gi/Yo35qHGCnqbWVz61g39D0h23veY/MA0rFFGfxK7TySg2uwDeNv+JgVpg==}
@@ -3743,6 +3751,14 @@ packages:
   /yaml/1.10.2:
     resolution: {integrity: sha512-r3vXyErRCYJ7wg28yvBY5VSoAF8ZvlcW9/BwUzEtUsjvX/DKs24dIkuwjtuprwJJHsbyUbLApepYTR1BN4uHrg==}
     engines: {node: '>= 6'}
+    dev: false
+
+  /yamljs/0.3.0:
+    resolution: {integrity: sha512-C/FsVVhht4iPQYXOInoxUM/1ELSf9EsgKH34FofQOp6hwCPrW4vG4w5++TED3xRUo8gD7l0P1J1dLlDYzODsTQ==}
+    hasBin: true
+    dependencies:
+      argparse: 1.0.10
+      glob: 7.2.0
     dev: false
 
   /yargs-parser/20.2.4:

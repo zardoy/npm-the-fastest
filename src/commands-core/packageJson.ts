@@ -1,5 +1,4 @@
 import { posix } from 'path'
-import { findUp } from 'find-up'
 import { PackageJson } from 'type-fest'
 import vscode from 'vscode'
 import { showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
@@ -28,7 +27,8 @@ export const readPackageJsonWithMetadata = async ({ type, fallback }: { type: Pa
     return { packageJson: await readDirPackageJson(cwd), dir: cwd, workspaceFolder }
 }
 
-export const readDirPackageJson = async (cwd: vscode.Uri) => JSON.parse(String(await vscode.workspace.fs.readFile(vscode.Uri.joinPath(cwd, 'package.json'))))
+export const readDirPackageJson = async (cwd: vscode.Uri) =>
+    JSON.parse(String(await vscode.workspace.fs.readFile(vscode.Uri.joinPath(cwd, 'package.json')))) as PackageJson
 
 // TODO-implement find-up for vscode ? or use fs
 /**
@@ -63,6 +63,21 @@ export const findUpPackageJson = async <T extends boolean = false>(
         }
     } finally {
         console.timeEnd('find package.json')
+    }
+}
+
+export const findUpNodeModules = async (dirUri: vscode.Uri): Promise<vscode.Uri> => {
+    const { fs } = vscode.workspace
+
+    let currentUri = dirUri
+    while (true) {
+        // eslint-disable-next-line no-await-in-loop
+        const fileList = await fs.readDirectory(currentUri)
+        const packageJsonFile = fileList.find(([name, type]) => name === 'node_modules' && type === vscode.FileType.Directory)
+        if (packageJsonFile) return currentUri
+        if (posix.relative(currentUri.path, '/') === '') throw new Error('There is no closest node_modules from current dir (findUp reached root)')
+
+        currentUri = vscode.Uri.joinPath(currentUri, '..')
     }
 }
 
