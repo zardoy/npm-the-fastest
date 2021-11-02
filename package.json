@@ -153,6 +153,16 @@
                     "description": "Force run install whenever new workspace is opened, to ensure that you have up-to-date deps",
                     "default": false
                 },
+                "install.clipboardDetection": {
+                    "type": "string",
+                    "description": "What to do on clipboard detection for copied command to install packages",
+                    "enum": [
+                        "disabled",
+                        "ask",
+                        "auto"
+                    ],
+                    "default": "ask"
+                },
                 "runBinCommand.searchLocation": {
                     "type": "string",
                     "description": "From where to pick bin commands",

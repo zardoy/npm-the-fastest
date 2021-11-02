@@ -4,6 +4,7 @@
 
 - fast packages search
 - auto install (see below)
+- clipboard detection for `npm i -D esbuild`
 
 ## Before hit v0.1.0
 
