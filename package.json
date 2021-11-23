@@ -284,7 +284,8 @@
         "eslint-plugin-zardoy-config": "^0.1.0",
         "mocha": "^9.1.3",
         "type-fest": "^2.5.0",
-        "typescript": "^4.4.4"
+        "typescript": "^4.4.4",
+        "vscode-framework": "^0.0.15"
     },
     "dependencies": {
         "@hediet/node-reload": "^0.7.3",
@@ -293,7 +294,6 @@
         "@types/node": "^16.11.0",
         "algoliasearch": "^4.11.0",
         "cross-env": "^7.0.3",
-        "depcheck": "^1.4.2",
         "dotenv": "^10.0.0",
         "esbuild": "^0.13.6",
         "eslint": "^7.32.0",
@@ -309,7 +309,6 @@
         "pkg-dir": "^5.0.0",
         "slash": "^3.0.0",
         "ts-node": "^10.3.0",
-        "vscode-framework": "^0.0.7",
         "vscode-uri": "^3.0.2",
         "which-pm": "^2.0.0",
         "yamljs": "^0.3.0"

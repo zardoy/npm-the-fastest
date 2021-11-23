@@ -17,7 +17,7 @@ import { startNpmScript } from './commands/startNpmScript'
 // TODO command for package diff
 
 export const activate = () => {
-    // @ts-expect-error
+    // @ts-expect-error Not all commands done
     registerAllExtensionCommands({
         runBinCommand,
         openClosestPackageJson,
@@ -35,20 +35,6 @@ export const activate = () => {
         runNpmScript: startNpmScript,
         runMainNpmScript: startMainNpmScript,
     })
-
-    // const treeProvider = new NodeDependenciesProvider(vscode.workspace.workspaceFolders![0]!.uri.fsPath)
-    // const treeView = vscode.window.createTreeView('nodeDependencies', {
-    //     treeDataProvider: treeProvider,
-    // })
-
-    // treeView.onDidChangeVisibility(({ visible }) => {
-    //     treeProvider.hidden = !visible
-    //     if (visible === false) return
-    //     treeView.message = 'Scanning dependencies'
-    //     treeProvider.hidden = false
-    //     treeProvider.refresh()
-    //     treeProvider.onLoad = (setMessage = '') => (treeView.message = setMessage)
-    // })
 
     registerCodeActions()
     vscode.workspace.onDidChangeWorkspaceFolders(({ added }) => {})
