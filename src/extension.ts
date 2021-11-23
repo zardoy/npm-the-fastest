@@ -13,6 +13,7 @@ import { removePackages } from './commands/removePackages'
 import { runBinCommand } from './commands/runBinCommand'
 import { startMainNpmScript } from './commands/startMainNpmScript'
 import { startNpmScript } from './commands/startNpmScript'
+import { registerClipboardDetection } from './core/clipboardDetection'
 
 // TODO command for package diff
 
@@ -37,32 +38,7 @@ export const activate = () => {
     })
 
     registerCodeActions()
-    vscode.workspace.onDidChangeWorkspaceFolders(({ added }) => {})
-    vscode.window.onDidChangeWindowState(async ({ focused }) => {
-        if (!focused) return
-        console.time('detect')
-        if (getExtensionSetting('install.clipboardDetection') === 'disabled') return
-        // TODO add regex tests
-        // TODO! detect -D
-        const regex = /^(npm|yarn|pnpm) (?:i|install|add)((?: (?:@[a-z\d~-][a-z\d._~-]*\/)?[a-z\d~-][a-z\d._~-]*)+)$/
-        const clipboardText = await vscode.env.clipboard.readText()
-        const result = regex.exec(clipboardText.trim())
-        if (!result) return
-        const packageManager = result[1]!
-        const packages = result[2]!.split(' ')
-        console.timeEnd('detect')
-
-        // TODO
-        const cwd = getCurrentWorkspaceRoot()
-        const prefferedPm = await getPrefferedPackageManager(cwd.uri)
-        if (!(await confirmAction(`Detected package to install from clipboard: ${packages.join(', ')}`, `Install using ${prefferedPm}`))) return
-        // TODO ensure progress
-        await packageManagerCommand({
-            cwd: cwd.uri,
-            command: 'install',
-            packages: packages,
-        })
-    })
+    registerClipboardDetection()
 
     // enforce: select pm, package.json location, check preinstall - if stats with -override.
 }
