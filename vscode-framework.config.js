@@ -14,7 +14,7 @@ const config = {
         },
     },
     development: {
-        disableExtensions: false,
+        // disableExtensions: false,
         extensionBootstrap: {
             autoReload: {
                 type: 'forced',
