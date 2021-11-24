@@ -25,5 +25,7 @@ jobs:
       - run: pnpx -y zardoy-release vscode-extension-vsix
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          ALGOLIA_APP_ID: ${{ secrets.ALGOLIA_APP_ID }}
+          ALGOLIA_APP_KEY: ${{ secrets.ALGOLIA_APP_KEY }}
         #   VSCE_PAT: ${{ secrets.VSCE_PAT }}
         #   OVSX_PAT: ${{ secrets.OVSX_PAT }}
