@@ -271,8 +271,7 @@
     ],
     "scripts": {
         "start": "vscode-framework start",
-        "build": "vscode-framework build --skip-typechecking",
-        "test": "jest"
+        "build": "vscode-framework build --skip-typechecking"
     },
     "devDependencies": {
         "@types/fs-extra": "^9.0.13",
