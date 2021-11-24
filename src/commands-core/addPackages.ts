@@ -9,7 +9,7 @@ export const performInstallAction = async (cwd: string, packages: string[]) => {
             cancellable: true,
         },
         async (progress, token) => {
-            pnpmCommand({ command: 'add', packages, reportProgress: progress.report, cancellationToken: token, cwd })
+            await pnpmCommand({ command: 'add', packages, reportProgress: progress.report, cancellationToken: token, cwd })
         },
     )
 }

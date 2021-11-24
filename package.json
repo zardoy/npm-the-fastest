@@ -3,11 +3,16 @@
     "displayName": "NPM THE FASTEST",
     "description": "Full-featured extension for npm ecosystem",
     "publisher": "zardoy",
-    "icon": "./icon-stub.png",
+    "version": "0.0.1",
+    "author": "Vitaly Turovsky <vital2580@icloud.com>",
+    "license": "MIT",
+    "private": true,
+    "preview": true,
+    "icon": "resources/icon-stub.png",
     "contributes": {
         "commands": [
             {
-                "command": "yes",
+                "command": "addPackages",
                 "title": "Add npm Packages"
             },
             {
@@ -264,28 +269,28 @@
         "dependencies",
         "corepack"
     ],
-    "version": "0.0.1",
-    "author": "Vitaly Turovsky <vital2580@icloud.com>",
-    "license": "MIT",
-    "private": true,
-    "preview": true,
     "scripts": {
-        "start": "cross-env DEBUG=vscode-framework:* vscode-framework start",
-        "build": "vscode-framework build --skip-typechecking"
+        "start": "vscode-framework start",
+        "build": "vscode-framework build --skip-typechecking",
+        "test": "jest"
     },
     "devDependencies": {
         "@types/fs-extra": "^9.0.13",
+        "@types/jest": "^27.0.3",
         "@types/lodash": "^4.14.175",
         "@types/mocha": "^9.0.0",
         "@types/vscode": "^1.61.0",
         "@types/yamljs": "^0.2.31",
         "@vscode/test-electron": "^1.6.2",
         "@zardoy/tsconfig": "^1.2.2",
+        "esbuild": "^0.13.15",
+        "esbuild-runner": "^2.2.1",
         "eslint-plugin-zardoy-config": "^0.1.0",
+        "jest": "^27.3.1",
         "mocha": "^9.1.3",
         "type-fest": "^2.5.0",
         "typescript": "^4.4.4",
-        "vscode-framework": "^0.0.15"
+        "vscode-framework": "^0.0.17"
     },
     "dependencies": {
         "@hediet/node-reload": "^0.7.3",
@@ -295,7 +300,6 @@
         "algoliasearch": "^4.11.0",
         "cross-env": "^7.0.3",
         "dotenv": "^10.0.0",
-        "esbuild": "^0.13.6",
         "eslint": "^7.32.0",
         "execa": "^5.1.1",
         "filesize": "^8.0.3",

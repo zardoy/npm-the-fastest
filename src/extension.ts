@@ -1,11 +1,10 @@
 import vscode from 'vscode'
-import { getExtensionSetting } from 'vscode-framework'
-import { registerActiveDevelopmentCommand, registerAllExtensionCommands } from 'vscode-framework'
+import { registerAllExtensionCommands } from 'vscode-framework'
+import { workspaceOpened } from './autoInstall'
 import { registerCodeActions } from './codeActions'
-import { getPmFolders } from './commands-core/getPmFolders'
-import { performInstallAction } from './commands-core/installPackages'
-import { getPrefferedPackageManager, packageManagerCommand } from './commands-core/packageManager'
-import { confirmAction, getCurrentWorkspaceRoot } from './commands-core/util'
+import { performInstallAction } from './commands-core/addPackages'
+import { throwIfNowPackageJson as throwIfNoPackageJson } from './commands-core/packageJson'
+import { getCurrentWorkspaceRoot } from './commands-core/util'
 import { installPackages } from './commands/addPackages'
 import { openClosestPackageJson } from './commands/openClosestPackageJson'
 import { pnpmOfflineInstall } from './commands/pnpmOfflineInstall'
@@ -28,9 +27,10 @@ export const activate = () => {
             await installPackages('workspace')
         },
         async removePackages() {
-            const moduleFolders = await getPmFolders()
-            // const activeEditorFolder = vscode.workspace.getWorkspaceFolder()
-            // await removePackages(cwd)
+            // const moduleFolders = await getPmFolders()
+            const currentWorkspaceRoot = getCurrentWorkspaceRoot()
+            await throwIfNoPackageJson(currentWorkspaceRoot.uri, true)
+            await removePackages(currentWorkspaceRoot.uri)
         },
         pnpmOfflineInstall,
         runNpmScript: startNpmScript,
@@ -39,6 +39,8 @@ export const activate = () => {
 
     registerCodeActions()
     registerClipboardDetection()
+
+    if (vscode.workspace.workspaceFolders?.length === 1) void workspaceOpened(vscode.workspace.workspaceFolders[0]!.uri)
 
     // enforce: select pm, package.json location, check preinstall - if stats with -override.
 }

@@ -1,7 +1,7 @@
 import { throttle } from 'lodash'
 import vscode from 'vscode'
 import { extensionCtx } from 'vscode-framework'
-import { performInstallAction } from '../commands-core/installPackages'
+import { performInstallAction } from '../commands-core/addPackages'
 import { getCurrentWorkspaceRoot } from '../commands-core/util'
 import { NpmSearchResult, performAlgoliaSearch } from '../core/npmSearch'
 import { throwIfNowPackageJson } from '../commands-core/packageJson'
@@ -35,8 +35,6 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
     const selectedPackages: ItemType[] = []
     /** Force use cache as got and algoliasearch don't cache */
     const internalCache = new Map<string, { date: number; data: NpmSearchResult }>() // query-results
-    // TODO!
-    let currentRequestSignal: AbortSignal | undefined
 
     // TODO tab expansion on `
 
@@ -98,29 +96,17 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
         quickPick.busy = true
         await throttledSearch(search)
     })
-    let previousActiveLabel: string | undefined
-    quickPick.onDidChangeActive(async () => {
-        const activeItem = quickPick.activeItems[0]
-        console.log(activeItem?.label, activeItem?.label.endsWith('`'), previousActiveLabel)
-        if (!activeItem) return
-        if (activeItem.label.endsWith('`') && previousActiveLabel) {
-            console.log('gonna replace', previousActiveLabel)
-            quickPick.value = previousActiveLabel
-        } else {
-            previousActiveLabel = activeItem.label
-        }
-    })
     quickPick.onDidAccept(async () => {
         const activeItem = quickPick.activeItems[0]
         if (!activeItem) return
         quickPick.value = ''
         if (activeItem.itemType === 'install-action') {
             // TODO! workspaces
+            quickPick.hide()
             await performInstallAction(
                 currentWorkspaceRoot.uri.fsPath,
                 selectedPackages.map(({ label }) => label),
             )
-            quickPick.hide()
             return
         }
 

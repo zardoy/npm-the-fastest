@@ -52,6 +52,7 @@ export const packageManagerCommand = async ({
     command,
     packages,
     realPackagesCount = packages?.length,
+    flags,
     // TODO!
     displayCwd = false,
 }: {
@@ -62,6 +63,10 @@ export const packageManagerCommand = async ({
     // TODO combine them
     // cancellationToken?: vscode.CancellationToken
     packages?: string[]
+    flags?: {
+        global: boolean
+        dev: boolean
+    }
 }) => {
     const pm = await getPrefferedPackageManager(cwd)
     const getMessage = () => {
