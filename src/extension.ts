@@ -17,7 +17,7 @@ import { registerClipboardDetection } from './core/clipboardDetection'
 // TODO command for package diff
 
 export const activate = () => {
-    // @ts-expect-error Not all commands done
+    // @ts-expect-error Not all commands implemented
     registerAllExtensionCommands({
         runBinCommand,
         openClosestPackageJson,

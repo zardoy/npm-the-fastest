@@ -44,7 +44,12 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
         else if (selectedPackages.length === 0) quickPick.items = []
         else
             quickPick.items = [
-                { label: `Install ${selectedPackages.length} packages`, description: selectedPackages.join(', '), itemType: 'install-action' },
+                // TODO label isn't stable (icon will be added), refactor to name
+                {
+                    label: `Install ${selectedPackages.length} packages`,
+                    description: selectedPackages.map(({ label }) => label).join(', '),
+                    itemType: 'install-action',
+                },
                 ...selectedPackages.map(item => ({ ...item, alwaysShow: true })),
             ]
     }
@@ -99,7 +104,6 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
     quickPick.onDidAccept(async () => {
         const activeItem = quickPick.activeItems[0]
         if (!activeItem) return
-        quickPick.value = ''
         if (activeItem.itemType === 'install-action') {
             // TODO! workspaces
             quickPick.hide()
@@ -110,10 +114,14 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
             return
         }
 
+        console.log(activeItem)
         if (activeItem.itemType === 'selectedToInstall') selectedPackages.splice(selectedPackages.indexOf(activeItem), 1)
         else selectedPackages.unshift({ ...activeItem, itemType: 'selectedToInstall' })
 
-        setItems(false)
+        if (quickPick.value) quickPick.value = ''
+        // will be updated by onDidChangeValue
+        // Update items in quickpick
+        else setItems(false)
     })
 
     quickPick.onDidHide(quickPick.dispose)

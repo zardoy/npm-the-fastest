@@ -36,7 +36,7 @@ specifiers:
   ts-node: ^10.3.0
   type-fest: ^2.5.0
   typescript: ^4.4.4
-  vscode-framework: ^0.0.17
+  vscode-framework: ^0.0.18
   vscode-uri: ^3.0.2
   which-pm: ^2.0.0
   yamljs: ^0.3.0
@@ -82,7 +82,7 @@ devDependencies:
   mocha: 9.1.3
   type-fest: 2.5.0
   typescript: 4.4.4
-  vscode-framework: 0.0.17_9c287742f41e831b174334ec819897e6
+  vscode-framework: 0.0.18_9c287742f41e831b174334ec819897e6
 
 packages:
 
@@ -6161,8 +6161,8 @@ packages:
     engines: {node: '>=12.20'}
     dev: true
 
-  /type-fest/2.5.4:
-    resolution: {integrity: sha512-zyPomVvb6u7+gJ/GPYUH6/nLDNiTtVOqXVUHtxFv5PmZQh6skgfeRtFYzWC01T5KeNWNIx5/0P111rKFLlkFvA==}
+  /type-fest/2.6.0:
+    resolution: {integrity: sha512-XN1FDGGtaSDA6CFsCW5iolTQqFsnJ+ZF6JqSz0SqXoh4F8GY0xqUv5RYnTilpmL+sOH8OH4FX8tf9YyAPM2LDA==}
     engines: {node: '>=12.20'}
     dev: true
 
@@ -6179,11 +6179,11 @@ packages:
     dependencies:
       jsonc-parser: 3.0.0
       jsonfile: 6.1.0
-      type-fest: 2.5.4
+      type-fest: 2.6.0
     dev: true
 
-  /typed-vscode/0.0.4_9c287742f41e831b174334ec819897e6:
-    resolution: {integrity: sha512-USFREt7nh5EvzEJCOIaMqZRXNMnE5RaBJuKFNMmoXeRM4mPDdlqz4hbQ8Sh33TDWMC7q2KToxRaYSwnrppo64w==}
+  /typed-vscode/0.0.5_9c287742f41e831b174334ec819897e6:
+    resolution: {integrity: sha512-BJpELW+Q35iWc6t/Na0ZGprG1jwGgFb3U+71UIDKjxEp+LZZKatMzoBSuPoO/saTeSzMY8YinGsglkgru8u9jg==}
     engines: {node: ^14.13.1 || >=16.0.0}
     hasBin: true
     requiresBuild: true
@@ -6198,7 +6198,7 @@ packages:
       generated-module: 0.0.2_typescript@4.4.4
       lodash: 4.17.21
       quicktype-core: 6.0.70
-      type-fest: 2.5.4
+      type-fest: 2.6.0
       typed-jsonfile: 0.2.0
     transitivePeerDependencies:
       - typescript
@@ -6354,8 +6354,8 @@ packages:
       lodash: 4.17.21
     dev: true
 
-  /vscode-framework/0.0.17_9c287742f41e831b174334ec819897e6:
-    resolution: {integrity: sha512-pwUcSp5MC0KFTTqvq8DgeWygxXImSObPtX4CikQqsFldWHR2K1czyGy+6QW4kX7HtMH7ubl2QSZyJH7cDqvHPA==}
+  /vscode-framework/0.0.18_9c287742f41e831b174334ec819897e6:
+    resolution: {integrity: sha512-9Vp/KVboUFtEGc7vKNXQb5YK1B27JBeZ67U+Yi5aH9ZvtM9fERydbL+n2p+GS2oGf9x3pyT2bEfF3j/sXojHig==}
     engines: {node: ^14.13.1 || >=16.0.0}
     hasBin: true
     requiresBuild: true
@@ -6387,11 +6387,11 @@ packages:
       pkg-dir: 5.0.0
       pretty-format: 27.3.1
       typed-jsonfile: 0.2.0
-      typed-vscode: 0.0.4_9c287742f41e831b174334ec819897e6
+      typed-vscode: 0.0.5_9c287742f41e831b174334ec819897e6
       typescript-json-schema: 0.51.0
       vscode-extra: 0.0.4_@types+vscode@1.61.0
       vscode-manifest: 0.0.8
-      ws: 8.2.3
+      ws: 8.3.0
     transitivePeerDependencies:
       - '@swc/core'
       - '@swc/wasm'
@@ -6536,8 +6536,8 @@ packages:
       utf-8-validate:
         optional: true
 
-  /ws/8.2.3:
-    resolution: {integrity: sha512-wBuoj1BDpC6ZQ1B7DWQBYVLphPWkm8i9Y0/3YdHjHKHiohOJ1ws+3OccDWtH+PoC9DZD5WOTrJvNbWvjS6JWaA==}
+  /ws/8.3.0:
+    resolution: {integrity: sha512-Gs5EZtpqZzLvmIM59w4igITU57lrtYVFneaa434VROv4thzJyV6UjIL3D42lslWlI+D4KzLYnxSwtfuiO79sNw==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
