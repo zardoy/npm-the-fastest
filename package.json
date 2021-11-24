@@ -3,7 +3,7 @@
     "displayName": "NPM THE FASTEST",
     "description": "Full-featured extension for npm ecosystem",
     "publisher": "zardoy",
-    "version": "0.0.1",
+    "version": "0.0.0-dev",
     "author": "Vitaly Turovsky <vital2580@icloud.com>",
     "license": "MIT",
     "private": true,
