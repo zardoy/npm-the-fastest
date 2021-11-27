@@ -294,6 +294,7 @@
     "dependencies": {
         "@hediet/node-reload": "^0.7.3",
         "@mui/icons-material": "^5.0.4",
+        "@types/hosted-git-info": "^3.0.2",
         "@types/jsonfile": "^6.0.1",
         "@types/node": "^16.11.0",
         "algoliasearch": "^4.11.0",
@@ -306,6 +307,7 @@
         "fs-extra": "^10.0.0",
         "globby": "^11.0.4",
         "got": "^11.8.2",
+        "hosted-git-info": "^4.0.2",
         "jsonfile": "^6.1.0",
         "lodash": "^4.17.21",
         "npms.io": "^2.1.0",
