@@ -240,6 +240,12 @@
                     "type": "boolean",
                     "description": "Include deprecated packages into search results",
                     "default": false
+                },
+                "editor.suggestPackagesToInstall": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "boolean"
+                    }
                 }
             }
         }
