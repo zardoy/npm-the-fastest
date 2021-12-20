@@ -1,10 +1,12 @@
-import { showQuickPick } from 'vscode-framework'
+import { showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
 import vscode from 'vscode'
 import { launchNpmTask } from '../commands-core/npmScripts'
+import { move } from 'rambda'
+
+const lastTouchedScripts = new Set<string>()
 
 export const startNpmScript = async () => {
     // const name = await vscode.window.showErrorMessage('No `scripts` defined in package.json', 'Open package.json')
-    // console.log(name)
     await launchNpmTask(async ({ packageJson }) => {
         const scriptNamespaceIcon = {
             test: 'test-view-icon',
@@ -19,17 +21,24 @@ export const startNpmScript = async () => {
         }
 
         const runningNpmTasks = vscode.tasks.taskExecutions.filter(({ task }) => task.source === 'npm')
-        const npmScript = await showQuickPick(
-            Object.entries(packageJson.scripts || {}).map(([scriptName, contents]) => ({
-                label: runningNpmTasks.some(({ task }) => task.name === scriptName)
-                    ? `$(loading~spin)${getIconForScript(scriptName)} ${scriptName}`
-                    : scriptName,
+        let picks = Object.entries(packageJson.scripts || {}).map(([scriptName, contents]): VSCodeQuickPickItem => {
+            let label = `${getIconForScript(scriptName)} ${scriptName}`
+            if (runningNpmTasks.some(({ task }) => task.name === scriptName)) label = `$(loading~spin)${label}`
+            return {
+                label,
                 value: scriptName,
                 detail: contents,
                 description: '',
-            })),
-        )
+            }
+        })
+        for (let lastTouchedScript of lastTouchedScripts.keys()) {
+            const pickIndex = picks.findIndex(({ value: script }) => script === lastTouchedScript)
+            if (pickIndex === -1) continue
+            picks = move(pickIndex, 0, picks)
+        }
+        const npmScript = await showQuickPick(picks)
         if (npmScript === undefined) return
+        lastTouchedScripts.add(npmScript)
         let runningNpmScript: vscode.TaskExecution | undefined
         if ((runningNpmScript = runningNpmTasks.find(({ task }) => task.name === npmScript))) {
             // TODO multistep

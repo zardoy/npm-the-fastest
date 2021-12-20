@@ -1,6 +1,7 @@
 export const defaultSuggestPackagesToInstall = {
     execa: {
-        // label: '' = key,
+        // package:
+        // export: '' = key,
         // alias?: string
         // path: = './',
         type: 'named',
