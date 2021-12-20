@@ -39,14 +39,16 @@ export const pnpmCommand = async ({
     reportProgress,
     cwd,
     cancellationToken,
+    flags = [],
 }: {
     command: 'remove' | 'add' | 'install'
     packages?: string[]
+    flags?: string[]
     cwd: string
     reportProgress: (_: { message: string }) => void
     cancellationToken: vscode.CancellationToken
 }) => {
-    const pnpm = execa('pnpm', [command, ...(packages ?? []), '--reporter', 'ndjson'], { cwd })
+    const pnpm = execa('pnpm', [command, ...flags, ...(packages ?? []), '--reporter', 'ndjson'], { cwd })
 
     // TODO! pipe stderr to the output pane
 
@@ -54,7 +56,11 @@ export const pnpmCommand = async ({
         console.log(err)
     })
 
-    cancellationToken.onCancellationRequested(() => pnpm.kill())
+    cancellationToken.onCancellationRequested(() => {
+        console.log('cancel received')
+        pnpm.kill('SIGTERM')
+        console.log(pnpm.killed)
+    })
 
     const pnpmStageMap = {
         resolution_started: 'Resolving packages',
