@@ -54,7 +54,6 @@ dependencies:
   '@types/hosted-git-info': 3.0.2
   '@types/jsonfile': 6.0.1
   '@types/node': 16.11.12
-  '@types/semver': 7.3.9
   algoliasearch: 4.11.0
   cross-env: 7.0.3
   default-branch: 1.1.1
@@ -85,6 +84,7 @@ devDependencies:
   '@types/jest': 27.0.3
   '@types/lodash': 4.14.178
   '@types/mocha': 9.0.0
+  '@types/semver': 7.3.9
   '@types/vscode': 1.63.0
   '@types/yamljs': 0.2.31
   '@vscode/test-electron': 1.6.2
@@ -1109,7 +1109,7 @@ packages:
 
   /@types/semver/7.3.9:
     resolution: {integrity: sha512-L/TMpyURfBkf+o/526Zb6kd/tchUP3iBDEPjqjb+U2MAJhVRxxrmr2fwpe08E7QsV7YLcpq0tUaQ9O9x97ZIxQ==}
-    dev: false
+    dev: true
 
   /@types/sinon/7.5.2:
     resolution: {integrity: sha512-T+m89VdXj/eidZyejvmoP9jivXgBDdkOSBVQjU9kF349NEx10QdPNGxHeZUaj1IlJ32/ewdyXJjnJxyxJroYwg==}
