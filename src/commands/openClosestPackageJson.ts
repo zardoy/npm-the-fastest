@@ -3,7 +3,6 @@ import { join } from 'path'
 import vscode from 'vscode'
 import { Utils } from 'vscode-uri'
 import { findUpPackageJson } from '../commands-core/packageJson'
-import { getCurrentWorkspaceRoot } from '../commands-core/util'
 
 export const openClosestPackageJson = async () => {
     const uri = vscode.window.activeTextEditor?.document.uri
@@ -12,7 +11,7 @@ export const openClosestPackageJson = async () => {
         if (!firstWorkspace || !existsSync(join(firstWorkspace.uri.fsPath, 'package.json'))) return
         const uriToOpen = Utils.joinPath(firstWorkspace.uri, 'package.json')
         await vscode.window.showTextDocument(uriToOpen)
-        return getCurrentWorkspaceRoot()
+        return
     }
 
     const closestPackageJson = await findUpPackageJson(uri)
@@ -23,4 +22,5 @@ export const openClosestPackageJson = async () => {
 
     const uriToOpen = Utils.joinPath(closestPackageJson, 'package.json')
     await vscode.window.showTextDocument(uriToOpen)
+    return undefined
 }

@@ -58,7 +58,9 @@ export const pnpmCommand = async ({
 
     cancellationToken.onCancellationRequested(() => {
         console.log('cancel received')
-        pnpm.kill('SIGTERM')
+        pnpm.kill('SIGKILL', {
+            forceKillAfterTimeout: 50,
+        })
         console.log(pnpm.killed)
     })
 

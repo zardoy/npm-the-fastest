@@ -2,10 +2,10 @@ import vscode from 'vscode'
 import { registerAllExtensionCommands } from 'vscode-framework'
 import { workspaceOpened } from './autoInstall'
 import { registerCodeActions } from './codeActions'
-import { performInstallAction } from './commands-core/addPackages'
 import { throwIfNowPackageJson as throwIfNoPackageJson } from './commands-core/packageJson'
+import { packageManagerCommand } from './commands-core/packageManager'
 import { getCurrentWorkspaceRoot } from './commands-core/util'
-import { installPackages } from './commands/addPackages'
+import { addPackagesCommand } from './commands/addPackages'
 import { openClosestPackageJson } from './commands/openClosestPackageJson'
 import { pnpmOfflineInstall } from './commands/pnpmOfflineInstall'
 import { removePackages } from './commands/removePackages'
@@ -21,18 +21,17 @@ export const activate = () => {
     registerAllExtensionCommands({
         runBinCommand,
         openClosestPackageJson,
-        async addPackages(_, { packages }: { packages?: string[] } = {}) {
-            if (packages) return performInstallAction(getCurrentWorkspaceRoot().uri.fsPath, packages)
-            // no args are passed when executed normally (e.g. from command pallete)
-            await installPackages('workspace')
-        },
-        async removePackages() {
+        addPackages: addPackagesCommand,
+        async removePackages(_, packages?: string[]) {
             // const moduleFolders = await getPmFolders()
             const currentWorkspaceRoot = getCurrentWorkspaceRoot()
             await throwIfNoPackageJson(currentWorkspaceRoot.uri, true)
-            await removePackages(currentWorkspaceRoot.uri)
+            await removePackages(currentWorkspaceRoot.uri, packages)
         },
         pnpmOfflineInstall,
+        async runInstall() {
+            await packageManagerCommand({ cwd: getCurrentWorkspaceRoot().uri, command: 'install' })
+        },
         runNpmScript: startNpmScript,
         runMainNpmScript: startMainNpmScript,
     })

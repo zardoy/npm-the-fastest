@@ -162,9 +162,15 @@
                     ]
                 },
                 "install.runOnOpen": {
-                    "type": "boolean",
-                    "description": "Force run install whenever new workspace is opened, to ensure that you have up-to-date deps",
-                    "default": false
+                    "type": "string",
+                    "enum": [
+                        "disable",
+                        "always",
+                        "ifNeeded",
+                        "askIfNeeded"
+                    ],
+                    "description": "Whether to run package manager install command whenever new workspace is opened, to ensure that you have up-to-date deps",
+                    "default": "disable"
                 },
                 "install.clipboardDetection": {
                     "type": "string",
@@ -208,6 +214,7 @@
                 },
                 "search.provder": {
                     "type": "string",
+                    "deprecationMessage": "This setting is ignored for now and will be removed",
                     "description": "Provider that will be used when adding new packages from NPM. Algolia provides more info and 2x faster",
                     "default": "algolia",
                     "enum": [
@@ -317,6 +324,7 @@
         "@types/hosted-git-info": "^3.0.2",
         "@types/jsonfile": "^6.0.1",
         "@types/node": "^16.11.12",
+        "@zardoy/utils": "^0.0.4",
         "algoliasearch": "^4.11.0",
         "cross-env": "^7.0.3",
         "default-branch": "^1.1.1",

@@ -15,6 +15,7 @@ specifiers:
   '@types/yamljs': ^0.2.31
   '@vscode/test-electron': ^1.6.2
   '@zardoy/tsconfig': ^1.2.2
+  '@zardoy/utils': ^0.0.4
   algoliasearch: ^4.11.0
   cross-env: ^7.0.3
   default-branch: ^1.1.1
@@ -54,6 +55,7 @@ dependencies:
   '@types/hosted-git-info': 3.0.2
   '@types/jsonfile': 6.0.1
   '@types/node': 16.11.12
+  '@zardoy/utils': 0.0.4
   algoliasearch: 4.11.0
   cross-env: 7.0.3
   default-branch: 1.1.1
@@ -1308,6 +1310,15 @@ packages:
     dependencies:
       typescript: 4.5.4
     dev: true
+
+  /@zardoy/utils/0.0.4:
+    resolution: {integrity: sha512-XByd7HzxgwJi85o3oTSJDhk6b3H4w21NYHIqX3WtQ+tGBFPLldo8rdzr31oms6coeXvPVwRmoTGkJmAyHTJQRw==}
+    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
+    dependencies:
+      lodash.compact: 3.0.1
+      rambda: 6.9.0
+      type-fest: 2.8.0
+    dev: false
 
   /abab/2.0.5:
     resolution: {integrity: sha512-9IK9EadsbHo6jLWIpxpR6pL0sazTXV6+SQv25ZB+F7Bj9mJNaOc4nCRabwd5M/JwmUa8idz6Eci6eKfJryPs6Q==}
@@ -5245,6 +5256,10 @@ packages:
       p-locate: 6.0.0
     dev: false
 
+  /lodash.compact/3.0.1:
+    resolution: {integrity: sha1-VAzjg3dFl1gHRx4WtKK6IeclbKU=}
+    dev: false
+
   /lodash.merge/4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
     dev: false
@@ -7280,7 +7295,6 @@ packages:
   /type-fest/2.8.0:
     resolution: {integrity: sha512-O+V9pAshf9C6loGaH0idwsmugI2LxVNR7DtS40gVo2EXZVYFgz9OuNtOhgHLdHdapOEWNdvz9Ob/eeuaWwwlxA==}
     engines: {node: '>=12.20'}
-    dev: true
 
   /type-is/1.6.18:
     resolution: {integrity: sha512-TkRKr9sUTxEH8MdfuCSP7VizJyzRNMjj2J2do2Jr3Kym598JVdEksuzPQCnlFPW4ky9Q+iA+ma9BGm06XQBy8g==}

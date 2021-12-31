@@ -1,10 +1,32 @@
-import { throttle } from 'lodash'
+import { partition } from 'rambda'
+import { debounce, throttle } from 'lodash'
 import vscode from 'vscode'
-import { extensionCtx } from 'vscode-framework'
+import { CommandHandler, extensionCtx } from 'vscode-framework'
 import { performInstallAction } from '../commands-core/addPackages'
 import { getCurrentWorkspaceRoot } from '../commands-core/util'
 import { NpmSearchResult, performAlgoliaSearch } from '../core/npmSearch'
 import { throwIfNowPackageJson } from '../commands-core/packageJson'
+import { AlgoliaSearchResultItem } from '../core/algoliaSearchType'
+
+export type AddPackagesArg = {
+    packages?: string[]
+    devPackages?: string[]
+}
+
+export const addPackagesCommand: CommandHandler = async (_, { devPackages, packages }: AddPackagesArg = {}) => {
+    if (devPackages === undefined && packages === undefined) {
+        await installPackages('workspace')
+        return
+    }
+
+    for (const [pkgs, flags] of [
+        [packages, ''],
+        [devPackages, '-D'],
+    ] as Array<[string[], string]>) {
+        if (pkgs === undefined) continue
+        await performInstallAction(getCurrentWorkspaceRoot().uri.fsPath, pkgs, flags)
+    }
+}
 
 export const installPackages = async (location: 'closest' | 'workspace') => {
     // in pm-workspaces: select workspace, root at bottom, : to freeChoice
@@ -13,6 +35,9 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
     await throwIfNowPackageJson(currentWorkspaceRoot.uri, true)
     type ItemType = vscode.QuickPickItem & {
         itemType?: 'install-action' | 'selectedToInstall'
+        types?: AlgoliaSearchResultItem['types']['ts']
+        installType?: 'dev'
+        repositoryUrl?: string
     }
 
     const quickPick = vscode.window.createQuickPick<ItemType>()
@@ -54,27 +79,33 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
             ]
     }
 
-    const throttledSearch = throttle(async (search: string) => {
+    let latestQuery = null as string | null
+
+    type ButtonAction = 'dev' | 'npm' | 'repo'
+    const throttledSearch = throttle(async (query: string) => {
+        latestQuery = query
         const results = await (async () => {
-            const cached = internalCache.get(search)
+            const cached = internalCache.get(query)
             if (cached) {
                 if (Date.now() - cached.date < 1000 * 60 * 60 * 24 * 2) {
                     console.log('used cached data')
                     return cached.data
                 }
 
-                internalCache.delete(search)
+                internalCache.delete(query)
             }
 
-            console.time('fetch packages list')
-            const results = await performAlgoliaSearch(search)
-            console.timeEnd('fetch packages list')
-            internalCache.set(search, { data: results, date: Date.now() })
+            console.log(`fetching ${query}`)
+            console.time(`fetched ${query}`)
+            const results = await performAlgoliaSearch(query)
+            console.timeEnd(`fetched ${query}`)
+            internalCache.set(query, { data: results, date: Date.now() })
             return results
         })()
+        if (latestQuery !== query) return
         quickPick.busy = false
         setItems(
-            results.map(({ name, owner, version, description, bin, humanDownloadsLast30Days, types }) => {
+            results.map(({ name, owner, version, description, bin, humanDownloadsLast30Days, types, repository }) => {
                 let detail = `v${version}`
 
                 if (humanDownloadsLast30Days !== undefined) detail += ` $(extensions-install-count) ${humanDownloadsLast30Days}`
@@ -82,19 +113,66 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
                 const commands = Object.keys(bin ?? {})
                 if (commands.length > 0) detail += ` $(terminal) ${commands.join(', ')}`
 
-                if (types !== undefined) detail += ` $(symbol-type-parameter) ${types === false ? 'No' : types === 'definitely-typed' ? '@types' : types}`
+                if (types !== undefined) {
+                    if (types === false) detail += ' NO TYPES'
+                    if (types === 'included') detail += ' $(symbol-type-parameter)'
+                    if (types === 'definitely-typed') detail += ' @types'
+                }
 
-                if (owner) detail += ` $(account) ${owner}`
+                const buttons: Array<vscode.QuickInputButton & { action: ButtonAction }> = [
+                    {
+                        iconPath: new vscode.ThemeIcon('tools'),
+                        action: 'dev',
+                        tooltip: 'Install as devDependency',
+                    },
+                    ...((repository
+                        ? [
+                              {
+                                  iconPath: new vscode.ThemeIcon('package'),
+                                  action: 'npm',
+                                  tooltip: 'Open at NPM',
+                              },
+                          ]
+                        : []) as any),
+                    {
+                        iconPath: new vscode.ThemeIcon('github'),
+                        action: 'repo',
+                        tooltip: 'Open repository',
+                    },
+                ]
+                // Hide author by default
+                // if (owner) detail += ` $(account) ${owner}`
 
                 return {
                     label: name,
                     detail,
+                    buttons,
                     description,
                     alwaysShow: true,
+                    repositoryUrl: repository?.url,
+                    types,
                 }
             }),
         )
     }, 200)
+
+    quickPick.onDidTriggerItemButton(({ item, button }) => {
+        switch ((button as any).action as ButtonAction) {
+            case 'dev':
+                selectedPackages.unshift({ ...item, itemType: 'selectedToInstall', installType: 'dev' })
+                quickPick.value = ''
+                break
+            case 'repo':
+                void vscode.env.openExternal(item.repositoryUrl as any)
+                break
+            case 'npm':
+                void vscode.env.openExternal(`https://npmjs.com/package/${item.label}` as any)
+                break
+
+            default:
+                break
+        }
+    })
     quickPick.onDidChangeValue(async search => {
         setItems(false)
         if (search.length < 3) return
@@ -107,10 +185,23 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
         if (activeItem.itemType === 'install-action') {
             // TODO! workspaces
             quickPick.hide()
-            await performInstallAction(
-                currentWorkspaceRoot.uri.fsPath,
-                selectedPackages.map(({ label }) => label),
-            )
+            // `https://cdn.jsdelivr.net/npm/${packageName}/package.json`
+            const installTypesPackages = true
+            const [devDeps, regularDeps] = partition(({ installType }) => installType === 'dev', selectedPackages).map(arr =>
+                arr.map(({ label }) => label),
+            ) as [string[], string[]]
+
+            await performInstallAction(currentWorkspaceRoot.uri.fsPath, regularDeps)
+            if (devDeps.length > 0) await performInstallAction(currentWorkspaceRoot.uri.fsPath, devDeps, '-D')
+
+            const typesToInstall = selectedPackages.filter(({ types }) => types === 'definitely-typed')
+            if (installTypesPackages && typesToInstall.length > 0)
+                await performInstallAction(
+                    currentWorkspaceRoot.uri.fsPath,
+                    typesToInstall.map(({ label }) => `@types/${label}`),
+                    '-D',
+                )
+
             return
         }
 
@@ -124,6 +215,7 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
         else setItems(false)
     })
 
+    quickPick.ignoreFocusOut = true
     quickPick.onDidHide(quickPick.dispose)
     quickPick.show()
 }

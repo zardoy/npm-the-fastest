@@ -4,6 +4,7 @@ import { getExtensionCommandId, getExtensionId, getExtensionSetting, registerExt
 import { fromUrl } from 'hosted-git-info'
 import defaultBranch from 'default-branch'
 import { findUpNodeModules, readDirPackageJson, readPackageJsonWithMetadata } from './commands-core/packageJson'
+import { AddPackagesArg } from './commands/addPackages'
 
 /** get module dir URI from closest node_modules */
 const getClosestModulePath = async (module: string, path = '') => {
@@ -125,13 +126,24 @@ export const registerCodeActions = () => {
                         },
                         kind: vscode.CodeActionKind.Empty,
                     },
+                    {
+                        title: 'Remove with PNPM',
+                        command: {
+                            command: getExtensionCommandId('removePackages'),
+                            title: '',
+                            arguments: [moduleName],
+                        },
+                        kind: vscode.CodeActionKind.Empty,
+                    },
                 )
 
                 if (hasMissingImport || hasMissingTypes) {
                     const addModuleFix = (module: string, type: 'dependency' | 'devDependency', isPreferred = true) => {
                         const codeAction = new vscode.CodeAction(`Add ${module} as ${type}`, vscode.CodeActionKind.QuickFix)
-                        // TODO! dev enablement
-                        codeAction.command = { command: getExtensionCommandId('addPackages'), title: '', arguments: [{ packages: [module] }] }
+                        const arg: AddPackagesArg = {
+                            [type === 'devDependency' ? 'packages' : 'devPackages']: [module],
+                        }
+                        codeAction.command = { command: getExtensionCommandId('addPackages'), title: '', arguments: [arg] }
                         codeAction.isPreferred = isPreferred
                         codeAction.diagnostics = [problem]
                         codeActions.push(codeAction)
