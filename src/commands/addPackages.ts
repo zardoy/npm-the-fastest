@@ -175,7 +175,11 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
     })
     quickPick.onDidChangeValue(async search => {
         setItems(false)
-        if (search.length < 3) return
+        if (search.length < 3) {
+            // not involving throttled search anymore, ignore fetching suggestions
+            latestQuery = ''
+            return
+        }
         quickPick.busy = true
         await throttledSearch(search)
     })
