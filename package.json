@@ -196,6 +196,7 @@
                 },
                 "yarnBerry.workspaceAutoInstall": {
                     "type": "boolean",
+                    "deprecationMessage": "Not implemented",
                     "markdownDescription": "Applies only if project uses yarn 2 or greater and #openWorkspaceAutoInstall# is withoutPrompt. In this case project script, instead of your system-wide package manager will be used",
                     "default": false
                 },
@@ -244,8 +245,13 @@
                     ],
                     "enumDescriptions": [
                         "Closest package.json file of active text editor",
-                        "Root of current workspace folder (based on active text editor in "
+                        "Root of current workspace folder (based on active text editor)"
                     ]
+                },
+                "scripts.matchContents": {
+                    "type": "boolean",
+                    "description": "Whether to match script contents in quickpick search",
+                    "default": false
                 },
                 "statusbar.showMainScriptStatus": {
                     "type": "boolean",
