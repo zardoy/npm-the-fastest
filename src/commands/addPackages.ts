@@ -195,7 +195,7 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
                 arr.map(({ label }) => label),
             ) as [string[], string[]]
 
-            await performInstallAction(currentWorkspaceRoot.uri.fsPath, regularDeps)
+            if (regularDeps.length > 0) await performInstallAction(currentWorkspaceRoot.uri.fsPath, regularDeps)
             if (devDeps.length > 0) await performInstallAction(currentWorkspaceRoot.uri.fsPath, devDeps, '-D')
 
             const typesToInstall = selectedPackages.filter(({ types }) => types === 'definitely-typed')

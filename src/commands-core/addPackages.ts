@@ -5,7 +5,7 @@ export const performInstallAction = async (cwd: string, packages: string[], flag
     let title = `Installing: ${packages.join(', ')}`
     if (flags?.includes('-D')) title += ' as dev'
     if (packages.length === 0) {
-        void vscode.window.showWarningMessage('Nothing to install')
+        void vscode.window.showWarningMessage('No packages to install provided')
         return
     }
 
