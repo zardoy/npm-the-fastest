@@ -141,7 +141,7 @@ export const registerCodeActions = () => {
                     const addModuleFix = (module: string, type: 'dependency' | 'devDependency', isPreferred = true) => {
                         const codeAction = new vscode.CodeAction(`Add ${module} as ${type}`, vscode.CodeActionKind.QuickFix)
                         const arg: AddPackagesArg = {
-                            [type === 'devDependency' ? 'packages' : 'devPackages']: [module],
+                            [type === 'devDependency' ? 'devPackages' : 'packages']: [module],
                         }
                         codeAction.command = { command: getExtensionCommandId('addPackages'), title: '', arguments: [arg] }
                         codeAction.isPreferred = isPreferred

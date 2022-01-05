@@ -53,7 +53,7 @@ export const pnpmCommand = async ({
     // TODO! pipe stderr to the output pane
 
     pnpm.stderr?.on?.('data', err => {
-        console.log(err)
+        console.error(err)
     })
 
     cancellationToken.onCancellationRequested(() => {
@@ -112,7 +112,8 @@ export const pnpmCommand = async ({
                     message: newSteps.slice(-1)[0],
                 })
         } catch (error) {
-            console.error(str)
+            console.error(error)
+            console.error('Last string', str)
             throw error
         }
     })
