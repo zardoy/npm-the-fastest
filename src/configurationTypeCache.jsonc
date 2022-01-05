@@ -1,0 +1,120 @@
+// GENERATED. DON'T EDIT MANUALLY
+// md5hash: 795e880c9b33fba7c6f569218ad4b1dd
+{
+    "type": "object",
+    "properties": {
+        "install.clipboardDetection": {
+            "description": "What to do on clipboard detection for copied command to install packages",
+            "default": "ask",
+            "enum": [
+                "ask",
+                "auto",
+                "disabled"
+            ],
+            "type": "string"
+        },
+        "install.packs": {
+            "description": "Create your own sets of package to install at once",
+            "type": "object",
+            "additionalProperties": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                }
+            }
+        },
+        "install.runOnOpen": {
+            "description": "Whether to run package manager install command whenever new workspace is opened to\nensure that you have up-to-date deps",
+            "default": "disable",
+            "enum": [
+                "always",
+                "askIfNeeded",
+                "disable",
+                "ifNeeded"
+            ],
+            "type": "string"
+        },
+        "install.watchDelay": {
+            "description": "Delay, before package manager invoke. Uses debounce. Relies on #install.watchPackageJson#",
+            "default": 500,
+            "type": "number"
+        },
+        "install.watchPackageJson": {
+            "description": "Invoke package maanger install whenever you change dependencies in package.json (within VSCode only)",
+            "default": true,
+            "type": "boolean"
+        },
+        "install.watchPackageLocks": {
+            "description": "Invoke package manager install whenever lockfile is changed (usually after git operations)",
+            "enum": [
+                "disabled",
+                "prompt",
+                "withoutPrompt"
+            ],
+            "type": "string"
+        },
+        "scripts.mainScripts": {
+            "description": "The first script will be run from this list on `start-npm-script` command.",
+            "uniqueItems": true,
+            "default": [
+                "dev",
+                "start",
+                "watch"
+            ],
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "scripts.matchContents": {
+            "description": "Whether to match script contents in quickpick search",
+            "default": false,
+            "type": "boolean"
+        },
+        "scripts.searchLocation": {
+            "description": "This affects `runScript` and `runMainScript` commands. From where pick scripts",
+            "enum": [
+                "closest",
+                "currentWorkspaceFolderRoot"
+            ],
+            "type": "string"
+        },
+        "search.includeDeprecated": {
+            "description": "Include deprecated packages into search results",
+            "default": false,
+            "type": "boolean"
+        },
+        "runBinCommand.searchLocation": {
+            "description": "From where to pick bin commands",
+            "default": "allUpToRoot",
+            "enum": [
+                "allUpToRoot",
+                "nearest"
+            ],
+            "type": "string"
+        },
+        "search.provder": {
+            "description": "Provider that will be used when adding new packages from NPM. Algolia provides more info\nand 2x faster",
+            "default": "algolia",
+            "enum": [
+                "algolia",
+                "npms"
+            ],
+            "type": "string"
+        },
+        "statusbar.showMainScriptStatus": {
+            "default": true,
+            "type": "boolean"
+        },
+        "yarnBerry.workspaceAutoInstall": {
+            "description": "Applies only if project uses yarn 2 or greater and #openWorkspaceAutoInstall# is withoutPrompt. In this case project script, instead of your system-wide package manager will be used",
+            "default": false,
+            "type": "boolean"
+        },
+        "codeAction.resolveBranchName": {
+            "description": "Disable, if action open repository takes a lot of time, would use master on directory path",
+            "default": true,
+            "type": "boolean"
+        }
+    }
+}
