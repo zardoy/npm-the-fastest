@@ -75,7 +75,7 @@
             },
             {
                 "command": "openAtPaka",
-                "title": "openAtPaka"
+                "title": "Open at Paka"
             }
         ],
         "menus": {
@@ -110,10 +110,6 @@
                 },
                 {
                     "command": "openPackageReadmePreview",
-                    "when": "false"
-                },
-                {
-                    "command": "openOnNpm",
                     "when": "false"
                 }
             ],

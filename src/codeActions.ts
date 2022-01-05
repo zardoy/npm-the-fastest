@@ -127,7 +127,7 @@ export const registerCodeActions = () => {
                         command: {
                             command: getExtensionCommandId('removePackages'),
                             title: '',
-                            arguments: [moduleName],
+                            arguments: [[moduleName]],
                         },
                         kind: vscode.CodeActionKind.Empty,
                     },
