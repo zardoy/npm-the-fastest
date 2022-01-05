@@ -7,6 +7,7 @@ import { getCurrentWorkspaceRoot } from '../commands-core/util'
 import { NpmSearchResult, performAlgoliaSearch } from '../core/npmSearch'
 import { throwIfNowPackageJson } from '../commands-core/packageJson'
 import { AlgoliaSearchResultItem } from '../core/algoliaSearchType'
+import isOnline from 'is-online'
 
 export type AddPackagesArg = {
     packages?: string[]
@@ -175,8 +176,8 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
         }
     })
     quickPick.onDidChangeValue(async search => {
-        setItems(false)
         if (search.length < 3) {
+            setItems(false)
             // not involving throttled search anymore, ignore fetching suggestions
             latestQuery = ''
             return
@@ -190,22 +191,18 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
         if (activeItem.itemType === 'install-action') {
             // TODO! workspaces
             quickPick.hide()
+            const online = await isOnline()
+            const installPackages = (packages: string[], flags: string[]) =>
+                performInstallAction(currentWorkspaceRoot.uri.fsPath, packages, [...flags, ...(!online ? ['--offline'] : [])])
             // `https://cdn.jsdelivr.net/npm/${packageName}/package.json`
             const [devDeps, regularDeps] = partition(({ installType }) => installType === 'dev', selectedPackages).map(arr =>
                 arr.map(({ label }) => label),
             ) as [string[], string[]]
 
-            if (regularDeps.length > 0) await performInstallAction(currentWorkspaceRoot.uri.fsPath, regularDeps)
-            if (devDeps.length > 0) await performInstallAction(currentWorkspaceRoot.uri.fsPath, devDeps, '-D')
-
             const typesToInstall = selectedPackages.filter(({ types }) => types === 'definitely-typed')
-            const installTypesPackages = getExtensionSetting('addPackages.installTypes')
-            if (installTypesPackages && typesToInstall.length > 0)
-                await performInstallAction(
-                    currentWorkspaceRoot.uri.fsPath,
-                    typesToInstall.map(({ label }) => `@types/${label}`),
-                    '-D',
-                )
+            if (regularDeps.length > 0) await installPackages(regularDeps, [])
+            if (getExtensionSetting('addPackages.installTypes')) devDeps.push(...typesToInstall.map(({ label }) => `@types/${label}`))
+            if (devDeps.length > 0) await installPackages(devDeps, ['-D'])
 
             return
         }
