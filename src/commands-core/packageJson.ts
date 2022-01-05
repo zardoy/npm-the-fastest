@@ -86,13 +86,15 @@ type PickedDeps = string[] & {
 }
 
 // for: remove
-export const pickInstalledDeps = async ({
+export const pickInstalledDeps = async <M extends boolean>({
     commandTitle,
+    multiple,
     packageJson,
 }: {
     commandTitle: string
+    multiple: M
     packageJson?: PackageJson
-}): Promise<PickedDeps | undefined> => {
+}): Promise<(M extends true ? PickedDeps : string) | undefined> => {
     if (!packageJson) packageJson = (await readPackageJsonWithMetadata({ type: 'closest', fallback: true })).packageJson
     const depsPick: Array<keyof PackageJson> = ['dependencies', 'devDependencies', 'optionalDependencies']
     const depsIconMap = {
@@ -129,13 +131,14 @@ export const pickInstalledDeps = async ({
                 )
                 .filter(Boolean)
         }),
-        { canPickMany: true, title: commandTitle, ignoreFocusOut: true },
-    )) as PickedDeps
+        { canPickMany: multiple as boolean, title: commandTitle, ignoreFocusOut: true },
+    )) as PickedDeps | string
     if (pickedDeps === undefined) return
+    if (typeof pickedDeps === 'string') return pickedDeps as any
     pickedDeps.realDepsCount = pickedDeps.length
 
     for (const pkg of packagesWithTypes) if (pickedDeps.includes(pkg)) pickedDeps.push(AT_TYPES + pkg)
-    return pickedDeps
+    return pickedDeps as any
 }
 
 export const throwIfNowPackageJson = async (uriDir: vscode.Uri, needsWrite: boolean) => {

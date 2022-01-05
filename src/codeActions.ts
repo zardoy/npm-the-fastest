@@ -55,10 +55,6 @@ export const registerCodeActions = () => {
         await vscode.env.openExternal((repo.browse() + urlPath) as any)
     })
 
-    registerExtensionCommand('openOnNpm', async (_, module: string) => {
-        await vscode.env.openExternal(`https://npmjs.com/package/${module}` as any)
-    })
-
     vscode.languages.registerCodeActionsProvider(
         ['typescript', 'typescriptreact', 'javascript', 'javascriptreact'].map(language => ({ language, scheme: 'file' })),
         {

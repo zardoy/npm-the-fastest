@@ -72,6 +72,10 @@
             {
                 "command": "openOnNpm",
                 "title": "Open on npm"
+            },
+            {
+                "command": "openAtPaka",
+                "title": "openAtPaka"
             }
         ],
         "menus": {

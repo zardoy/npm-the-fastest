@@ -7,6 +7,7 @@ import { packageManagerCommand } from './commands-core/packageManager'
 import { getCurrentWorkspaceRoot } from './commands-core/util'
 import { addPackagesCommand } from './commands/addPackages'
 import { openClosestPackageJson } from './commands/openClosestPackageJson'
+import { registerOpenPackageAtCommands } from './commands/openPackageAt'
 import { pnpmOfflineInstall } from './commands/pnpmOfflineInstall'
 import { removePackages } from './commands/removePackages'
 import { runBinCommand } from './commands/runBinCommand'
@@ -36,6 +37,7 @@ export const activate = () => {
         runMainNpmScript: startMainNpmScript,
     })
 
+    registerOpenPackageAtCommands()
     registerCodeActions()
     registerClipboardDetection()
 
