@@ -1,7 +1,7 @@
 import { partition } from 'rambda'
 import { debounce, throttle } from 'lodash'
 import vscode from 'vscode'
-import { CommandHandler, extensionCtx } from 'vscode-framework'
+import { CommandHandler, extensionCtx, getExtensionSetting } from 'vscode-framework'
 import { performInstallAction } from '../commands-core/addPackages'
 import { getCurrentWorkspaceRoot } from '../commands-core/util'
 import { NpmSearchResult, performAlgoliaSearch } from '../core/npmSearch'
@@ -150,7 +150,8 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
                     description,
                     alwaysShow: true,
                     repositoryUrl: repository?.url,
-                    types,
+                    // going to use API only, make happy with types, otherwise let user install if needed
+                    types: commands.length === 0 ? types : undefined,
                 }
             }),
         )
@@ -190,7 +191,6 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
             // TODO! workspaces
             quickPick.hide()
             // `https://cdn.jsdelivr.net/npm/${packageName}/package.json`
-            const installTypesPackages = true
             const [devDeps, regularDeps] = partition(({ installType }) => installType === 'dev', selectedPackages).map(arr =>
                 arr.map(({ label }) => label),
             ) as [string[], string[]]
@@ -199,6 +199,7 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
             if (devDeps.length > 0) await performInstallAction(currentWorkspaceRoot.uri.fsPath, devDeps, '-D')
 
             const typesToInstall = selectedPackages.filter(({ types }) => types === 'definitely-typed')
+            const installTypesPackages = getExtensionSetting('addPackages.installTypes')
             if (installTypesPackages && typesToInstall.length > 0)
                 await performInstallAction(
                     currentWorkspaceRoot.uri.fsPath,
@@ -209,7 +210,6 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
             return
         }
 
-        console.log(activeItem)
         if (activeItem.itemType === 'selectedToInstall') selectedPackages.splice(selectedPackages.indexOf(activeItem), 1)
         else selectedPackages.unshift({ ...activeItem, itemType: 'selectedToInstall' })
 

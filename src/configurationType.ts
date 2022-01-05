@@ -49,6 +49,11 @@ export type Configuration = {
             "watch"
         ]
      */
+    /**
+     * Install missing @types/ packages, if package doesn't have bin
+     * @default true
+     */
+    'addPackages.installTypes': boolean
     'scripts.mainScripts'?: string[]
     /**
      * Whether to match script contents in quickpick search
