@@ -1,4 +1,4 @@
-# Npm The Fastest
+# NPM Rapid Ready
 
 ## Key Features
 

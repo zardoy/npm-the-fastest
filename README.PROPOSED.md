@@ -1,4 +1,4 @@
-# NPM The Fastest
+# NPM Rapid Ready
 
 Under heavy development, I want to make it the most comprehensive tool for working with NPM ecosystem inside VSCode
 
@@ -6,6 +6,7 @@ Under heavy development, I want to make it the most comprehensive tool for worki
 
 - Keeps dependencies always in sync with your package manager (editing: [ ] watch: [ ])
 - Doesn't support yarn2
+
 <!-- - Works with any package managers best with pnpm!
 - [ ] workspaces and monorepos support
 - Fastest plugin for

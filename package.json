@@ -1,6 +1,6 @@
 {
     "name": "npm-the-fastest",
-    "displayName": "NPM THE FASTEST",
+    "displayName": "NPM Rapid Ready",
     "description": "Full-featured extension for npm ecosystem",
     "publisher": "zardoy",
     "version": "0.0.0-dev",
@@ -21,7 +21,7 @@
             },
             {
                 "command": "pnpmOfflineInstall",
-                "category": "NPM THE FASTEST (pnpm)",
+                "category": "NPM Rapid Ready (pnpm)",
                 "title": "Install Offline npm Packages"
             },
             {
