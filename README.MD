@@ -3,10 +3,18 @@
 ## Key Features
 
 - fast packages search
-- auto install `@types` for any package manager
+- auto install `@types` with any package manager
 - start main script command
 - clipboard detection for `npm i -D esbuild`
 - and even more
+
+## Default Package Manager
+
+PM – Package Manager.
+
+By default, when project has no lockfile the first installed package manager from your system will be used:
+`pnpm`, `yarn` or `npm`
+Note that, `npm.packageManager` setting (when not `auto`) always takes precedence and forces to use specific PM in all cases.
 
 ## Before hit v0.1.0
 
