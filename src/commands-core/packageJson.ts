@@ -116,7 +116,7 @@ export const pickInstalledDeps = async <M extends boolean>({
             return Object.entries(deps)
                 .map(
                     // ts error below: pkgJson possibly is undefined
-                    ([pkg, version]): VSCodeQuickPickItem<string> => {
+                    ([pkg, version]): VSCodeQuickPickItem => {
                         if (pkg.startsWith(AT_TYPES) && depKey === 'devDependencies' && hasTypesPackage(pkg)) {
                             packagesWithTypes.push(pkg.slice(AT_TYPES.length))
                             return undefined!
@@ -131,6 +131,7 @@ export const pickInstalledDeps = async <M extends boolean>({
                 )
                 .filter(Boolean)
         }),
+        // eslint-disable-next-line zardoy-config/@typescript-eslint/no-unnecessary-type-assertion
         { canPickMany: multiple as boolean, title: commandTitle, ignoreFocusOut: true },
     )) as PickedDeps | string
     if (pickedDeps === undefined) return

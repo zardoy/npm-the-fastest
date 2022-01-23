@@ -1,5 +1,5 @@
-import execa from 'execa'
 import vscode from 'vscode'
+import execa from 'execa'
 import { GracefulCommandError } from 'vscode-framework'
 import { pnpmCommand, supportedPackageManagers, SupportedPackageManagersNames } from '../core/packageManager'
 import { firstExists } from './util'
@@ -7,8 +7,8 @@ import { firstExists } from './util'
 export const getPrefferedPackageManager = async (cwd: vscode.Uri): Promise<SupportedPackageManagersNames> => {
     let preffereddFromNpm = vscode.workspace.getConfiguration('npm').get<string>('packageManager')
     if (preffereddFromNpm === 'auto') preffereddFromNpm = undefined
+    // TODO move it to bottom and always use workspace client
     if (preffereddFromNpm) return preffereddFromNpm as any
-    const { fs } = vscode.workspace
     const name = await firstExists(
         Object.entries(supportedPackageManagers).map(([name, { detectFile }]) => ({
             name,
@@ -50,32 +50,56 @@ export const pmIsInstalledOrThrow = async (pm: SupportedPackageManagersNames) =>
 export const packageManagerCommand = async ({
     cwd,
     command,
-    packages,
-    realPackagesCount = packages?.length,
-    flags,
+    packages = [],
+    flags = [],
+    // flags,
     // TODO!
-    displayCwd = false,
+    // displayCwd = false,
+    // realPackagesCount = packages?.length,
+    forcePm,
 }: {
     cwd: vscode.Uri
     command: 'install' | 'add' | 'remove'
-    displayCwd?: boolean
-    realPackagesCount?: number
+    // displayCwd?: boolean
+    // realPackagesCount?: number
+    flags?: string[] | string
     // TODO combine them
     // cancellationToken?: vscode.CancellationToken
     packages?: string[]
-    flags?: {
-        global: boolean
-        dev: boolean
-    }
+    forcePm?: SupportedPackageManagersNames
+    // flags?: {
+    //     global: boolean
+    //     dev: boolean
+    // }
 }) => {
-    const pm = await getPrefferedPackageManager(cwd)
-    const getMessage = () => {
-        let msg = ''
-        msg += command === 'remove' ? 'Removing' : 'Installing'
-        if (realPackagesCount) msg += ` ${realPackagesCount}`
-        msg += ' packages'
-        msg += ` with ${pm}`
+    const pm = forcePm ?? (await getPrefferedPackageManager(cwd))
+    // const getMessage = () => {
+    //     let msg = ''
+    //     msg += command === 'remove' ? 'Removing' : 'Installing'
+    //     if (realPackagesCount) msg += ` ${realPackagesCount}`
+    //     msg += ' packages'
+    //     msg += ` with ${pm}`
+    //     return msg
+    // }
+    const getMessage = (): string => {
+        let msg = `[${pm}] `
+        if (command === 'install') {
+            msg += 'Installing workspace dependencies'
+            return msg
+        }
+
+        msg += command === 'add' ? 'Installing' : 'Removing'
+        msg += packages.length > 4 ? ` ${packages.length} packages` : `: ${packages.join(', ')}`
+        if (flags.includes('-D')) msg += ' as dev'
         return msg
+    }
+
+    if (typeof flags === 'string') flags = flags.split(' ')
+    if (command === 'install') {
+        command = supportedPackageManagers[pm].installCommand as any
+    } else if (packages.length === 0) {
+        void vscode.window.showWarningMessage(`No packages to ${command} provided`)
+        return
     }
 
     await vscode.window.withProgress(
@@ -89,7 +113,7 @@ export const packageManagerCommand = async ({
                 case 'npm':
                 case 'yarn':
                     // TODO yarn --json
-                    await execa(pm, [command, ...(packages ?? [])], {
+                    await execa(pm, [command, ...(packages ?? []), ...flags], {
                         cwd: cwd.fsPath,
                     })
                     break
@@ -100,6 +124,7 @@ export const packageManagerCommand = async ({
                         cancellationToken,
                         packages,
                         reportProgress,
+                        flags: flags as string[],
                     })
                     break
 

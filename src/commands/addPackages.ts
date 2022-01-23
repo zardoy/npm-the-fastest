@@ -1,39 +1,52 @@
+import vscode from 'vscode'
 import { partition } from 'rambda'
 import { debounce, throttle } from 'lodash'
-import vscode from 'vscode'
 import { CommandHandler, extensionCtx, getExtensionSetting } from 'vscode-framework'
-import { performInstallAction } from '../commands-core/addPackages'
+import isOnline from 'is-online'
+import { PackageJson } from 'type-fest'
 import { getCurrentWorkspaceRoot } from '../commands-core/util'
 import { NpmSearchResult, performAlgoliaSearch } from '../core/npmSearch'
-import { throwIfNowPackageJson } from '../commands-core/packageJson'
+import { readPackageJsonWithMetadata, throwIfNowPackageJson } from '../commands-core/packageJson'
 import { AlgoliaSearchResultItem } from '../core/algoliaSearchType'
-import isOnline from 'is-online'
+import { packageManagerCommand } from '../commands-core/packageManager'
 
 export type AddPackagesArg = {
     packages?: string[]
     devPackages?: string[]
+    /** Use --offline flag for pnpm if there is no internet connection */
+    // TODO ignored when passed without package args
+    useOffline?: boolean
 }
 
-export const addPackagesCommand: CommandHandler = async (_, { devPackages, packages }: AddPackagesArg = {}) => {
+export const addPackagesCommand: CommandHandler = async (_, { devPackages, packages, useOffline = true }: AddPackagesArg = {}) => {
     if (devPackages === undefined && packages === undefined) {
         await installPackages('workspace')
         return
     }
 
+    const useOffllineFlag = useOffline && !(await isOnline())
     for (const [pkgs, flags] of [
         [packages, ''],
         [devPackages, '-D'],
     ] as Array<[string[], string]>) {
-        if (pkgs === undefined) continue
-        await performInstallAction(getCurrentWorkspaceRoot().uri.fsPath, pkgs, flags)
+        if (pkgs === undefined || pkgs.length === 0) continue
+        // eslint-disable-next-line no-await-in-loop
+        await packageManagerCommand({
+            command: 'add',
+            cwd: getCurrentWorkspaceRoot().uri,
+            packages: pkgs,
+            flags: [...flags.split(' '), ...(useOffllineFlag ? ['--offline'] : [])],
+        })
     }
 }
 
 export const installPackages = async (location: 'closest' | 'workspace') => {
+    let isPickingDev = false
     // in pm-workspaces: select workspace, root at bottom, : to freeChoice
     // otherwise: freeChoice
     const currentWorkspaceRoot = getCurrentWorkspaceRoot()
     await throwIfNowPackageJson(currentWorkspaceRoot.uri, true)
+    const { packageJson } = await readPackageJsonWithMetadata({ type: 'closest' })
     type ItemType = vscode.QuickPickItem & {
         itemType?: 'install-action' | 'selectedToInstall'
         types?: AlgoliaSearchResultItem['types']['ts']
@@ -143,6 +156,10 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
                 ]
                 // Hide author by default
                 // if (owner) detail += ` $(account) ${owner}`
+                if (selectedPackages.some(({ label }) => label === name)) description = `$(history) ${description}`
+                const depsPick: Array<keyof PackageJson> = ['dependencies', 'devDependencies']
+                const isInstalled = depsPick.some(key => Object.keys(packageJson[key] as Record<string, any>).includes(name))
+                if (isInstalled) description = `$(pass) ${description}`
 
                 return {
                     label: name,
@@ -160,10 +177,10 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
 
     quickPick.onDidTriggerItemButton(({ item, button }) => {
         switch ((button as any).action as ButtonAction) {
-            case 'dev':
-                selectedPackages.unshift({ ...item, itemType: 'selectedToInstall', installType: 'dev' })
-                quickPick.value = ''
-                break
+            // case 'dev':
+            //     selectedPackages.unshift({ ...item, itemType: 'selectedToInstall', installType: 'dev' })
+            //     quickPick.value = ''
+            //     break
             case 'repo':
                 void vscode.env.openExternal(item.repositoryUrl as any)
                 break
@@ -176,12 +193,21 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
         }
     })
     quickPick.onDidChangeValue(async search => {
+        if (['d:', 'dev:'].some(str => search.startsWith(str))) {
+            search = search.slice(search.indexOf(':') + 1)
+            isPickingDev = true
+        } else {
+            isPickingDev = false
+        }
+
         if (search.length < 3) {
+            quickPick.busy = false
             setItems(false)
             // not involving throttled search anymore, ignore fetching suggestions
             latestQuery = ''
             return
         }
+
         quickPick.busy = true
         await throttledSearch(search)
     })
@@ -192,8 +218,13 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
             // TODO! workspaces
             quickPick.hide()
             const online = await isOnline()
-            const installPackages = (packages: string[], flags: string[]) =>
-                performInstallAction(currentWorkspaceRoot.uri.fsPath, packages, [...flags, ...(!online ? ['--offline'] : [])])
+            const installPackages = async (packages: string[], flags: string[]) =>
+                packageManagerCommand({
+                    command: 'add',
+                    cwd: currentWorkspaceRoot.uri,
+                    packages,
+                    flags: [...flags, ...(online ? [] : ['--offline'])],
+                })
             // `https://cdn.jsdelivr.net/npm/${packageName}/package.json`
             const [devDeps, regularDeps] = partition(({ installType }) => installType === 'dev', selectedPackages).map(arr =>
                 arr.map(({ label }) => label),
@@ -208,9 +239,9 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
         }
 
         if (activeItem.itemType === 'selectedToInstall') selectedPackages.splice(selectedPackages.indexOf(activeItem), 1)
-        else selectedPackages.unshift({ ...activeItem, itemType: 'selectedToInstall' })
+        else selectedPackages.unshift({ ...activeItem, itemType: 'selectedToInstall', installType: isPickingDev ? 'dev' : undefined })
 
-        if (quickPick.value) quickPick.value = ''
+        if (quickPick.value) quickPick.value = quickPick.value.slice(0, quickPick.value.indexOf(':') + 1)
         // will be updated by onDidChangeValue
         // Update items in quickpick
         else setItems(false)

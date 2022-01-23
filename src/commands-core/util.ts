@@ -2,7 +2,7 @@ import vscode from 'vscode'
 
 /**
  * Get workspace of current opened editor or **first one** otherwise
- * @throws If no folder opened
+ * @throws If no workspace is opened
  */
 export const getCurrentWorkspaceRoot = () => {
     const firstWorkspace = vscode.workspace.workspaceFolders?.[0]

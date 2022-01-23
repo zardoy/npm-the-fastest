@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: 795e880c9b33fba7c6f569218ad4b1dd
+// md5hash: 1a8290bf7111a243e1fb57982d76c654
 {
     "type": "object",
     "properties": {
@@ -53,14 +53,12 @@
             ],
             "type": "string"
         },
+        "addPackages.installTypes": {
+            "description": "Install missing @types/ packages, if package doesn't have bin",
+            "default": true,
+            "type": "boolean"
+        },
         "scripts.mainScripts": {
-            "description": "The first script will be run from this list on `start-npm-script` command.",
-            "uniqueItems": true,
-            "default": [
-                "dev",
-                "start",
-                "watch"
-            ],
             "type": "array",
             "items": {
                 "type": "string"
@@ -115,6 +113,29 @@
             "description": "Disable, if action open repository takes a lot of time, would use master on directory path",
             "default": true,
             "type": "boolean"
+        },
+        "scriptsCompletion": {
+            "default": "true Changing requires reload",
+            "type": "boolean"
         }
-    }
+    },
+    "required": [
+        "addPackages.installTypes",
+        "codeAction.resolveBranchName",
+        "install.clipboardDetection",
+        "install.packs",
+        "install.runOnOpen",
+        "install.watchDelay",
+        "install.watchPackageJson",
+        "install.watchPackageLocks",
+        "runBinCommand.searchLocation",
+        "scripts.mainScripts",
+        "scripts.matchContents",
+        "scripts.searchLocation",
+        "scriptsCompletion",
+        "search.includeDeprecated",
+        "search.provder",
+        "statusbar.showMainScriptStatus",
+        "yarnBerry.workspaceAutoInstall"
+    ]
 }

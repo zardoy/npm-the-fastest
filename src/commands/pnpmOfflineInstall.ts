@@ -1,8 +1,7 @@
 import { showQuickPick } from 'vscode-framework'
 import { sort } from 'semver'
-import { pmIsInstalledOrThrow } from '../commands-core/packageManager'
+import { packageManagerCommand, pmIsInstalledOrThrow } from '../commands-core/packageManager'
 import { getPnpmOfflinePackages } from '../core/pnpmOffline'
-import { performInstallAction } from '../commands-core/addPackages'
 import { getCurrentWorkspaceRoot } from '../commands-core/util'
 
 export const pnpmOfflineInstall = async () => {
@@ -21,5 +20,11 @@ export const pnpmOfflineInstall = async () => {
     )
     if (selectedPackages === undefined) return
     const currentWorkspaceRoot = getCurrentWorkspaceRoot()
-    await performInstallAction(currentWorkspaceRoot.uri.fsPath, selectedPackages, ['--offline'])
+    await packageManagerCommand({
+        command: 'add',
+        packages: selectedPackages,
+        cwd: currentWorkspaceRoot.uri,
+        forcePm: 'pnpm',
+        flags: ['--offline'],
+    })
 }

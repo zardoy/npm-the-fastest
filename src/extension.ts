@@ -1,5 +1,6 @@
 import vscode from 'vscode'
-import { registerAllExtensionCommands } from 'vscode-framework'
+import { getExtensionCommandId, registerActiveDevelopmentCommand, registerAllExtensionCommands } from 'vscode-framework'
+import { parseTree, findNodeAtLocation, getLocation, findNodeAtOffset, getNodePath } from 'jsonc-parser'
 import { workspaceOpened } from './autoInstall'
 import { registerCodeActions } from './codeActions'
 import { throwIfNowPackageJson as throwIfNoPackageJson } from './commands-core/packageJson'
@@ -14,6 +15,7 @@ import { runBinCommand } from './commands/runBinCommand'
 import { startMainNpmScript } from './commands/startMainNpmScript'
 import { startNpmScript } from './commands/startNpmScript'
 import { registerClipboardDetection } from './core/clipboardDetection'
+import { registerPackageJsonAutoComplete } from './packageJsonAutoComplete'
 
 // TODO command for package diff
 
@@ -40,6 +42,7 @@ export const activate = () => {
     registerOpenPackageAtCommands()
     registerCodeActions()
     registerClipboardDetection()
+    registerPackageJsonAutoComplete()
 
     if (vscode.workspace.workspaceFolders?.length === 1) void workspaceOpened(vscode.workspace.workspaceFolders[0]!.uri)
 

@@ -22,7 +22,7 @@ And even more.
 
 ## Known Issues
 
-- pnpm commands can't be canceled
+- commands can't be canceled
 - ...
 
 <!-- ## Auto Install

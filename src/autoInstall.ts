@@ -1,8 +1,10 @@
+import { existsSync } from 'fs'
+import { join } from 'path'
 import vscode from 'vscode'
-import { extensionCtx, getExtensionSetting, registerExtensionCommand } from 'vscode-framework'
+import { extensionCtx, getExtensionSetting } from 'vscode-framework'
 // import npmCheck from 'npm-check'
-import { packageManagerCommand } from './commands-core/packageManager'
-import { confirmAction } from './commands-core/util'
+import { getPrefferedPackageManager, packageManagerCommand } from './commands-core/packageManager'
+import { confirmAction, getCurrentWorkspaceRoot } from './commands-core/util'
 import { supportedPackageManagers } from './core/packageManager'
 
 export const registerPackageJsonWatcher = () => {
@@ -22,8 +24,14 @@ export const registerPackageJsonWatcher = () => {
 }
 
 export const workspaceOpened = async (uri: vscode.Uri) => {
-    if (getExtensionSetting('install.runOnOpen') === 'disable') return
-    if (getExtensionSetting('install.runOnOpen') === 'always') await packageManagerCommand({ cwd: uri, command: 'install' })
+    const runOnOpen = getExtensionSetting('install.runOnOpen')
+    if (runOnOpen === 'disable') return
+    if (runOnOpen === 'always') await packageManagerCommand({ cwd: uri, command: 'install' })
+    // Check if needed
+    const workspaceUri = getCurrentWorkspaceRoot().uri
+    const workspacePath = workspaceUri.fsPath
+    if (existsSync(join(workspacePath, 'node_modules')) || !Object.values(supportedPackageManagers).some(({ detectFile }) => existsSync(detectFile))) return
+
     // const state = await npmCheck({
     //     skipUnused: true,
     // })
@@ -31,13 +39,21 @@ export const workspaceOpened = async (uri: vscode.Uri) => {
     //     .all()
     //     .packages.filter(({ isInstalled }) => !isInstalled)
     //     .map(({ moduleName }) => moduleName)
-    // if (getExtensionSetting('install.runOnOpen') === 'askIfNeeded') {
+    // if (runOnOpen === 'askIfNeeded') {
     //     const response = await vscode.window.showInformationMessage(
     //         `Install missing packages ${notInstalledPackages.length > 5 ? notInstalledPackages.length : notInstalledPackages.join(', ')} ?`,
     //         'YES',
     //     )
     //     if (response !== 'YES') return
     // }
+    if (runOnOpen === 'askIfNeeded') {
+        const pm = await getPrefferedPackageManager(workspaceUri)
+        const response = await vscode.window.showInformationMessage(
+            'No node_modules and lockfile is present',
+            `Run ${pm} ${supportedPackageManagers[pm].installCommand}`.trim(),
+        )
+        if (response !== 'YES') return
+    }
 
-    // await packageManagerCommand({ cwd: uri, command: 'install' })
+    await packageManagerCommand({ cwd: uri, command: 'install' })
 }

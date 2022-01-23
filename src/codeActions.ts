@@ -1,60 +1,10 @@
 import { builtinModules } from 'module'
 import vscode from 'vscode'
-import { getExtensionCommandId, getExtensionId, getExtensionSetting, registerExtensionCommand } from 'vscode-framework'
-import { fromUrl } from 'hosted-git-info'
-import defaultBranch from 'default-branch'
-import { findUpNodeModules, readDirPackageJson, readPackageJsonWithMetadata } from './commands-core/packageJson'
+import { getExtensionCommandId } from 'vscode-framework'
+import { readPackageJsonWithMetadata } from './commands-core/packageJson'
 import { AddPackagesArg } from './commands/addPackages'
 
-/** get module dir URI from closest node_modules */
-const getClosestModulePath = async (module: string, path = '') => {
-    const currentDirUri = vscode.Uri.joinPath(vscode.window.activeTextEditor!.document.uri, '..')
-    const nodeModulesPath = await findUpNodeModules(currentDirUri)
-    return vscode.Uri.joinPath(nodeModulesPath, 'node_modules', module, path)
-}
-
 export const registerCodeActions = () => {
-    registerExtensionCommand('openPackageReadmePreview', async (_, module: string) => {
-        const readmeUri = await getClosestModulePath(module, 'README.MD')
-        await vscode.commands.executeCommand('markdown.showPreviewToSide', readmeUri)
-    })
-
-    registerExtensionCommand('openPackageRepository', async (_, module: string) => {
-        const cwd = await getClosestModulePath(module)
-        let { repository } = await readDirPackageJson(cwd)
-        if (!repository) {
-            // TODO try to resolve url automatically
-            const action = await vscode.window.showWarningMessage(`${module} doesn't have repository field`, 'Open on NPM')
-            if (action === 'Open on NPM') await vscode.commands.executeCommand(getExtensionCommandId('openOnNpm'), module)
-            return
-        }
-
-        // TODO use lib from vsce
-        // TODO support just url
-        let repoDir: string | undefined
-        if (typeof repository === 'object') {
-            repoDir = repository.directory
-            repository = repository.url
-        }
-
-        const repo = fromUrl(repository)!
-        let urlPath = ''
-        if (repo.domain === 'github.com' && repoDir) {
-            let branchName
-            if (getExtensionSetting('codeAction.resolveBranchName')) {
-                console.time('get branch')
-                branchName = await defaultBranch(`${repo.user}/${repo.project}`)
-                console.timeEnd('get branch')
-            } else {
-                branchName = 'master'
-            }
-
-            urlPath = `/tree/${branchName}/${repoDir}`
-        }
-
-        await vscode.env.openExternal((repo.browse() + urlPath) as any)
-    })
-
     vscode.languages.registerCodeActionsProvider(
         ['typescript', 'typescriptreact', 'javascript', 'javascriptreact'].map(language => ({ language, scheme: 'file' })),
         {
