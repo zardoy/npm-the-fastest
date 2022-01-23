@@ -1,7 +1,7 @@
 import { posix } from 'path'
 import vscode from 'vscode'
 import yamlJs from 'yamljs'
-import { SupportedPackageManagersNames } from '../core/packageManager'
+import { SupportedPackageManagersName } from '../core/packageManager'
 import { readDirPackageJson } from './packageJson'
 import { fsExists } from './util'
 import { getPrefferedPackageManager } from './packageManager'
@@ -22,7 +22,7 @@ export const getPmFolders = async () => {
         return undefined
     }
 
-    const monorepoProviders: Record<SupportedPackageManagersNames, (cwd: vscode.Uri) => Promise<{ patterns: string[] } | void>> = {
+    const monorepoProviders: Record<SupportedPackageManagersName, (cwd: vscode.Uri) => Promise<{ patterns: string[] } | void>> = {
         npm: getYarnWorkspaces,
         yarn: getYarnWorkspaces,
         async pnpm(cwd) {

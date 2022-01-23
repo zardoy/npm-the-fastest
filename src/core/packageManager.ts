@@ -1,7 +1,8 @@
+import vscode from 'vscode'
 import whichPm from 'which-pm'
 import execa from 'execa'
 import filesize from 'filesize'
-import vscode from 'vscode'
+import fkill from 'fkill'
 
 type PackageManagerConfig = {
     /** In codebase: lockfile */
@@ -29,7 +30,7 @@ export const supportedPackageManagers = makeSupportedPackageManagers({
         installCommand: '',
     },
 })
-export type SupportedPackageManagersNames = keyof typeof supportedPackageManagers
+export type SupportedPackageManagersName = keyof typeof supportedPackageManagers
 
 /** (if node_modules exists) Get package manager that was used to install deps and create node_modules */
 const getUsedPackageManager = async (cwd: string) => {
@@ -53,7 +54,7 @@ export const pnpmCommand = async ({
     reportProgress: (_: { message: string }) => void
     cancellationToken: vscode.CancellationToken
 }) => {
-    const pnpm = execa('pnpm', [command, ...flags, ...(packages ?? []), '--reporter', 'ndjson'], { cwd })
+    const pnpm = execa('pnpm', [command, ...flags, ...(packages ?? []) /* , '--reporter', 'ndjson' */], { cwd })
 
     // TODO! pipe stderr to the output pane
 
@@ -61,12 +62,10 @@ export const pnpmCommand = async ({
         console.error('[pnpm]', err)
     })
 
-    cancellationToken.onCancellationRequested(() => {
-        console.log('cancel received')
-        pnpm.kill('SIGKILL', {
-            forceKillAfterTimeout: 50,
-        })
-        console.log(pnpm.killed)
+    cancellationToken.onCancellationRequested(async () => {
+        console.log(`cancel received for pid ${pnpm.pid!}`)
+        if (!pnpm.pid) return
+        await fkill(pnpm.pid)
     })
 
     const pnpmStageMap = {
@@ -81,6 +80,12 @@ export const pnpmCommand = async ({
         depPath: string // /d/v
         exitCode?: number
     }
+
+    pnpm.stdout?.on('data', chunk => {
+        const str = String(chunk).trim()
+        if (!str) return
+        console.log('[pnpm]', str)
+    })
 
     // pnpm.stdout!.on('data', chunk => {
     //     const str = String(chunk)

@@ -1,10 +1,10 @@
 import vscode from 'vscode'
 import execa from 'execa'
-import { GracefulCommandError } from 'vscode-framework'
-import { pnpmCommand, supportedPackageManagers, SupportedPackageManagersNames } from '../core/packageManager'
+import { getExtensionSetting, GracefulCommandError } from 'vscode-framework'
+import { pnpmCommand, supportedPackageManagers, SupportedPackageManagersName } from '../core/packageManager'
 import { firstExists } from './util'
 
-export const getPrefferedPackageManager = async (cwd: vscode.Uri): Promise<SupportedPackageManagersNames> => {
+export const getPrefferedPackageManager = async (cwd: vscode.Uri): Promise<SupportedPackageManagersName> => {
     let preffereddFromNpm = vscode.workspace.getConfiguration('npm').get<string>('packageManager')
     if (preffereddFromNpm === 'auto') preffereddFromNpm = undefined
     // TODO move it to bottom and always use workspace client
@@ -15,11 +15,22 @@ export const getPrefferedPackageManager = async (cwd: vscode.Uri): Promise<Suppo
             uri: vscode.Uri.joinPath(cwd, detectFile),
         })),
     )
-    // TODO why npm
-    return name ?? 'npm'
+    const leadingPackageManager = getExtensionSetting('leadingPackageManager')
+    if (name) return name
+    if (leadingPackageManager !== null) return leadingPackageManager
+    let pm: SupportedPackageManagersName = 'npm' // will be used last
+    // TODO check also version
+
+    for (const pmToCheck of ['pnpm', 'yarn'] as SupportedPackageManagersName[])
+        if (await getPmVersion(pmToCheck)) {
+            pm = pmToCheck
+            break
+        }
+
+    return pm
 }
 
-export const getPmVersion = async (pm: SupportedPackageManagersNames) => {
+export const getPmVersion = async (pm: SupportedPackageManagersName) => {
     try {
         return (await execa(pm, ['--version'])).stdout
     } catch {
@@ -27,7 +38,7 @@ export const getPmVersion = async (pm: SupportedPackageManagersNames) => {
     }
 }
 
-export const pmIsInstalledOrThrow = async (pm: SupportedPackageManagersNames) => {
+export const pmIsInstalledOrThrow = async (pm: SupportedPackageManagersName) => {
     const version = await getPmVersion(pm)
     if (!version) {
         if (pm === 'npm')
@@ -66,7 +77,7 @@ export const packageManagerCommand = async ({
     // TODO combine them
     // cancellationToken?: vscode.CancellationToken
     packages?: string[]
-    forcePm?: SupportedPackageManagersNames
+    forcePm?: SupportedPackageManagersName
     // flags?: {
     //     global: boolean
     //     dev: boolean
@@ -95,8 +106,9 @@ export const packageManagerCommand = async ({
     }
 
     if (typeof flags === 'string') flags = flags.split(' ')
+    let execCmd = command
     if (command === 'install') {
-        command = supportedPackageManagers[pm].installCommand as any
+        execCmd = supportedPackageManagers[pm].installCommand as any
     } else if (packages.length === 0) {
         void vscode.window.showWarningMessage(`No packages to ${command} provided`)
         return
@@ -113,14 +125,14 @@ export const packageManagerCommand = async ({
                 case 'npm':
                 case 'yarn':
                     // TODO yarn --json
-                    await execa(pm, [command, ...(packages ?? []), ...flags], {
+                    await execa(pm, [execCmd, ...(packages ?? []), ...flags], {
                         cwd: cwd.fsPath,
                     })
                     break
                 case 'pnpm':
                     await pnpmCommand({
                         cwd: cwd.fsPath,
-                        command,
+                        command: execCmd,
                         cancellationToken,
                         packages,
                         reportProgress,

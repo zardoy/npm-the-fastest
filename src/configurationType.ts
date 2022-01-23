@@ -5,6 +5,14 @@
 // },
 // enforcePackageManagerUse
 export type Configuration = {
+    // TOOD describe difference between builtin setting
+    /**
+     * Your main package manager that leads your projects
+     * Used when no lockfile is detected
+     * By default (when null) first installed is picked: pnpm, yarn, npm
+     * @default null
+     * */
+    leadingPackageManager: 'pnpm' | 'yarn' | 'npm' | null
     /**
      * What to do on clipboard detection for copied command to install packages
      * @default ask
@@ -60,6 +68,15 @@ export type Configuration = {
      * @default true
      */
     'addPackages.installTypes': boolean
+    /**
+     * The first script will be run from this list on `start-npm-script` command.
+     * @uniqueItems true
+     * @default [
+            "dev",
+            "start",
+            "watch"
+        ]
+     */
     'scripts.mainScripts': string[]
     /**
      * Whether to match script contents in quickpick search

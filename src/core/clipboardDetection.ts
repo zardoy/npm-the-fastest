@@ -8,10 +8,8 @@ export const registerClipboardDetection = () => {
     vscode.window.onDidChangeWindowState(async ({ focused }) => {
         if (!focused) return
         if (getExtensionSetting('install.clipboardDetection') === 'disabled') return
-        console.time('detect')
         const clipboardText = (await vscode.env.clipboard.readText()).trim()
         const result = getPackagesFromInstallCmd(clipboardText)
-        console.timeEnd('detect')
         if (!result) return
 
         // TODO

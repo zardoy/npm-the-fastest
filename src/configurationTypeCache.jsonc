@@ -1,8 +1,18 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: 1a8290bf7111a243e1fb57982d76c654
+// md5hash: 556480798888bbc8df856f9dbf22165a
 {
     "type": "object",
     "properties": {
+        "leadingPackageManager": {
+            "description": "Your main package manager that leads your projects\nUsed when no lockfile is detected\nBy default (when null) first installed is picked: pnpm, yarn, npm",
+            "default": null,
+            "enum": [
+                "npm",
+                "pnpm",
+                "yarn"
+            ],
+            "type": "string"
+        },
         "install.clipboardDetection": {
             "description": "What to do on clipboard detection for copied command to install packages",
             "default": "ask",
@@ -59,6 +69,13 @@
             "type": "boolean"
         },
         "scripts.mainScripts": {
+            "description": "The first script will be run from this list on `start-npm-script` command.",
+            "uniqueItems": true,
+            "default": [
+                "dev",
+                "start",
+                "watch"
+            ],
             "type": "array",
             "items": {
                 "type": "string"
@@ -128,6 +145,7 @@
         "install.watchDelay",
         "install.watchPackageJson",
         "install.watchPackageLocks",
+        "leadingPackageManager",
         "runBinCommand.searchLocation",
         "scripts.mainScripts",
         "scripts.matchContents",
