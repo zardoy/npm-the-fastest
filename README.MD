@@ -22,16 +22,11 @@ Currently, extension is stable enough, but there some work before its get out of
 
 1. Tests
 2. Icon
-3. yarn berry support
+3. Yarn berry support
 
 And even more.
 
-**before v0.1.0 config is subject to change without any warnings**
-
-## Known Issues
-
-- commands can't be canceled
-- ...
+On v0.1.0 config will be probably changed.
 
 <!-- ## Auto Install
 

@@ -89,7 +89,11 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
                     description: selectedPackages.map(({ label }) => label).join(', '),
                     itemType: 'install-action',
                 },
-                ...selectedPackages.map(item => ({ ...item, alwaysShow: true })),
+                ...selectedPackages.map(item => ({
+                    ...item,
+                    description: item.installType === 'dev' ? `$(tools) ${item.description}` : item.description,
+                    alwaysShow: true,
+                })),
             ]
     }
 
