@@ -72,6 +72,10 @@
             {
                 "command": "openAtPaka",
                 "title": "Open at Paka"
+            },
+            {
+                "command": "printEnv",
+                "title": "Print Environment Information to Output"
             }
         ],
         "menus": {

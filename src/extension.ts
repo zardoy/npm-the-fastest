@@ -20,7 +20,7 @@ import { registerPackageJsonAutoComplete } from './packageJsonAutoComplete'
 // TODO command for package diff
 
 export const activate = () => {
-    // @ts-expect-error Not all commands implemented
+    // @ts-expect-error Not all commands are registered here
     registerAllExtensionCommands({
         runBinCommand,
         openClosestPackageJson,
@@ -37,6 +37,9 @@ export const activate = () => {
         },
         runNpmScript: startNpmScript,
         runMainNpmScript: startMainNpmScript,
+        printEnv: () => {
+            console.log(process.env)
+        },
     })
 
     registerOpenPackageAtCommands()
