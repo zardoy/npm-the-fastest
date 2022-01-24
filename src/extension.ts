@@ -1,6 +1,5 @@
 import vscode from 'vscode'
-import { getExtensionCommandId, registerActiveDevelopmentCommand, registerAllExtensionCommands } from 'vscode-framework'
-import { parseTree, findNodeAtLocation, getLocation, findNodeAtOffset, getNodePath } from 'jsonc-parser'
+import { registerAllExtensionCommands } from 'vscode-framework'
 import { workspaceOpened } from './autoInstall'
 import { registerCodeActions } from './codeActions'
 import { throwIfNowPackageJson as throwIfNoPackageJson } from './commands-core/packageJson'

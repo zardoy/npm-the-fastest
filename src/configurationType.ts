@@ -55,6 +55,14 @@ export type Configuration = {
      */
     'install.watchPackageLocks': 'disabled' | 'prompt' | 'withoutPrompt'
     /**
+     *  Passing all environmental variables from extension host can cause problems that is hard to debug. Passing false disables is. For now, only pnpm is supported
+     * @default {"pnpm": ["PATH"]}
+     */
+    packageManagerAllowedEnv: {
+        /** @uniqueItems true */
+        pnpm: false | string[]
+    }
+    /**
      * The first script will be run from this list on `start-npm-script` command.
      * @uniqueItems true
      * @default [

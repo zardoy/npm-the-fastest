@@ -3,6 +3,7 @@ import whichPm from 'which-pm'
 import execa from 'execa'
 import filesize from 'filesize'
 import fkill from 'fkill'
+import { getExtensionSetting } from 'vscode-framework'
 
 type PackageManagerConfig = {
     /** In codebase: lockfile */
@@ -54,7 +55,15 @@ export const pnpmCommand = async ({
     reportProgress: (_: { message: string }) => void
     cancellationToken: vscode.CancellationToken
 }) => {
-    const pnpm = execa('pnpm', [command, ...flags, ...(packages ?? []) /* , '--reporter', 'ndjson' */], { cwd })
+    const pnpmArgs = [command, ...flags, ...(packages ?? []) /* , '--reporter', 'ndjson' */]
+    console.log('Running:', 'pnpm', pnpmArgs.map(str => `"${str}"`).join(' '))
+    const pnpmEnvs = getExtensionSetting('packageManagerAllowedEnv').pnpm
+    console.log({ pnpmEnvs })
+    const pnpm = execa('pnpm', pnpmArgs, {
+        cwd,
+        extendEnv: pnpmEnvs === false,
+        env: Object.fromEntries((pnpmEnvs ? pnpmEnvs : []).map(envKey => [envKey, process.env[envKey]])),
+    })
 
     // TODO! pipe stderr to the output pane
 
