@@ -1,4 +1,4 @@
-import vscode from 'vscode'
+import * as vscode from 'vscode'
 import { getExtensionSetting, showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
 import { move } from 'rambda'
 import { launchNpmTask } from '../commands-core/npmScripts'
@@ -13,6 +13,7 @@ export const startNpmScript = async () => {
             generate: 'code',
             compile: 'file-binary',
             build: 'tools', // debug-configure - gear
+            start: 'play-circle',
         }
         const getIconForScript = (scriptName: string) => {
             for (const [detector, icon] of Object.entries(scriptNamespaceIcon)) if (scriptName.includes(detector)) return ` $(${icon})`
