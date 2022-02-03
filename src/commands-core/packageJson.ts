@@ -1,6 +1,6 @@
 import { posix } from 'path'
-import { PackageJson } from 'type-fest'
 import vscode from 'vscode'
+import { PackageJson } from 'type-fest'
 import { showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
 
 // TODO remove workspacesFirst
@@ -131,7 +131,7 @@ export const pickInstalledDeps = async <M extends boolean>({
                 )
                 .filter(Boolean)
         }),
-        // eslint-disable-next-line zardoy-config/@typescript-eslint/no-unnecessary-type-assertion
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         { canPickMany: multiple as boolean, title: commandTitle, ignoreFocusOut: true },
     )) as PickedDeps | string
     if (pickedDeps === undefined) return

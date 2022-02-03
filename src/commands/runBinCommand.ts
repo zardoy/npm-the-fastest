@@ -1,7 +1,7 @@
 import fs from 'fs'
 import { posix } from 'path'
-import { findUp, findUpMultiple } from 'find-up'
 import vscode from 'vscode'
+import { findUp, findUpMultiple } from 'find-up'
 import { getExtensionSetting, showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
 const { join } = posix
 
@@ -34,6 +34,7 @@ export const runBinCommand = async () => {
                 const path = await findUp(...findUpArgs)
                 return path !== undefined && [path]
             }
+
             return findUpMultiple(...findUpArgs)
         }
 
@@ -47,7 +48,7 @@ export const runBinCommand = async () => {
 
     const items = await Promise.all(
         nodeModulesPaths.map(async dirPath =>
-            (async (): Promise<Array<VSCodeQuickPickItem<string>>> => {
+            (async (): Promise<VSCodeQuickPickItem[]> => {
                 const binList = await fs.promises.readdir(join(dirPath, '.bin'))
                 return binList
                     .filter(name => !/.(CMD|ps1)$/.test(name))

@@ -1,7 +1,7 @@
-import { getExtensionSetting, showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
 import vscode from 'vscode'
-import { launchNpmTask } from '../commands-core/npmScripts'
+import { getExtensionSetting, showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
 import { move } from 'rambda'
+import { launchNpmTask } from '../commands-core/npmScripts'
 
 const lastTouchedScripts = new Set<string>()
 
@@ -31,11 +31,12 @@ export const startNpmScript = async () => {
                 description: '',
             }
         })
-        for (let lastTouchedScript of lastTouchedScripts.keys()) {
+        for (const lastTouchedScript of lastTouchedScripts.keys()) {
             const pickIndex = picks.findIndex(({ value: script }) => script === lastTouchedScript)
             if (pickIndex === -1) continue
             picks = move(pickIndex, 0, picks)
         }
+
         const npmScript = await showQuickPick(picks, {
             matchOnDetail: getExtensionSetting('scripts.matchContents'),
         })
