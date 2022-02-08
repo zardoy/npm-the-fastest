@@ -118,7 +118,7 @@
     "capabilities": {
         "untrustedWorkspaces": {
             "supported": false,
-            "description": "This extension needs to run arbitrary commands provided by package manager, installed on your system"
+            "description": "This extension needs to run arbitrary commands provided by package manager installed on your system"
         },
         "virtualWorkspaces": {
             "supported": "limited",
@@ -141,8 +141,9 @@
     ],
     "scripts": {
         "start": "vscode-framework start",
-        "build": "vscode-framework build --skip-typechecking",
-        "lint": "eslint src/**"
+        "build": "vscode-framework build",
+        "lint": "eslint src/**",
+        "test": "jest"
     },
     "devDependencies": {
         "@types/fs-extra": "^9.0.13",

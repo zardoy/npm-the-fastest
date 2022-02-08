@@ -5,10 +5,14 @@ import { getPrefferedPackageManager, packageManagerCommand } from '../commands-c
 import { confirmAction, getCurrentWorkspaceRoot } from '../commands-core/util'
 
 export const registerClipboardDetection = () => {
+    let lastAskedClipboardString = null as string | null
     vscode.window.onDidChangeWindowState(async ({ focused }) => {
         if (!focused) return
         if (getExtensionSetting('install.clipboardDetection') === 'disabled') return
-        const clipboardText = (await vscode.env.clipboard.readText()).trim()
+        const clipboardText = await vscode.env.clipboard.readText().then(str => str.trim())
+        if (lastAskedClipboardString === clipboardText) return
+        // don't spam with messages on every window focus
+        lastAskedClipboardString = clipboardText
         const result = getPackagesFromInstallCmd(clipboardText)
         if (!result) return
 
@@ -28,19 +32,18 @@ export const registerClipboardDetection = () => {
 }
 
 export const getPackagesFromInstallCmd = (input: string) => {
-    // const regex = /^(npm|yarn|pnpm) (?:i|install|add)((?: (?:@[a-z\d~-][a-z\d._~-]*\/)?[a-z\d~-][a-z\d._~-]*)+)$/
+    // stricter regex: /^(npm|yarn|pnpm) (?:i|install|add)((?: (?:@[a-z\d~-][a-z\d._~-]*\/)?[a-z\d~-][a-z\d._~-]*)+)$/
     const result = /^(npm|yarn|pnpm) (?:i|install|add) (.+)$/.exec(input.trim())
     if (!result) return
     const packageManager = result[1]!
+    // space delimiter is fine, since package names can't have space within
     let [flags, packages] = partition(result[2]!.split(' '), value => value.startsWith('-'))
     const preserveFlags = new Set(['--global', '-g', '--ignore-scripts'])
     // lodash-marker
-    flags = flags.filter(flag => preserveFlags.has(flag) || flag.startsWith('--save') || ['dev', '-D'].includes(flag))
+    flags = flags.filter(flag => preserveFlags.has(flag) || flag.startsWith('--save') || ['--dev', '-D'].includes(flag))
     return {
         packageManager,
         packages,
         flags,
     }
 }
-
-const yarnStripSavePart = (input: string) => {}
