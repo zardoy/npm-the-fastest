@@ -14,6 +14,7 @@ import { runBinCommand } from './commands/runBinCommand'
 import { startMainNpmScript } from './commands/startMainNpmScript'
 import { startNpmScript } from './commands/startNpmScript'
 import { registerClipboardDetection } from './core/clipboardDetection'
+import { activateStatusbar } from './features/statusbar'
 import { registerPackageJsonAutoComplete } from './packageJsonAutoComplete'
 
 // TODO command for package diff
@@ -45,6 +46,7 @@ export const activate = () => {
     registerCodeActions()
     registerClipboardDetection()
     registerPackageJsonAutoComplete()
+    activateStatusbar()
 
     if (vscode.workspace.workspaceFolders?.length === 1) void workspaceOpened(vscode.workspace.workspaceFolders[0]!.uri)
 
