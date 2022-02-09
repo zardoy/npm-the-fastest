@@ -2,6 +2,7 @@ import * as vscode from 'vscode'
 import { parseTree, findNodeAtLocation } from 'jsonc-parser'
 import { getExtensionSetting, showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
 import { move } from 'rambda'
+import delay from 'delay'
 import { launchNpmTask } from '../commands-core/npmScripts'
 
 const lastTouchedScripts = new Set<string>()
@@ -113,6 +114,9 @@ export const startNpmScript = async () => {
 
             if (action === 'restart') {
                 runningNpmScript.terminate()
+                const restartDelayConfig = getExtensionSetting('scripts.restartDelay')
+                const delayMs = restartDelayConfig[npmScript] ?? restartDelayConfig['*']
+                if (delayMs) await delay(delayMs)
                 return npmScript
             }
         }

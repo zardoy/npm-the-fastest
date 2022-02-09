@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: 77f4c301e8bbdf53e19269b385ec3a04
+// md5hash: 0109ef933d44c24012db1e94d92406b0
 {
     "type": "object",
     "properties": {
@@ -92,17 +92,28 @@
             }
         },
         "scripts.matchContents": {
-            "description": "Whether to match script contents in quickpick search",
+            "description": "Whether to enable searching by script contents in quickpick",
             "default": false,
             "type": "boolean"
         },
-        "scripts.searchLocation": {
-            "description": "This affects `runScript` and `runMainScript` commands. From where pick scripts",
-            "enum": [
-                "closest",
-                "currentWorkspaceFolderRoot"
-            ],
-            "type": "string"
+        "scripts.restartDelay": {
+            "description": "Number of milliseconds to wait after killing the script and before starting the script again\nNote: it only affects restart command from quick pick of this extension",
+            "allOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "*": {
+                            "type": "number"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number"
+                    }
+                }
+            ]
         },
         "search.includeDeprecated": {
             "description": "Include deprecated packages into search results",
@@ -160,7 +171,7 @@
         "runBinCommand.searchLocation",
         "scripts.mainScripts",
         "scripts.matchContents",
-        "scripts.searchLocation",
+        "scripts.restartDelay",
         "scriptsCompletion",
         "search.includeDeprecated",
         "search.provder",

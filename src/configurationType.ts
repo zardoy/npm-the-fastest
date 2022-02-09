@@ -85,18 +85,26 @@ export type Configuration = {
      */
     'scripts.mainScripts': string[]
     /**
-     * Whether to match script contents in quickpick search
+     * Whether to enable searching by script contents in quickpick
      * @default false
      */
     'scripts.matchContents': boolean
     /**
      * This affects `runScript` and `runMainScript` commands. From where pick scripts
+     * @default closest
      */
     // "enumDescriptions": [
     //     "Closest package.json file of active text editor",
     //     "Root of current workspace folder (based on active text editor)"
     // ]
-    'scripts.searchLocation': 'closest' | 'currentWorkspaceFolderRoot'
+    // 'scripts.searchLocation': 'closest' | 'currentWorkspaceFolderRoot'
+    /**
+     * Number of milliseconds to wait after killing the script and before starting the script again
+     * Note: it only affects restart command from quick pick of this extension
+     */
+    'scripts.restartDelay': {
+        '*'?: number
+    } & { [script: string]: number }
     /**
      * Include deprecated packages into search results
      * @default false
