@@ -15,3 +15,11 @@ export const registerPackageJsonAutoComplete = () => {
     //     },
     // })
 }
+
+const tsm = '*.{js,jsx,ts,tsx,cjs}'
+const pathAutoComplete = {
+    'tsc -p': '[tj]sconfig*.json',
+    node: '*.{js,mjs,cjs}',
+    tsm,
+    'ts-node': tsm,
+}

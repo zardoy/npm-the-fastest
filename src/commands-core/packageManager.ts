@@ -1,7 +1,7 @@
 import vscode from 'vscode'
 import execa from 'execa'
 import { getExtensionSetting, GracefulCommandError } from 'vscode-framework'
-import { pnpmCommand, supportedPackageManagers, SupportedPackageManagersName } from '../core/packageManager'
+import { getPmEnv, pnpmCommand, supportedPackageManagers, SupportedPackageManagersName } from '../core/packageManager'
 import { firstExists } from './util'
 
 export const getPrefferedPackageManager = async (cwd: vscode.Uri): Promise<SupportedPackageManagersName> => {
@@ -32,7 +32,8 @@ export const getPrefferedPackageManager = async (cwd: vscode.Uri): Promise<Suppo
 
 export const getPmVersion = async (pm: SupportedPackageManagersName) => {
     try {
-        return (await execa(pm, ['--version'])).stdout
+        const cmd = await execa(pm, ['--version'])
+        return cmd.stdout
     } catch {
         return undefined
     }
@@ -127,6 +128,8 @@ export const packageManagerCommand = async ({
                     // TODO yarn --json
                     await execa(pm, [execCmd, ...(packages ?? []), ...flags], {
                         cwd: cwd.fsPath,
+                        extendEnv: false,
+                        env: getPmEnv(pm) as any,
                     })
                     break
                 case 'pnpm':

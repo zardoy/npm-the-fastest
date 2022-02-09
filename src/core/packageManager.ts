@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import vscode from 'vscode'
 import whichPm from 'which-pm'
 import execa from 'execa'
 import filesize from 'filesize'
 import fkill from 'fkill'
 import { getExtensionSetting } from 'vscode-framework'
+import { pickObj } from '@zardoy/utils'
 
 type PackageManagerConfig = {
     /** In codebase: lockfile */
@@ -57,12 +59,10 @@ export const pnpmCommand = async ({
 }) => {
     const pnpmArgs = [command, ...flags, ...(packages ?? []) /* , '--reporter', 'ndjson' */]
     console.log('Running:', 'pnpm', pnpmArgs.map(str => `"${str}"`).join(' '))
-    const pnpmEnvs = getExtensionSetting('packageManagerAllowedEnv').pnpm
-    console.log({ pnpmEnvs })
     const pnpm = execa('pnpm', pnpmArgs, {
         cwd,
-        extendEnv: pnpmEnvs === false,
-        env: Object.fromEntries((pnpmEnvs ? pnpmEnvs : []).map(envKey => [envKey, process.env[envKey]])),
+        extendEnv: false,
+        env: getPmEnv('pnpm') as any,
     })
 
     // TODO! pipe stderr to the output pane
@@ -94,6 +94,7 @@ export const pnpmCommand = async ({
         const str = String(chunk).trim()
         if (!str) return
         console.log('[pnpm]', str)
+        if (str === 'Already up-to-date') reportProgress({ message: str })
     })
 
     // pnpm.stdout!.on('data', chunk => {
@@ -138,4 +139,65 @@ export const pnpmCommand = async ({
     // })
 
     await pnpm
+}
+
+export const getPmEnv = (pm: SupportedPackageManagersName) => {
+    const packageManagerAllowedEnv = getExtensionSetting('packageManagerAllowedEnv')
+    if (packageManagerAllowedEnv === 'disable') return process.env
+    if (packageManagerAllowedEnv === 'include') return pickSystemEnv()
+
+    return getCleanedEnv()
+}
+
+const pickSystemEnv = () => {
+    const pickEnv = pickEnvPerPlatform[process.platform] || false
+    // fallback to 'exclude'
+    if (pickEnv === false) return getCleanedEnv()
+
+    return pickObj(process.env, ...(pickEnv as [any]))
+}
+
+const getCleanedEnv = () => {
+    const additionalExclude = new Set(['INIT_CWD', 'HOME', 'NODE', 'NODE_PATH'])
+    const newEnv = { ...process.env }
+    for (const envKey of Object.keys(newEnv))
+        if (
+            envKey.startsWith('npm_') ||
+            envKey.startsWith('PNPM_') ||
+            envKey.startsWith('VSCODE_') ||
+            envKey.startsWith('ELECTRON_') ||
+            additionalExclude.has(envKey)
+        )
+            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+            delete newEnv[envKey]
+    return newEnv
+}
+
+const pickEnvPerPlatform = {
+    win32: [
+        'APPDATA',
+        'HOMEDRIVE',
+        'ALLUSERSPROFILE',
+        'CommonProgramFiles',
+        'CommonProgramFiles(x86)',
+        'COMPUTERNAME',
+        'HOMEDRIVE',
+        'HOMEPATH',
+        'OS',
+        'NUMBER_OF_PROCESSORS',
+        'PATHEXT',
+        'ProgramData',
+        'ProgramFiles(x86)',
+        'ProgramW6432',
+        'PUBLIC',
+        'SystemDrive',
+        'SystemRoot',
+        'TEMP',
+        'TMP',
+        'USERDOMAIN',
+        'USERNAME',
+        'USERPROFILE',
+        'winddir',
+    ],
+    darwin: ['Path'],
 }

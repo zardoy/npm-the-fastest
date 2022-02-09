@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: c17a12c4c8da2ea26d24ca445fb451e8
+// md5hash: 77f4c301e8bbdf53e19269b385ec3a04
 {
     "type": "object",
     "properties": {
@@ -64,35 +64,14 @@
             "type": "string"
         },
         "packageManagerAllowedEnv": {
-            "description": "Passing all environmental variables from extension host can cause problems that is hard to debug. Passing false disables is. For now, only pnpm is supported",
-            "default": {
-                "pnpm": [
-                    "PATH"
-                ]
-            },
-            "type": "object",
-            "properties": {
-                "pnpm": {
-                    "uniqueItems": true,
-                    "anyOf": [
-                        {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        {
-                            "enum": [
-                                false
-                            ],
-                            "type": "boolean"
-                        }
-                    ]
-                }
-            },
-            "required": [
-                "pnpm"
-            ]
+            "description": "All package manager commands are executed from extension host process. Passing all environmental variables from ext host can cause problems that is hard to debug.\nNote, that this affects all package manager commands.",
+            "default": "include",
+            "enum": [
+                "disable",
+                "exclude",
+                "include"
+            ],
+            "type": "string"
         },
         "addPackages.installTypes": {
             "description": "Install missing @types/ packages, if package doesn't have bin",
