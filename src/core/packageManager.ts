@@ -94,7 +94,8 @@ export const pnpmCommand = async ({
         const str = String(chunk).trim()
         if (!str) return
         console.log('[pnpm]', str)
-        if (str === 'Already up-to-date') reportProgress({ message: str })
+        const firstLine = str.split('\n')[0]!
+        if (firstLine === 'Already up-to-date') reportProgress({ message: firstLine })
     })
 
     // pnpm.stdout!.on('data', chunk => {
