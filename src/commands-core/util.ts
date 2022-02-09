@@ -13,11 +13,12 @@ export const getCurrentWorkspaceRoot = () => {
         : firstWorkspace
 }
 
-export const fsExists = async (uri: vscode.Uri) => {
+export const fsExists = async (uri: vscode.Uri, isFile?: boolean) => {
     const { fs } = vscode.workspace
     try {
-        await fs.stat(uri)
-        return true
+        const stats = await fs.stat(uri)
+        // eslint-disable-next-line no-bitwise
+        return isFile === undefined ? true : isFile ? stats.type & vscode.FileType.File : stats.type & vscode.FileType.Directory
     } catch {
         return false
     }
@@ -27,6 +28,7 @@ export const firstExists = async <T>(
     paths: Array<{
         name: T
         uri: vscode.Uri
+        isFile?: boolean
     }>,
 ) => {
     // not using Promise.race alternatives to ensure the same pm is used if several lockfiles are present
@@ -39,3 +41,5 @@ export const confirmAction = async (message: string, confirmButton: string) => {
     const selectedAction = await vscode.window.showInformationMessage(message, confirmButton)
     return selectedAction === confirmButton
 }
+
+export const joinPackageJson = (uri: vscode.Uri) => vscode.Uri.joinPath(uri, 'package.json')

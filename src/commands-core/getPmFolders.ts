@@ -10,7 +10,7 @@ import { getPrefferedPackageManager } from './packageManager'
 export const getPmFolders = async () => {
     const { fs, workspaceFolders = [] } = vscode.workspace
     // ultra-runner also has good implementation at this
-    const pmWorkspaces = (await Promise.all(workspaceFolders.map(async ({ uri }) => fsExists(vscode.Uri.joinPath(uri, 'package.json')))))
+    const pmWorkspaces = (await Promise.all(workspaceFolders.map(async ({ uri }) => fsExists(vscode.Uri.joinPath(uri, 'package.json'), true))))
         .map((keep, index) => ({ keep, workspace: workspaceFolders[index]! }))
         .filter(({ keep }) => keep)
     // TODO investigate recursive and single pattersn

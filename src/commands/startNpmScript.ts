@@ -4,6 +4,7 @@ import { getExtensionSetting, showQuickPick, VSCodeQuickPickItem } from 'vscode-
 import { move } from 'rambda'
 import delay from 'delay'
 import { launchNpmTask } from '../commands-core/npmScripts'
+import { joinPackageJson } from '../commands-core/util'
 
 const lastTouchedScripts = new Set<string>()
 
@@ -39,7 +40,7 @@ export const startNpmScript = async () => {
                     iconPath: new vscode.ThemeIcon('go-to-file'),
                     tooltip: 'Reveal script in package.json',
                     async click() {
-                        const packageJsonUri = vscode.Uri.joinPath(dir, 'package.json')
+                        const packageJsonUri = joinPackageJson(dir)
                         const editor = await vscode.window.showTextDocument(packageJsonUri)
                         const { document } = editor
                         const { offset, length } = findNodeAtLocation(parseTree(document.getText())!, ['scripts', scriptName])!

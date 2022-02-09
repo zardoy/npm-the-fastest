@@ -1,7 +1,9 @@
+/* eslint-disable no-constant-condition */
 import { posix } from 'path'
 import vscode from 'vscode'
 import { PackageJson } from 'type-fest'
 import { showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
+import { fsExists, joinPackageJson } from './util'
 
 // TODO remove workspacesFirst
 type PackageJsonLocation = 'workspacesFirst' | 'closest'
@@ -27,8 +29,7 @@ export const readPackageJsonWithMetadata = async ({ type, fallback }: { type: Pa
     return { packageJson: await readDirPackageJson(cwd), dir: cwd, workspaceFolder }
 }
 
-export const readDirPackageJson = async (cwd: vscode.Uri) =>
-    JSON.parse(String(await vscode.workspace.fs.readFile(vscode.Uri.joinPath(cwd, 'package.json')))) as PackageJson
+export const readDirPackageJson = async (cwd: vscode.Uri) => JSON.parse(String(await vscode.workspace.fs.readFile(joinPackageJson(cwd)))) as PackageJson
 
 // TODO-implement find-up for vscode ? or use fs
 /**
@@ -44,14 +45,10 @@ export const findUpPackageJson = async <T extends boolean = false>(
         const currentWorkspacePath = vscode.workspace.getWorkspaceFolder(uri)
         // TODO maybe allow?
         if (!currentWorkspacePath) throw new Error('Opening closest package.json is not supported for files that are not part of opened workspace')
-        const { fs } = vscode.workspace
 
         let currentUri = vscode.Uri.joinPath(uri, '..')
         while (true) {
-            // eslint-disable-next-line no-await-in-loop
-            const fileList = await fs.readDirectory(currentUri)
-            const packageJsonFile = fileList.find(([name, type]) => name === 'package.json' && type === vscode.FileType.File)
-            if (packageJsonFile) return currentUri
+            if (await fsExists(joinPackageJson(currentUri), true)) return currentUri
             if (posix.relative(currentUri.path, currentWorkspacePath.uri.path) === '') {
                 console.debug('find package.json: reached workspace boundary')
                 if (throws) throw new Error('There is no closest package.json from this file within current workspace')
@@ -67,15 +64,13 @@ export const findUpPackageJson = async <T extends boolean = false>(
 }
 
 export const findUpNodeModules = async (dirUri: vscode.Uri): Promise<vscode.Uri> => {
-    const { fs } = vscode.workspace
-
     let currentUri = dirUri
     while (true) {
-        // eslint-disable-next-line no-await-in-loop
-        const fileList = await fs.readDirectory(currentUri)
-        const packageJsonFile = fileList.find(([name, type]) => name === 'node_modules' && type === vscode.FileType.Directory)
-        if (packageJsonFile) return currentUri
-        if (posix.relative(currentUri.path, '/') === '') throw new Error('There is no closest node_modules from current dir (findUp reached root)')
+        if (await fsExists(vscode.Uri.joinPath(currentUri, 'node_modules'), false)) return currentUri
+        const oldUri = currentUri
+        currentUri = vscode.Uri.joinPath(currentUri, '..')
+        // Can't go next. Reached the system root
+        if (oldUri.path === currentUri.path) throw new Error('There is no closest node_modules from current dir (findUp reached root)')
 
         currentUri = vscode.Uri.joinPath(currentUri, '..')
     }
@@ -85,7 +80,6 @@ type PickedDeps = string[] & {
     realDepsCount: number
 }
 
-// for: remove
 export const pickInstalledDeps = async <M extends boolean>({
     commandTitle,
     multiple,
@@ -95,7 +89,7 @@ export const pickInstalledDeps = async <M extends boolean>({
     multiple: M
     packageJson?: PackageJson
 }): Promise<(M extends true ? PickedDeps : string) | undefined> => {
-    if (!packageJson) packageJson = (await readPackageJsonWithMetadata({ type: 'closest', fallback: true })).packageJson
+    if (!packageJson) ({ packageJson } = await readPackageJsonWithMetadata({ type: 'closest', fallback: true }))
     const depsPick: Array<keyof PackageJson> = ['dependencies', 'devDependencies', 'optionalDependencies']
     const depsIconMap = {
         dependencies: 'package',
@@ -148,7 +142,7 @@ export const throwIfNowPackageJson = async (uriDir: vscode.Uri, needsWrite: bool
         if (needsWrite && fs.isWritableFileSystem('file') === false)
             throw new Error('This file system is read-only. However write access to package.json is needed')
 
-        await fs.stat(vscode.Uri.joinPath(uriDir, 'package.json'))
+        await fs.stat(joinPackageJson(uriDir))
     } catch {
         // TODO suggest to init one
         throw new Error('No package.json found. Run `init` first')
