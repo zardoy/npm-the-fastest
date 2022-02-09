@@ -16,6 +16,8 @@
 
 - and even more
 
+Note, that not all setting (such as `install.watchPackageLocks`) are implemented for now.
+
 ## Default Package Manager
 
 > PM – Package Manager.

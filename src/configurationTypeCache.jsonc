@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: 0109ef933d44c24012db1e94d92406b0
+// md5hash: efadde7a132ef96e3fe6221e34900186
 {
     "type": "object",
     "properties": {
@@ -64,7 +64,7 @@
             "type": "string"
         },
         "packageManagerAllowedEnv": {
-            "description": "All package manager commands are executed from extension host process. Passing all environmental variables from ext host can cause problems that is hard to debug.\nNote, that this affects all package manager commands.",
+            "description": "All package manager commands are executed from extension host process. Passing all environmental variables from ext host can cause problems that is hard to debug.\nNote, that this affects all package manager commands for all package managers.",
             "default": "include",
             "enum": [
                 "disable",
@@ -148,12 +148,8 @@
             "type": "boolean"
         },
         "codeAction.resolveBranchName": {
-            "description": "Disable, if action open repository takes a lot of time, would use master on directory path",
+            "description": "Disable if action open repository takes a lot of time, in this case it would use `master` branch in url",
             "default": true,
-            "type": "boolean"
-        },
-        "scriptsCompletion": {
-            "default": "true Changing requires reload",
             "type": "boolean"
         }
     },
@@ -172,7 +168,6 @@
         "scripts.mainScripts",
         "scripts.matchContents",
         "scripts.restartDelay",
-        "scriptsCompletion",
         "search.includeDeprecated",
         "search.provder",
         "statusbar.showMainScriptStatus",

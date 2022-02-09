@@ -1,0 +1,9 @@
+import * as vscode from 'vscode'
+
+export const registerTerminalLinkProvider = () => {
+    vscode.window.registerTerminalLinkProvider({
+        provideTerminalLinks(context, token) {
+            const regexs = [/Cannot find module '(@?[^/.][\w/]+)'.?/, /Error: You need to add '(@?[^/.][\w/]+)' as a (dep|devDep)/]
+        },
+    })
+}

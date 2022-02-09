@@ -56,7 +56,7 @@ export type Configuration = {
     'install.watchPackageLocks': 'disabled' | 'prompt' | 'withoutPrompt'
     /**
      * All package manager commands are executed from extension host process. Passing all environmental variables from ext host can cause problems that is hard to debug.
-     * Note, that this affects all package manager commands.
+     * Note, that this affects all package manager commands for all package managers.
      * @default include
      */
     packageManagerAllowedEnv: 'include' | 'exclude' | 'disable'
@@ -133,10 +133,12 @@ export type Configuration = {
      */
     'yarnBerry.workspaceAutoInstall': boolean
     /**
-     * Disable, if action open repository takes a lot of time, would use master on directory path
+     * Disable if action open repository takes a lot of time, in this case it would use `master` branch in url
      * @default true
      */
     'codeAction.resolveBranchName': boolean
-    /** @default true Changing requires reload */
-    scriptsCompletion: boolean
+    /** @default true */
+    // scriptsCompletion: boolean
+    /** @default true */
+    // enableTerminalLinkProvider: boolean
 }
