@@ -101,6 +101,7 @@ export type Configuration = {
     /**
      * Number of milliseconds to wait after killing the script and before starting the script again
      * Note: it only affects restart command from quick pick of this extension
+     * @default {}
      */
     'scripts.restartDelay': {
         '*'?: number

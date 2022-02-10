@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: efadde7a132ef96e3fe6221e34900186
+// md5hash: ac71363238fe400c9d98e73292062f37
 {
     "type": "object",
     "properties": {
@@ -98,6 +98,7 @@
         },
         "scripts.restartDelay": {
             "description": "Number of milliseconds to wait after killing the script and before starting the script again\nNote: it only affects restart command from quick pick of this extension",
+            "default": {},
             "allOf": [
                 {
                     "type": "object",
