@@ -30,7 +30,6 @@ export const addPackagesCommand: CommandHandler = async (_, { devPackages, packa
         [devPackages, '-D'],
     ] as Array<[string[], string]>) {
         if (pkgs === undefined || pkgs.length === 0) continue
-        // eslint-disable-next-line no-await-in-loop
         await packageManagerCommand({
             command: 'add',
             cwd: getCurrentWorkspaceRoot().uri,
@@ -91,7 +90,7 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
                 },
                 ...selectedPackages.map(item => ({
                     ...item,
-                    description: item.installType === 'dev' ? `$(tools) ${item.description}` : item.description,
+                    description: item.installType === 'dev' ? `$(tools) ${item.description!}` : item.description,
                     alwaysShow: true,
                 })),
             ]
