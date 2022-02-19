@@ -1,0 +1,77 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "properties": {
+        "version": {
+            "defaultSnippets": [
+                {
+                    "body": "0.0.0-dev"
+                },
+                {
+                    "body": "0.0.0-development"
+                },
+                {
+                    "body": "0.0.1"
+                }
+            ]
+        },
+        "license": {
+            "defaultSnippets": [
+                {
+                    "body": "MIT"
+                }
+            ]
+        },
+        "main": {
+            "defaultSnippets": [
+                {
+                    "body": "build/index.js"
+                }
+            ]
+        },
+        "types": {
+            "defaultSnippets": [
+                {
+                    "body": "build/index.d.ts"
+                }
+            ]
+        },
+        "scripts": {
+            "properties": {
+                "build": {
+                    "type": "string"
+                }
+            }
+        },
+        "pnpm": {
+            "type": "object",
+            "markdownDescription": "[pnpm docs](https://pnpm.io/package_json)",
+            "properties": {
+                "overrides": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "packageExtensions": {
+                    "type": "object"
+                },
+                "peerDependencyRules": {
+                    "type": "object",
+                    "properties": {
+                        "ignoreMissing": {
+                            "type": "array"
+                        },
+                        "allowedVersions": {
+                            "description": "Unmet peer dependency warnings will not be printed for peer dependencies of the specified range.",
+                            "type": "object"
+                        }
+                    }
+                },
+                "neverBuiltDependencies": {
+                    "type": "object",
+                    "description": "This field allows to ignore the builds of specific dependencies. The \"preinstall\", \"install\", and \"postinstall\" scripts of the listed packages will not be executed during installation."
+                }
+            }
+        }
+    }
+}

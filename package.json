@@ -112,7 +112,13 @@
                     "when": "resourcePath =~ /node_modules/"
                 }
             ]
-        }
+        },
+        "jsonValidation": [
+            {
+                "fileMatch": "package.json",
+                "url": "./resources/package-json.schema.json"
+            }
+        ]
     },
     "type": "commonjs",
     "capabilities": {
