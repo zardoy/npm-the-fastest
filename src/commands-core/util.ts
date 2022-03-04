@@ -32,7 +32,6 @@ export const firstExists = async <T>(
     }>,
 ) => {
     // not using Promise.race alternatives to ensure the same pm is used if several lockfiles are present
-    // eslint-disable-next-line no-await-in-loop
     for (const { uri, name } of paths) if (await fsExists(uri)) return name
     return undefined
 }

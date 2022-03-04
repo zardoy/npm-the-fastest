@@ -7,7 +7,7 @@ export const openClosestPackageJson = async () => {
     // not used atm
     const excludedSchemes = ['untitled', 'vscode', 'vscode-userdata']
     const includedSchemes = ['file', 'vscode-vfs']
-    if (uri === undefined || includedSchemes.includes(uri.scheme)) {
+    if (uri === undefined || !includedSchemes.includes(uri.scheme)) {
         // console.log()
         const firstWorkspace = vscode.workspace.workspaceFolders?.[0]
         if (!firstWorkspace) return

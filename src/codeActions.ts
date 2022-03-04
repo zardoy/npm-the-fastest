@@ -6,7 +6,7 @@ import { AddPackagesArg } from './commands/addPackages'
 
 export const registerCodeActions = () => {
     vscode.languages.registerCodeActionsProvider(
-        ['typescript', 'typescriptreact', 'javascript', 'javascriptreact'].map(language => ({ language, scheme: 'file' })),
+        ['typescript', 'typescriptreact', 'javascript', 'javascriptreact', 'vue'].map(language => ({ language, scheme: 'file' })),
         {
             async provideCodeActions(document, range, { triggerKind, diagnostics }, token) {
                 if (triggerKind === vscode.CodeActionTriggerKind.Automatic) return

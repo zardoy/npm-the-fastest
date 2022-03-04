@@ -71,8 +71,6 @@ export const findUpNodeModules = async (dirUri: vscode.Uri): Promise<vscode.Uri>
         currentUri = vscode.Uri.joinPath(currentUri, '..')
         // Can't go next. Reached the system root
         if (oldUri.path === currentUri.path) throw new Error('There is no closest node_modules from current dir (findUp reached root)')
-
-        currentUri = vscode.Uri.joinPath(currentUri, '..')
     }
 }
 
