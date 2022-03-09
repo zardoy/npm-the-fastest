@@ -15,6 +15,7 @@ specifiers:
   '@zardoy/tsconfig': ^1.4.0
   '@zardoy/utils': ^0.0.4
   algoliasearch: ^4.12.1
+  change-case: ^4.1.2
   cross-env: ^7.0.3
   default-branch: ^1.1.1
   delay: ^5.0.0
@@ -58,6 +59,7 @@ dependencies:
   '@types/node': 16.11.22
   '@zardoy/utils': 0.0.4
   algoliasearch: 4.12.1
+  change-case: 4.1.2
   cross-env: 7.0.3
   default-branch: 1.1.1
   delay: 5.0.0

@@ -12,24 +12,34 @@ const getClosestModulePath = async (module: string, path = '') => {
 }
 
 export const registerOpenPackageAtCommands = () => {
-    registerExtensionCommand('openOnNpm', async ({ command }, module?: string) => {
-        if (!module) module = await pickInstalledDeps({ commandTitle: `Select package for ${command}`, multiple: false })
+    registerExtensionCommand('openOnNpm', async ({ command: commandId }, module?: string) => {
+        if (!module) module = await pickInstalledDeps({ commandId, multiple: false })
         if (module === undefined) return
         await vscode.env.openExternal(`https://npmjs.com/package/${module}` as any)
     })
-    registerExtensionCommand('openAtPaka', async ({ command }, module?: string) => {
-        if (!module) module = await pickInstalledDeps({ commandTitle: `Select package for ${command}`, multiple: false })
+
+    registerExtensionCommand('openAtPaka', async ({ command: commandId }, module?: string) => {
+        if (!module) module = await pickInstalledDeps({ commandId, multiple: false })
         if (module === undefined) return
         await vscode.env.openExternal(`https://paka.dev/npm/${module}` as any)
     })
-    registerExtensionCommand('openPackageReadmePreview', async ({ command }, module?: string) => {
-        if (!module) module = await pickInstalledDeps({ commandTitle: `Select package for ${command}`, multiple: false })
+
+    registerExtensionCommand('openPackageReadmePreview', async ({ command: commandId }, module?: string) => {
+        if (!module) module = await pickInstalledDeps({ commandId, multiple: false })
         if (module === undefined) return
         const readmeUri = await getClosestModulePath(module, 'README.MD')
         await vscode.commands.executeCommand('markdown.showPreviewToSide', readmeUri)
     })
-    registerExtensionCommand('openPackageRepository', async ({ command }, module?: string) => {
-        if (!module) module = await pickInstalledDeps({ commandTitle: `Select package for ${command}`, multiple: false })
+
+    registerExtensionCommand('openAtJsdelivr', async ({ command: commandId }, module?: string, file = '') => {
+        if (!module) module = await pickInstalledDeps({ commandId, multiple: false })
+        if (module === undefined) return
+        const url = `https://cdn.jsdelivr.net/npm/${module}/${file}`
+        await vscode.env.openExternal(url as any)
+    })
+
+    registerExtensionCommand('openPackageRepository', async ({ command: commandId }, module?: string) => {
+        if (!module) module = await pickInstalledDeps({ commandId, multiple: false })
         if (module === undefined) return
         const cwd = await getClosestModulePath(module)
         let { repository } = await readDirPackageJson(cwd)

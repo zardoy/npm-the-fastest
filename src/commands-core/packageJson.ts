@@ -3,6 +3,7 @@ import { posix } from 'path'
 import vscode from 'vscode'
 import { PackageJson } from 'type-fest'
 import { showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
+import { noCase } from 'change-case'
 import { fsExists, joinPackageJson } from './util'
 
 // TODO remove workspacesFirst
@@ -79,11 +80,11 @@ type PickedDeps = string[] & {
 }
 
 export const pickInstalledDeps = async <M extends boolean>({
-    commandTitle,
+    commandId,
     multiple,
     packageJson,
 }: {
-    commandTitle: string
+    commandId: string
     multiple: M
     packageJson?: PackageJson
 }): Promise<(M extends true ? PickedDeps : string) | undefined> => {
@@ -124,7 +125,7 @@ export const pickInstalledDeps = async <M extends boolean>({
                 .filter(Boolean)
         }),
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-        { canPickMany: multiple as boolean, title: commandTitle, ignoreFocusOut: true },
+        { canPickMany: multiple as boolean, title: noCase(commandId), ignoreFocusOut: true },
     )) as PickedDeps | string
     if (pickedDeps === undefined) return
     if (typeof pickedDeps === 'string') return pickedDeps as any
