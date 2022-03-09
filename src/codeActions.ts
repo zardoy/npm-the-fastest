@@ -20,14 +20,11 @@ export const registerCodeActions = () => {
                 const regexs = [/(import .*)(['"].*['"])/, /(} from )(['"].*['"])/]
                 let moduleNameIndex: number | undefined
                 let moduleName: string | undefined
-                console.log(0)
                 for (const regex of regexs) {
                     const result = regex.exec(lineText)
                     if (!result) continue
-                    console.log(1, result)
                     moduleNameIndex = result[1]!.length
                     moduleName = getModuleName(result[2]!.slice(1, -1))
-                    console.log(2, moduleName)
                     break;
                 }
 
