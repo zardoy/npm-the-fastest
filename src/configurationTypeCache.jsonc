@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: ac71363238fe400c9d98e73292062f37
+// md5hash: f8909f14c73cab0ae50768abd0169063
 {
     "type": "object",
     "properties": {
@@ -139,6 +139,20 @@
             ],
             "type": "string"
         },
+        "codeActions.enableLanguages": {
+            "description": "Specify language IDs in which to enable code actions. You can set it to empty array to entirely disable the feature.",
+            "default": [
+                "typescript",
+                "typescriptreact",
+                "javascript",
+                "javascriptreact",
+                "vue"
+            ],
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
         "statusbar.showMainScriptStatus": {
             "default": true,
             "type": "boolean"
@@ -157,6 +171,7 @@
     "required": [
         "addPackages.installTypes",
         "codeAction.resolveBranchName",
+        "codeActions.enableLanguages",
         "install.clipboardDetection",
         "install.packs",
         "install.runOnOpen",

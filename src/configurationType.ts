@@ -112,6 +112,11 @@ export type Configuration = {
      */
     'search.includeDeprecated': boolean
     /**
+     * Affects `openPackageReadmePreview`: whether to open README on npmjs, if it can't be found on disk locally.
+     * @default true
+     */
+    // 'openReadmeRemote': boolean
+    /**
      * From where to pick bin commands
      * @default allUpToRoot
      */
@@ -127,6 +132,11 @@ export type Configuration = {
      * @default algolia
      */
     'search.provder': 'algolia' | 'npms'
+    /**
+     * Specify language IDs in which to enable code actions. You can set it to empty array to entirely disable the feature.
+     * @default ["typescript", "typescriptreact", "javascript", "javascriptreact", "vue"]
+     */
+    'codeActions.enableLanguages': string[]
     /** @default true */
     'statusbar.showMainScriptStatus': boolean
     /** Applies only if project uses yarn 2 or greater and #openWorkspaceAutoInstall# is withoutPrompt. In this case project script, instead of your system-wide package manager will be used

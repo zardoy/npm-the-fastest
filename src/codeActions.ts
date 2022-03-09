@@ -1,36 +1,39 @@
 import { builtinModules } from 'module'
 import vscode from 'vscode'
-import { getExtensionCommandId } from 'vscode-framework'
+import { getExtensionCommandId, getExtensionSetting, getExtensionSettingId } from 'vscode-framework'
 import { readPackageJsonWithMetadata } from './commands-core/packageJson'
 import { AddPackagesArg } from './commands/addPackages'
 
 export const registerCodeActions = () => {
-    vscode.languages.registerCodeActionsProvider(
-        ['typescript', 'typescriptreact', 'javascript', 'javascriptreact', 'vue'].map(language => ({ language, scheme: 'file' })),
+    // TODo refactor with helper
+    const registerCodeActionsInner = () => vscode.languages.registerCodeActionsProvider(
+        getExtensionSetting('codeActions.enableLanguages').map(language => ({ language, scheme: 'file' })),
         {
-            async provideCodeActions(document, range, { triggerKind, diagnostics }, token) {
-                if (triggerKind === vscode.CodeActionTriggerKind.Automatic) return
+            async provideCodeActions(document, range, { diagnostics }) {
                 const problem = diagnostics[0]
                 const hasMissingImport = problem && problem.source === 'ts' && problem.code === 2307
                 const hasMissingTypes = problem && problem.source === 'ts' && problem.code === 7016
                 // TODO also check end
                 const pos = range.start
                 const lineText = document.lineAt(pos.line).text
-                // faster than ask TS lang server
+                // TODO support skypack imports e.g. https://cdn.skypack.dev/canvas-confetti
                 const regexs = [/(import .*)(['"].*['"])/, /(} from )(['"].*['"])/]
                 let moduleNameIndex: number | undefined
                 let moduleName: string | undefined
+                console.log(0)
                 for (const regex of regexs) {
                     const result = regex.exec(lineText)
-                    moduleNameIndex = result?.[1]?.length
-                    moduleName = result?.[2]
-                    if (result) break
+                    if (!result) continue
+                    console.log(1, result)
+                    moduleNameIndex = result[1]!.length
+                    moduleName = getModuleName(result[2]!.slice(1, -1))
+                    console.log(2, moduleName)
+                    break;
                 }
 
                 if (!moduleName) return
 
                 // TODO also detect remaps (paths) from tsconfig.json
-                moduleName = moduleName.slice(1, -1)
                 if (builtinModules.includes(moduleName) || moduleName.startsWith('./')) return
                 if (pos.character < moduleNameIndex!) {
                     console.log('pos')
@@ -120,4 +123,15 @@ export const registerCodeActions = () => {
             // documentation
         },
     )
+
+    let disposable = registerCodeActionsInner()
+
+    vscode.workspace.onDidChangeConfiguration(({affectsConfiguration}) => {
+        if (affectsConfiguration(getExtensionSettingId('codeActions.enableLanguages'))) {
+            disposable.dispose()
+            disposable = registerCodeActionsInner()
+        }
+    })
 }
+
+const getModuleName = (importPath: string) => /^(@[a-z\d-~][a-z\d-._~]*\/)?[a-z\d-~][a-z\d-._~]*/.exec(importPath)?.[0]
