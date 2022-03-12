@@ -19,10 +19,6 @@ const makeSupportedPackageManagers = <T extends string>(i: Record<T, PackageMana
 
 /** Should be enhanced with package manager - min version map */
 export const supportedPackageManagers = makeSupportedPackageManagers({
-    npm: {
-        detectFile: 'package-lock.json',
-        installCommand: 'install',
-    },
     pnpm: {
         detectFile: 'pnpm-lock.yaml',
         installCommand: 'install',
@@ -31,6 +27,10 @@ export const supportedPackageManagers = makeSupportedPackageManagers({
     yarn: {
         detectFile: 'yarn.lock',
         installCommand: '',
+    },
+    npm: {
+        detectFile: 'package-lock.json',
+        installCommand: 'install',
     },
 })
 export type SupportedPackageManagersName = keyof typeof supportedPackageManagers

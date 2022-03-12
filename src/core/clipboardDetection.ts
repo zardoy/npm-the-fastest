@@ -1,8 +1,9 @@
 import vscode from 'vscode'
 import { getExtensionSetting } from 'vscode-framework'
 import { partition } from 'lodash'
+import { getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
+import { notificationConfirmAction } from '@zardoy/vscode-utils/build/ui'
 import { getPrefferedPackageManager, packageManagerCommand } from '../commands-core/packageManager'
-import { confirmAction, getCurrentWorkspaceRoot } from '../commands-core/util'
 
 export const registerClipboardDetection = () => {
     let lastAskedClipboardString = null as string | null
@@ -20,7 +21,7 @@ export const registerClipboardDetection = () => {
         const cwd = getCurrentWorkspaceRoot()
         const prefferedPm = await getPrefferedPackageManager(cwd.uri)
         // as devDeps
-        if (!(await confirmAction(`Install packages from clipboard: ${result.packages.join(', ')}`, `Install using ${prefferedPm}`))) return
+        if (!(await notificationConfirmAction(`Install packages from clipboard: ${result.packages.join(', ')}`, `Install using ${prefferedPm}`))) return
         // TODO ensure progress
         await packageManagerCommand({
             cwd: cwd.uri,

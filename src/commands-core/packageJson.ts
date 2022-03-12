@@ -4,7 +4,8 @@ import vscode from 'vscode'
 import { PackageJson } from 'type-fest'
 import { showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
 import { noCase } from 'change-case'
-import { fsExists, joinPackageJson } from './util'
+import { fsExists } from '@zardoy/vscode-utils/build/fs'
+import { joinPackageJson } from './util'
 
 // TODO remove workspacesFirst
 type PackageJsonLocation = 'workspacesFirst' | 'closest'

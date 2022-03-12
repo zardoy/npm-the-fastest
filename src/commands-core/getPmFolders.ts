@@ -1,9 +1,9 @@
 import { posix } from 'path'
 import vscode from 'vscode'
 import yamlJs from 'yamljs'
+import { fsExists } from '@zardoy/vscode-utils/build/fs'
 import { SupportedPackageManagersName } from '../core/packageManager'
 import { readDirPackageJson } from './packageJson'
-import { fsExists } from './util'
 import { getPrefferedPackageManager } from './packageManager'
 
 /** workspaces that have package.json in the root */

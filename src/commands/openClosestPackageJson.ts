@@ -1,6 +1,7 @@
 import vscode from 'vscode'
+import { fsExists } from '@zardoy/vscode-utils/build/fs'
 import { findUpPackageJson } from '../commands-core/packageJson'
-import { fsExists, joinPackageJson } from '../commands-core/util'
+import { joinPackageJson } from '../commands-core/util'
 
 export const openClosestPackageJson = async () => {
     const uri = vscode.window.activeTextEditor?.document.uri

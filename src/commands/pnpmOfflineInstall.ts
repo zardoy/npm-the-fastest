@@ -1,8 +1,8 @@
 import { showQuickPick } from 'vscode-framework'
 import { sort } from 'semver'
+import { getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
 import { packageManagerCommand, pmIsInstalledOrThrow } from '../commands-core/packageManager'
 import { getPnpmOfflinePackages } from '../core/pnpmOffline'
-import { getCurrentWorkspaceRoot } from '../commands-core/util'
 
 export const pnpmOfflineInstall = async () => {
     await pmIsInstalledOrThrow('pnpm')

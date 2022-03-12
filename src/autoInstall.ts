@@ -3,8 +3,9 @@ import { join } from 'path'
 import vscode from 'vscode'
 import { extensionCtx, getExtensionSetting } from 'vscode-framework'
 // import npmCheck from 'npm-check'
+import { getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
+import { notificationConfirmAction } from '@zardoy/vscode-utils/build/ui'
 import { getPrefferedPackageManager, packageManagerCommand } from './commands-core/packageManager'
-import { confirmAction, getCurrentWorkspaceRoot } from './commands-core/util'
 import { supportedPackageManagers } from './core/packageManager'
 
 export const registerPackageJsonWatcher = () => {
@@ -15,8 +16,8 @@ export const registerPackageJsonWatcher = () => {
             const action = getExtensionSetting('install.watchPackageLocks')
             if (action === 'disabled') return
             if (action === 'prompt') {
-                const result = await confirmAction(`${detectFile} has changed`, 'Run install')
-                if (!result) return
+                const result = await notificationConfirmAction(`${detectFile} has changed`, 'Run install')
+                // if (!result) return
             }
         })
         extensionCtx.subscriptions.push(watcher)

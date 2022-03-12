@@ -1,8 +1,8 @@
 import vscode from 'vscode'
 import execa from 'execa'
 import { getExtensionSetting, GracefulCommandError } from 'vscode-framework'
+import { firstExists } from '@zardoy/vscode-utils/build/fs'
 import { getPmEnv, pnpmCommand, supportedPackageManagers, SupportedPackageManagersName } from '../core/packageManager'
-import { firstExists } from './util'
 
 export const getPrefferedPackageManager = async (cwd: vscode.Uri): Promise<SupportedPackageManagersName> => {
     let preffereddFromNpm = vscode.workspace.getConfiguration('npm').get<string>('packageManager')
