@@ -16,6 +16,13 @@
 
 - and even more
 
+#### Useful Builtin Commands
+
+- `Tasks: Restart Running Task` - Shows QuickPick with all started tasks including NPM scripts. Press enter to restart.
+- `Tasks: Terminate Task` - Same as above, but enter instantly terminates and closes the task
+- `Tasks: Show Running Tasks` - Reveals panel with running tasks
+- `Tasks: Rerun Last Task` - Useful to bind to some shortcut
+
 Note, that not all setting (such as `install.watchPackageLocks`) are implemented for now.
 
 ## Default Package Manager
