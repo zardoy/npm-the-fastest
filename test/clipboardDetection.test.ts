@@ -1,5 +1,6 @@
-/// <reference types="jest" />
+/// <reference types="vitest/globals" />
 import { getPackagesFromInstallCmd } from '../src/core/clipboardDetection'
+import { vi } from 'vitest'
 
 describe('getPackagesFromInstallCmd', () => {
     test('0', () => {
