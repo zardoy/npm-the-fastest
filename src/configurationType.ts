@@ -1,4 +1,4 @@
-// commands
+// TODO impl commands:
 // {
 //     "command": "openPackageJsonFrom",
 //     "title": "Open package.json from..."
@@ -106,6 +106,16 @@ export type Configuration = {
     'scripts.restartDelay': {
         '*'?: number
     } & { [script: string]: number }
+    /** Map of workspace glob path: array of script contents */
+    'scripts.specialCommands': {
+        [workspaceGlobPath: string]: Array<{
+            /** Defaults to command contents */
+            label?: string
+            command: string
+            // optional
+            presentationOptions?: any
+        }>
+    }
     /**
      * Include deprecated packages into search results
      * @default false

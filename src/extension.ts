@@ -1,5 +1,5 @@
 import vscode from 'vscode'
-import { registerAllExtensionCommands } from 'vscode-framework'
+import { getExtensionId, getExtensionSettingId, registerActiveDevelopmentCommand, registerAllExtensionCommands } from 'vscode-framework'
 import { getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
 import { workspaceOpened } from './autoInstall'
 import { registerCodeActions } from './codeActions'
@@ -16,6 +16,7 @@ import { startNpmScript } from './commands/startNpmScript'
 import { registerClipboardDetection } from './core/clipboardDetection'
 import { activateStatusbar } from './features/statusbar'
 import { registerPackageJsonAutoComplete } from './packageJsonAutoComplete'
+import { startSpecialCommand } from './commands/startSpecialCommand'
 
 // TODO command for package diff
 
@@ -35,6 +36,7 @@ export const activate = () => {
         async runInstall() {
             await packageManagerCommand({ cwd: getCurrentWorkspaceRoot().uri, command: 'install' })
         },
+        startSpecialCommand,
         runNpmScript: startNpmScript,
         runMainNpmScript: startMainNpmScript,
         printEnv: () => {

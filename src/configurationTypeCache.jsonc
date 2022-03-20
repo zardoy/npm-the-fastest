@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: f8909f14c73cab0ae50768abd0169063
+// md5hash: 1d693afb4e91b66ba5c09b32da9e9502
 {
     "type": "object",
     "properties": {
@@ -116,6 +116,29 @@
                 }
             ]
         },
+        "scripts.specialCommands": {
+            "description": "Map of workspace glob path: array of script contents",
+            "type": "object",
+            "additionalProperties": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "label": {
+                            "description": "Defaults to command contents",
+                            "type": "string"
+                        },
+                        "command": {
+                            "type": "string"
+                        },
+                        "presentationOptions": {}
+                    },
+                    "required": [
+                        "command"
+                    ]
+                }
+            }
+        },
         "search.includeDeprecated": {
             "description": "Include deprecated packages into search results",
             "default": false,
@@ -184,6 +207,7 @@
         "scripts.mainScripts",
         "scripts.matchContents",
         "scripts.restartDelay",
+        "scripts.specialCommands",
         "search.includeDeprecated",
         "search.provder",
         "statusbar.showMainScriptStatus",

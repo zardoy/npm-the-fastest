@@ -80,6 +80,10 @@
             {
                 "command": "printEnv",
                 "title": "Print Ext Host process.ENV to Output"
+            },
+            {
+                "command": "startSpecialCommand",
+                "title": "Start Special Command"
             }
         ],
         "menus": {
@@ -159,6 +163,7 @@
         "@types/fs-extra": "^9.0.13",
         "@types/jest": "^27.4.0",
         "@types/lodash": "^4.14.178",
+        "@types/minimatch": "^3.0.5",
         "@types/semver": "^7.3.9",
         "@types/vscode": "^1.64.0",
         "@types/yamljs": "^0.2.31",
@@ -198,6 +203,7 @@
         "jsonc-parser": "^3.0.0",
         "jsonfile": "^6.1.0",
         "lodash": "^4.17.21",
+        "minimatch": "^5.0.1",
         "npm-check": "^5.9.2",
         "npms.io": "^2.1.1",
         "pkg-dir": "^5.0.0",
