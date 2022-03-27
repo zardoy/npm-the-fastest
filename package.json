@@ -157,7 +157,7 @@
         "start": "vscode-framework start",
         "build": "vscode-framework build",
         "lint": "eslint --ignore-pattern \"src/webview/**\" --ignore-pattern \"src/**/*.d.ts\" --ignore-pattern src/webview.ts \"src/**/*.ts\"",
-        "test": "jest"
+        "test": "vitest --global"
     },
     "devDependencies": {
         "@types/fs-extra": "^9.0.13",
@@ -170,13 +170,12 @@
         "@vscode/test-electron": "^1.6.2",
         "@zardoy/tsconfig": "^1.4.0",
         "esbuild": "^0.13.15",
-        "esbuild-runner": "^2.2.1",
         "eslint": "^8.8.0",
         "eslint-config-zardoy": "^0.2.8",
-        "jest": "^27.5.1",
         "mocha": "^9.2.0",
         "type-fest": "^2.11.2",
-        "typescript": "^4.5.5"
+        "typescript": "^4.5.5",
+        "vitest": "^0.7.6"
     },
     "dependencies": {
         "@hediet/node-reload": "^0.7.3",
