@@ -45,6 +45,13 @@ And even more.
 
 On v0.1.0 config will be probably changed.
 
+## Similar Extensions
+
+These useful extensions have functionality, that this extension doesn't have:
+
+- [npm-import-package-version](https://marketplace.visualstudio.com/items?itemName=axetroy.vscode-npm-import-package-version) - show versions as decorations and hover with quick description and ability to go to dep's package.json
+- [npm-links](https://marketplace.visualstudio.com/items?itemName=Dolov.npm-links) - show more comprehensive description with ability to go to package repo or other sites
+
 <!-- ## Auto Install
 
 By default, whenever you change in editor and save package.json with dependencies removed or added, package manager with `install` command will be invoked.\
