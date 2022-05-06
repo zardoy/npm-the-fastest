@@ -4,6 +4,24 @@
 //     "title": "Open package.json from..."
 // },
 // enforcePackageManagerUse
+
+type RunOnSaveRule = {
+    relativePathGlob: string
+    command: string,
+    deps?: Array<string | {dep: string, type: string}>
+    /**
+     * Note for `packageJson`: it will fallback to file if closest package.json cannot be find
+     *  @default file */
+    cwd?: 'file' | 'packageJson' | 'workspace'
+    // TODO!
+    /** Checks against locally installed version from node_modules. Raises a warning by default, if  */
+    // semverRange?: string
+    /** Only when `semverRange` is specified */
+    // noInstalledWarning?: boolean
+    /** Kill previous command execution @default true */
+    killPrev: boolean,
+}
+
 export type Configuration = {
     // TOOD describe difference between builtin setting
     /**
@@ -158,6 +176,12 @@ export type Configuration = {
      * @default true
      */
     'codeAction.resolveBranchName': boolean
+    'runOnSave': RunOnSaveRule[]
+    /**
+     * It won't run on after delay auto save type anyway
+     * @default false
+     */
+    'runOnSave.runOnAutoSave': ''
     /** @default true */
     // scriptsCompletion: boolean
     /** @default true */

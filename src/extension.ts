@@ -17,6 +17,7 @@ import { registerClipboardDetection } from './core/clipboardDetection'
 import { activateStatusbar } from './features/statusbar'
 import { registerPackageJsonAutoComplete } from './packageJsonAutoComplete'
 import { startSpecialCommand } from './commands/startSpecialCommand'
+import { registerRunOnSave } from './features/runOnSave'
 
 // TODO command for package diff
 
@@ -49,6 +50,7 @@ export const activate = () => {
     registerClipboardDetection()
     registerPackageJsonAutoComplete()
     activateStatusbar()
+    registerRunOnSave()
 
     if (vscode.workspace.workspaceFolders?.length === 1) void workspaceOpened(vscode.workspace.workspaceFolders[0]!.uri)
 

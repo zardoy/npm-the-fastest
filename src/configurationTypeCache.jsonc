@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: 1d693afb4e91b66ba5c09b32da9e9502
+// md5hash: 853b6cfde74a5b1738b7b1e7c62e5e9d
 {
     "type": "object",
     "properties": {
@@ -189,6 +189,72 @@
             "description": "Disable if action open repository takes a lot of time, in this case it would use `master` branch in url",
             "default": true,
             "type": "boolean"
+        },
+        "runOnSave": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "relativePathGlob": {
+                        "type": "string"
+                    },
+                    "command": {
+                        "type": "string"
+                    },
+                    "deps": {
+                        "type": "array",
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "dep": {
+                                            "type": "string"
+                                        },
+                                        "type": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "dep",
+                                        "type"
+                                    ]
+                                },
+                                {
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "cwd": {
+                        "description": "Note for `packageJson`: it will fallback to file if closest package.json cannot be find",
+                        "default": "file",
+                        "enum": [
+                            "file",
+                            "packageJson",
+                            "workspace"
+                        ],
+                        "type": "string"
+                    },
+                    "killPrev": {
+                        "description": "Kill previous command execution @default true",
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "command",
+                    "killPrev",
+                    "relativePathGlob"
+                ]
+            }
+        },
+        "runOnSave.runOnAutoSave": {
+            "description": "It won't run on after delay auto save type anyway",
+            "default": false,
+            "type": "string",
+            "enum": [
+                ""
+            ]
         }
     },
     "required": [
@@ -204,6 +270,8 @@
         "leadingPackageManager",
         "packageManagerAllowedEnv",
         "runBinCommand.searchLocation",
+        "runOnSave",
+        "runOnSave.runOnAutoSave",
         "scripts.mainScripts",
         "scripts.matchContents",
         "scripts.restartDelay",
