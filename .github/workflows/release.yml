@@ -23,7 +23,7 @@ jobs:
           run_install: |
             args: [--frozen-lockfile, --strict-peer-dependencies]
       - run: pnpm lint
-      - run: pnpx -y zardoy-release vscode-extension
+      - run: pnpx zardoy-release vscode-extension
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           ALGOLIA_APP_ID: ${{ secrets.ALGOLIA_APP_ID }}
