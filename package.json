@@ -42,7 +42,7 @@
             },
             {
                 "command": "openWorkspacePackageJson",
-                "title": "Open package.json of current workspace"
+                "title": "Open package.json of Current Workspace"
             },
             {
                 "command": "runBinCommand",
@@ -76,6 +76,14 @@
             {
                 "command": "openAtJsdelivr",
                 "title": "Open at Jsdelivr"
+            },
+            {
+                "command": "revealInExplorer",
+                "title": "Reveal Package in Sidebar Explorer"
+            },
+            {
+                "command": "openPackagePackageJson",
+                "title": "Open Package package.json"
             },
             {
                 "command": "printEnv",
@@ -182,8 +190,8 @@
         "@types/hosted-git-info": "^3.0.2",
         "@types/jsonfile": "^6.0.1",
         "@types/node": "^16.11.22",
-        "@zardoy/utils": "^0.0.4",
-        "@zardoy/vscode-utils": "^0.0.6",
+        "@zardoy/utils": "^0.0.9",
+        "@zardoy/vscode-utils": "^0.0.18",
         "algoliasearch": "^4.12.1",
         "change-case": "^4.1.2",
         "cross-env": "^7.0.3",

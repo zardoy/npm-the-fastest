@@ -1,27 +1,26 @@
 /* eslint-disable no-constant-condition */
 import { posix } from 'path'
-import vscode from 'vscode'
+import * as vscode from 'vscode'
 import { PackageJson } from 'type-fest'
 import { showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
 import { noCase } from 'change-case'
-import { fsExists } from '@zardoy/vscode-utils/build/fs'
-import { joinPackageJson } from './util'
+import { fsExists, getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
+import { joinPackageJson, supportedFileSchemes } from './util'
 
 // TODO remove workspacesFirst
 type PackageJsonLocation = 'workspacesFirst' | 'closest'
 
-export const readPackageJsonWithMetadata = async ({ type, fallback }: { type: PackageJsonLocation; fallback?: boolean }) => {
+export const readPackageJsonWithMetadata = async ({ type, fallback = false }: { type: PackageJsonLocation; fallback?: boolean }) => {
     let workspaceFolder: undefined | vscode.WorkspaceFolder
     const cwd = await (async () => {
-        const { workspaceFolders } = vscode.workspace
-        if (workspaceFolders?.length !== 1) throw new Error('Open exactly one workspace')
-        workspaceFolder = workspaceFolders[0]!
-        if (type === 'workspacesFirst') return workspaceFolder.uri
+        const workspace = getCurrentWorkspaceRoot()
+        if (type === 'workspacesFirst') return workspace.uri
 
         // TODO refactor. hope we don't use closest
         const documentUri = vscode.window.activeTextEditor?.document.uri // + pkdDir to find closest compared to opened editor
-        if (!documentUri && fallback) return workspaceFolder.uri
-        if (!documentUri) throw new Error('Open file first')
+        const unsupoortedDocument = !documentUri || !supportedFileSchemes.includes(documentUri.scheme)
+        if (unsupoortedDocument && fallback) return workspace.uri
+        if (unsupoortedDocument) throw new Error('Open file first')
         const packageDir = await findUpPackageJson(documentUri, true)
 
         return packageDir
@@ -84,10 +83,12 @@ export const pickInstalledDeps = async <M extends boolean>({
     commandId,
     multiple,
     packageJson,
+    flatTypes = true,
 }: {
     commandId: string
     multiple: M
     packageJson?: PackageJson
+    flatTypes?
 }): Promise<(M extends true ? PickedDeps : string) | undefined> => {
     if (!packageJson) ({ packageJson } = await readPackageJsonWithMetadata({ type: 'closest', fallback: true }))
     const depsPick: Array<keyof PackageJson> = ['dependencies', 'devDependencies', 'optionalDependencies']
@@ -111,7 +112,7 @@ export const pickInstalledDeps = async <M extends boolean>({
                 .map(
                     // ts error below: pkgJson possibly is undefined
                     ([pkg, version]): VSCodeQuickPickItem => {
-                        if (pkg.startsWith(AT_TYPES) && depKey === 'devDependencies' && hasTypesPackage(pkg)) {
+                        if (flatTypes && pkg.startsWith(AT_TYPES) && depKey === 'devDependencies' && hasTypesPackage(pkg)) {
                             packagesWithTypes.push(pkg.slice(AT_TYPES.length))
                             return undefined!
                         }

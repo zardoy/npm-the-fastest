@@ -18,6 +18,7 @@ import { activateStatusbar } from './features/statusbar'
 import { registerPackageJsonAutoComplete } from './packageJsonAutoComplete'
 import { startSpecialCommand } from './commands/startSpecialCommand'
 import { registerRunOnSave } from './features/runOnSave'
+import openWorkspacePackageJson from './commands/openWorkspacePackageJson'
 
 // TODO command for package diff
 
@@ -51,6 +52,7 @@ export const activate = () => {
     registerPackageJsonAutoComplete()
     activateStatusbar()
     registerRunOnSave()
+    openWorkspacePackageJson()
 
     if (vscode.workspace.workspaceFolders?.length === 1) void workspaceOpened(vscode.workspace.workspaceFolders[0]!.uri)
 

@@ -45,7 +45,7 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
     // otherwise: freeChoice
     const currentWorkspaceRoot = getCurrentWorkspaceRoot()
     await throwIfNowPackageJson(currentWorkspaceRoot.uri, true)
-    const { packageJson } = await readPackageJsonWithMetadata({ type: 'closest' })
+    const { packageJson } = await readPackageJsonWithMetadata({ type: 'workspacesFirst' })
     type ItemType = vscode.QuickPickItem & {
         itemType?: 'install-action' | 'selectedToInstall'
         types?: AlgoliaSearchResultItem['types']['ts']

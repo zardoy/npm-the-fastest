@@ -1,14 +1,13 @@
 import vscode from 'vscode'
 import { fsExists } from '@zardoy/vscode-utils/build/fs'
 import { findUpPackageJson } from '../commands-core/packageJson'
-import { joinPackageJson } from '../commands-core/util'
+import { joinPackageJson, supportedFileSchemes } from '../commands-core/util'
 
 export const openClosestPackageJson = async () => {
     const uri = vscode.window.activeTextEditor?.document.uri
     // not used atm
     const excludedSchemes = ['untitled', 'vscode', 'vscode-userdata']
-    const includedSchemes = ['file', 'vscode-vfs']
-    if (uri === undefined || !includedSchemes.includes(uri.scheme)) {
+    if (uri === undefined || !supportedFileSchemes.includes(uri.scheme)) {
         // console.log()
         const firstWorkspace = vscode.workspace.workspaceFolders?.[0]
         if (!firstWorkspace) return

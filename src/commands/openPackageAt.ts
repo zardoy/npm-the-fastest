@@ -2,18 +2,28 @@ import * as vscode from 'vscode'
 import defaultBranch from 'default-branch'
 import { fromUrl } from 'hosted-git-info'
 import { getExtensionCommandId, getExtensionSetting, registerExtensionCommand } from 'vscode-framework'
+import { getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
 import { findUpNodeModules, pickInstalledDeps, readDirPackageJson } from '../commands-core/packageJson'
+import { joinPackageJson, supportedFileSchemes } from '../commands-core/util'
 
 /** get module dir URI from closest node_modules */
 const getClosestModulePath = async (module: string, path = '') => {
-    const currentDirUri = vscode.Uri.joinPath(vscode.window.activeTextEditor!.document.uri, '..')
-    const nodeModulesPath = await findUpNodeModules(currentDirUri)
-    return vscode.Uri.joinPath(nodeModulesPath, 'node_modules', module, path)
+    // TODO reuse readPackageJsonWithMetadata resolution logic
+    const nodeModulesUri = await (async () => {
+        const editor = vscode.window.activeTextEditor
+        if (editor && supportedFileSchemes.includes(editor.document.uri.scheme)) {
+            const currentDirUri = vscode.Uri.joinPath(vscode.window.activeTextEditor!.document.uri, '..')
+            return findUpNodeModules(currentDirUri)
+        }
+
+        return getCurrentWorkspaceRoot().uri
+    })()
+    return vscode.Uri.joinPath(nodeModulesUri, 'node_modules', module, path)
 }
 
 export const registerOpenPackageAtCommands = () => {
     registerExtensionCommand('openOnNpm', async ({ command: commandId }, module?: string) => {
-        if (!module) module = await pickInstalledDeps({ commandId, multiple: false })
+        if (!module) module = await pickInstalledDeps({ commandId, multiple: false, flatTypes: false })
         if (module === undefined) return
         await vscode.env.openExternal(`https://npmjs.com/package/${module}` as any)
     })
@@ -32,14 +42,14 @@ export const registerOpenPackageAtCommands = () => {
     })
 
     registerExtensionCommand('openAtJsdelivr', async ({ command: commandId }, module?: string, file = '') => {
-        if (!module) module = await pickInstalledDeps({ commandId, multiple: false })
+        if (!module) module = await pickInstalledDeps({ commandId, multiple: false, flatTypes: false })
         if (module === undefined) return
         const url = `https://cdn.jsdelivr.net/npm/${module}/${file}`
         await vscode.env.openExternal(url as any)
     })
 
     registerExtensionCommand('openPackageRepository', async ({ command: commandId }, module?: string) => {
-        if (!module) module = await pickInstalledDeps({ commandId, multiple: false })
+        if (!module) module = await pickInstalledDeps({ commandId, multiple: false, flatTypes: false })
         if (module === undefined) return
         const cwd = await getClosestModulePath(module)
         let { repository } = await readDirPackageJson(cwd)
@@ -74,5 +84,17 @@ export const registerOpenPackageAtCommands = () => {
         }
 
         await vscode.env.openExternal((repo.browse() + urlPath) as any)
+    })
+    registerExtensionCommand('revealInExplorer', async ({ command: commandId }, module?: string) => {
+        if (!module) module = await pickInstalledDeps({ commandId, multiple: false, flatTypes: false })
+        if (module === undefined) return
+        const moduleUri = await getClosestModulePath(module)
+        await vscode.commands.executeCommand('revealInExplorer', moduleUri)
+    })
+    registerExtensionCommand('openPackagePackageJson', async ({ command: commandId }, module?: string) => {
+        if (!module) module = await pickInstalledDeps({ commandId, multiple: false, flatTypes: false })
+        if (module === undefined) return
+        const packageJsonUri = joinPackageJson(await getClosestModulePath(module))
+        await vscode.window.showTextDocument(packageJsonUri)
     })
 }
