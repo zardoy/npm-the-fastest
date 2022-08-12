@@ -39,6 +39,19 @@
             "properties": {
                 "build": {
                     "type": "string"
+                },
+                "watch": {
+                    "type": "string"
+                },
+                "dev": {
+                    "type": "string"
+                }
+            }
+        },
+        "engines": {
+            "properties": {
+                "pnpm": {
+                    "type": "string"
                 }
             }
         },
@@ -53,23 +66,52 @@
                     }
                 },
                 "packageExtensions": {
-                    "type": "object"
+                    "type": "object",
+                    "description": "Patch package.json of dependencies"
                 },
                 "peerDependencyRules": {
                     "type": "object",
                     "properties": {
                         "ignoreMissing": {
-                            "type": "array"
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
                         },
                         "allowedVersions": {
                             "description": "Unmet peer dependency warnings will not be printed for peer dependencies of the specified range.",
                             "type": "object"
+                        },
+                        "allowAny": {
+                            "type": "array",
+                            "description": "an array of package name patterns, any peer dependency matching the pattern will be resolved from any version, regardless of the range specified in peerDependencies.",
+                            "items": {
+                                "type": "string"
+                            }
                         }
                     }
                 },
                 "neverBuiltDependencies": {
+                    "type": "array",
+                    "description": "This field allows to ignore the builds of specific dependencies. The \"preinstall\", \"install\", and \"postinstall\" scripts of the listed packages will not be executed during installation.",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "onlyBuiltDependencies": {
+                    "type": "array",
+                    "description": "If this field exists, only the listed packages will be able to run install scripts",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "allowedDeprecatedVersions": {
                     "type": "object",
-                    "description": "This field allows to ignore the builds of specific dependencies. The \"preinstall\", \"install\", and \"postinstall\" scripts of the listed packages will not be executed during installation."
+                    "description": ">=7.2.0 Allows muting deprecation warnings of specific packages"
+                },
+                "patchedDependencies": {
+                    "type": "object",
+                    "description": "This field is added/updated automatically when you run pnpm patch-commit. It is a dictionary where the key should be the package name and exact version"
                 }
             }
         }
