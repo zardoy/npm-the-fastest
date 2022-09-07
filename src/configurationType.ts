@@ -7,8 +7,8 @@
 
 type RunOnSaveRule = {
     relativePathGlob: string
-    command: string,
-    deps?: Array<string | {dep: string, type: string}>
+    command: string
+    deps?: Array<string | { dep: string; type: string }>
     /**
      * Note for `packageJson`: it will fallback to file if closest package.json cannot be find
      *  @default file */
@@ -19,7 +19,7 @@ type RunOnSaveRule = {
     /** Only when `semverRange` is specified */
     // noInstalledWarning?: boolean
     /** Kill previous command execution @default true */
-    killPrev: boolean,
+    killPrev: boolean
 }
 
 export type Configuration = {
@@ -176,14 +176,14 @@ export type Configuration = {
      * @default true
      */
     'codeAction.resolveBranchName': boolean
-    'runOnSave': RunOnSaveRule[]
+    runOnSave: RunOnSaveRule[]
     /**
      * It won't run on after delay auto save type anyway
      * @default false
      */
     'runOnSave.runOnAutoSave': ''
     /** @default true */
-    // scriptsCompletion: boolean
+    packageJsonIntellisense: boolean
     /** @default true */
     // enableTerminalLinkProvider: boolean
 }

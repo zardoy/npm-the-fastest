@@ -3,6 +3,7 @@ import { posix } from 'path'
 import vscode from 'vscode'
 import { findUp, findUpMultiple } from 'find-up'
 import { getExtensionSetting, showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
+
 const { join } = posix
 
 export const runBinCommand = async () => {
@@ -16,6 +17,18 @@ export const runBinCommand = async () => {
     // TODO create own terminal
     // TODO pnpm in workspace
 
+    const items = await getBinCommands()
+
+    const binToRun = await showQuickPick(items)
+    if (binToRun === undefined) return
+
+    const prepend = 'pnpm'
+
+    terminal.sendText(`${prepend} ${binToRun} `, false)
+    terminal.show(false)
+}
+
+export const getBinCommands = async () => {
     const documentPath = vscode.window.activeTextEditor?.document.uri.fsPath
     const workspacePath = vscode.workspace.workspaceFolders?.[0]!.uri.fsPath
     if (!workspacePath) throw new Error('available only in workspace')
@@ -46,7 +59,7 @@ export const runBinCommand = async () => {
 
     const showDescription = nodeModulesPaths.length > 0
 
-    const items = await Promise.all(
+    const result = await Promise.all(
         nodeModulesPaths.map(async dirPath =>
             (async (): Promise<VSCodeQuickPickItem[]> => {
                 const binList = await fs.promises.readdir(join(dirPath, '.bin'))
@@ -61,12 +74,5 @@ export const runBinCommand = async () => {
             })(),
         ),
     )
-
-    const binToRun = await showQuickPick(items.flat())
-    if (binToRun === undefined) return
-
-    const prepend = 'pnpm'
-
-    terminal.sendText(`${prepend} ${binToRun} `, false)
-    terminal.show(false)
+    return result.flat()
 }

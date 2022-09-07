@@ -147,6 +147,11 @@
             "description": "In virtual workspaces (or web), only basic commands and package.json edits are supported."
         }
     },
+    "pnpm": {
+        "neverBuiltDependencies": [
+            "playwright"
+        ]
+    },
     "activationEvents": [
         "workspaceContains:package.json",
         "onCommands"
@@ -191,7 +196,7 @@
         "@types/jsonfile": "^6.0.1",
         "@types/node": "^16.11.22",
         "@zardoy/utils": "^0.0.9",
-        "@zardoy/vscode-utils": "^0.0.18",
+        "@zardoy/vscode-utils": "^0.0.26",
         "algoliasearch": "^4.12.1",
         "change-case": "^4.1.2",
         "cross-env": "^7.0.3",
