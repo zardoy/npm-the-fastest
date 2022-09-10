@@ -1,5 +1,8 @@
 lockfileVersion: 5.4
 
+neverBuiltDependencies:
+  - playwright
+
 specifiers:
   '@hediet/node-reload': ^0.7.3
   '@types/fs-extra': ^9.0.13
@@ -41,6 +44,7 @@ specifiers:
   mocha: ^9.2.0
   npm-check: ^5.9.2
   npms.io: ^2.1.1
+  picomatch: github:silverwind/picomatch#nodeps
   pkg-dir: ^5.0.0
   rambda: ^6.9.0
   semver: ^7.3.5
@@ -82,6 +86,7 @@ dependencies:
   minimatch: 5.0.1
   npm-check: 5.9.2
   npms.io: 2.1.1
+  picomatch: github.com/silverwind/picomatch/ee6ebcc5570a8846d81610c11ebb92a9e199b145
   pkg-dir: 5.0.0
   rambda: 6.9.0
   semver: 7.3.5
@@ -5333,7 +5338,6 @@ packages:
     resolution: {integrity: sha512-JYNjhwWcfsBkg0FMGLbFO9e58FVdmICE4k97/glIQV7cBULL7oxNjRQC7Ffe+Y70XVNnP0HSJLaA0W5SukyftQ==}
     engines: {node: '>=12'}
     hasBin: true
-    requiresBuild: true
     dependencies:
       commander: 6.2.1
       debug: 4.3.3
@@ -7030,4 +7034,11 @@ packages:
   /yocto-queue/1.0.0:
     resolution: {integrity: sha512-9bnSc/HEW2uRy67wc+T8UwauLuPJVn28jb+GtJY16iiKWyvmYJRXVT4UamsAEGQfPohgr2q4Tq0sQbQlxTfi1g==}
     engines: {node: '>=12.20'}
+    dev: false
+
+  github.com/silverwind/picomatch/ee6ebcc5570a8846d81610c11ebb92a9e199b145:
+    resolution: {tarball: https://codeload.github.com/silverwind/picomatch/tar.gz/ee6ebcc5570a8846d81610c11ebb92a9e199b145}
+    name: picomatch
+    version: 2.2.2
+    engines: {node: '>=8.6'}
     dev: false

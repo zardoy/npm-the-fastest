@@ -182,8 +182,22 @@ export type Configuration = {
      * @default false
      */
     'runOnSave.runOnAutoSave': ''
-    /** @default true */
+    /**
+     * Wether to enable completions in package.json files
+     * @default true
+     */
     packageJsonIntellisense: boolean
+    /**
+     * Wether to enable links in package.json files
+     * @default true
+     */
+    packageJsonLinks: boolean
+    // TODO change to always show state
+    /**
+     * Wether to enable links script names to run script
+     * @default false
+     */
+    packageJsonScriptNameLink: boolean
     /** @default true */
     // enableTerminalLinkProvider: boolean
 }
