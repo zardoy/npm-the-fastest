@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: 853b6cfde74a5b1738b7b1e7c62e5e9d
+// md5hash: fd6807fee82c0259817e00d5a0a9b619
 {
     "type": "object",
     "properties": {
@@ -255,6 +255,21 @@
             "enum": [
                 ""
             ]
+        },
+        "packageJsonIntellisense": {
+            "description": "Wether to enable completions in package.json files",
+            "default": true,
+            "type": "boolean"
+        },
+        "packageJsonLinks": {
+            "description": "Wether to enable links in package.json files",
+            "default": true,
+            "type": "boolean"
+        },
+        "packageJsonScriptNameLink": {
+            "description": "Wether to enable links script names to run script",
+            "default": false,
+            "type": "boolean"
         }
     },
     "required": [
@@ -268,6 +283,9 @@
         "install.watchPackageJson",
         "install.watchPackageLocks",
         "leadingPackageManager",
+        "packageJsonIntellisense",
+        "packageJsonLinks",
+        "packageJsonScriptNameLink",
         "packageManagerAllowedEnv",
         "runBinCommand.searchLocation",
         "runOnSave",
