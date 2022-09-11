@@ -15,10 +15,11 @@ import { startMainNpmScript } from './commands/startMainNpmScript'
 import { startNpmScript } from './commands/startNpmScript'
 import { registerClipboardDetection } from './core/clipboardDetection'
 import { activateStatusbar } from './features/statusbar'
-import { registerPackageJsonAutoComplete } from './packageJsonComplete'
+import { registerPackageJsonCompletions } from './packageJsonComplete'
 import { startSpecialCommand } from './commands/startSpecialCommand'
 import { registerRunOnSave } from './features/runOnSave'
 import openWorkspacePackageJson from './commands/openWorkspacePackageJson'
+import { registerPackageJsonLinks } from './packageJsonLinks'
 
 // TODO command for package diff
 
@@ -49,7 +50,8 @@ export const activate = () => {
     registerOpenPackageAtCommands()
     registerCodeActions()
     registerClipboardDetection()
-    registerPackageJsonAutoComplete()
+    registerPackageJsonCompletions()
+    registerPackageJsonLinks()
     activateStatusbar()
     registerRunOnSave()
     openWorkspacePackageJson()

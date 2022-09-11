@@ -9,16 +9,12 @@ import picomatch from 'picomatch/posix'
 import { compact } from '@zardoy/utils'
 import { getBinCommands, runBinCommand } from './commands/runBinCommand'
 
-const selector = { language: 'json', pattern: '**/package.json' }
-export const registerPackageJsonAutoComplete = () => {
-    registerCompletions()
-    registerLinks()
-}
+export const packageJsonSelector = { language: 'json', pattern: '**/package.json' }
 
-const registerCompletions = () => {
+export const registerPackageJsonCompletions = () => {
     if (!getExtensionSetting('packageJsonIntellisense')) return
     vscode.languages.registerCompletionItemProvider(
-        selector,
+        packageJsonSelector,
         {
             async provideCompletionItems(document, position, token, context) {
                 if (!document.uri.path.endsWith('package.json')) return []
@@ -121,67 +117,6 @@ const registerCompletions = () => {
     )
 }
 
-const registerLinks = () => {
-    vscode.languages.registerDocumentLinkProvider(selector, {
-        provideDocumentLinks(document, token) {
-            const root = parseTree(document.getText())!
-            const scriptsRootNode = findNodeAtLocation(root, ['scripts'])
-            const scriptsNodes = scriptsRootNode?.children
-            const links: vscode.DocumentLink[] = []
-            const nodeObjectMap = (nodes: Node[], type: 'prop' | 'value') => {
-                const indexGetter = type === 'prop' ? 0 : 1
-                return compact(nodes.map(value => value.type === 'property' && value.children![indexGetter]))
-            }
-
-            // #region scripts links
-            if (getExtensionSetting('packageJsonLinks') && scriptsNodes)
-                for (const scriptNode of nodeObjectMap(scriptsNodes, 'value')) {
-                    const script = getNodeValue(scriptNode)
-                    let match: RegExpExecArray | null
-                    while ((match = scriptLinksCommandRegex.exec(script))) {
-                        const scriptRefName = match.groups!.NAME!
-                        // if (!(scriptRefName in scriptsObject)) continue
-                        const targetScriptNode = scriptsNodes.find(node => node.children![0]!.value === scriptRefName)?.children?.[1]
-                        if (!targetScriptNode) continue
-                        const getNodeStringStart = (node: Node) => node.offset + 1
-                        const startOffset = getNodeStringStart(scriptNode) + match.index + match[1]!.length
-                        const positions = [startOffset, startOffset + scriptRefName.length].map(offset => document.positionAt(offset)) as [
-                            vscode.Position,
-                            vscode.Position,
-                        ]
-                        const { line: targetScriptLine, character: targetScriptCharacter } = document.positionAt(getNodeStringStart(targetScriptNode))
-                        const fragment = `L${targetScriptLine + 1},${targetScriptCharacter + 1}`
-                        links.push({
-                            range: new vscode.Range(...positions),
-                            tooltip: 'Reveal script',
-                            target: document.uri.with({ fragment }),
-                        })
-                    }
-
-                    scriptLinksCommandRegex.lastIndex = 0
-                }
-            // #endregion
-
-            if (getExtensionSetting('packageJsonScriptNameLink') && scriptsNodes)
-                for (const scriptNode of nodeObjectMap(scriptsNodes, 'prop')) {
-                    const startOffset = scriptNode.offset + 1
-                    const scriptName: string = scriptNode.value
-                    const positions = [startOffset, startOffset + scriptName.length].map(offset => document.positionAt(offset)) as [
-                        vscode.Position,
-                        vscode.Position,
-                    ]
-                    links.push({
-                        range: new vscode.Range(...positions),
-                        tooltip: 'Run Script',
-                        target: vscode.Uri.parse(`command:${getExtensionCommandId('runNpmScript')}?${JSON.stringify(scriptName)}`),
-                    })
-                }
-
-            return links
-        },
-    })
-}
-
 const listFilesCompletions = async (baseDocument: vscode.TextDocument, stringContents: string, completionRange: vscode.Range, glob = '*') => {
     const folderPath = stringContents.split('/').slice(0, -1).join('/')
     const filesList = await vscode.workspace.fs.readDirectory(Utils.joinPath(baseDocument.uri, '..', folderPath))
@@ -210,4 +145,3 @@ const pathAutoComplete = {
 }
 
 const scriptCompletionCommandRegex = /^(pnpm|yarn)|(pnpm|yarn|npm) run$/
-const scriptLinksCommandRegex = /((^|&&)\s?((pnpm|yarn)|(pnpm|yarn|npm) run) )(?<NAME>[A-z\d-]+)/g
