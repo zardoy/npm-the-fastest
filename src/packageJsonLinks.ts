@@ -1,6 +1,6 @@
+import * as vscode from 'vscode'
 import { parseTree, findNodeAtLocation, getNodeValue, Node } from 'jsonc-parser'
 import { compact } from 'lodash'
-import * as vscode from 'vscode'
 import { getExtensionSetting, getExtensionCommandId } from 'vscode-framework'
 import { packageJsonSelector } from './packageJsonComplete'
 
@@ -29,15 +29,16 @@ export const registerPackageJsonLinks = () => {
                         const targetScriptNode = scriptsNodes.find(node => node.children![0]!.value === scriptRefName)?.children?.[1]
                         if (!targetScriptNode) continue
                         const getNodeStringStart = (node: Node) => node.offset + 1
-                        const startOffset = getNodeStringStart(scriptNode) + match.index + match[1]!.length
-                        const positions = [startOffset, startOffset + scriptRefName.length].map(offset => document.positionAt(offset)) as [
+                        let startOffset = getNodeStringStart(scriptNode) + match.index + match[1]!.length
+                        if (match[0]!.startsWith('"')) startOffset += 1
+                        const { line: targetScriptLine, character: targetScriptCharacter } = document.positionAt(getNodeStringStart(targetScriptNode))
+                        const fragment = `L${targetScriptLine + 1},${targetScriptCharacter + 1}`
+                        const linkPositions = [startOffset, startOffset + scriptRefName.length].map(offset => document.positionAt(offset)) as [
                             vscode.Position,
                             vscode.Position,
                         ]
-                        const { line: targetScriptLine, character: targetScriptCharacter } = document.positionAt(getNodeStringStart(targetScriptNode))
-                        const fragment = `L${targetScriptLine + 1},${targetScriptCharacter + 1}`
                         links.push({
-                            range: new vscode.Range(...positions),
+                            range: new vscode.Range(...linkPositions),
                             tooltip: 'Reveal script',
                             target: document.uri.with({ fragment }),
                         })
