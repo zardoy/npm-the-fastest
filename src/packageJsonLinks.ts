@@ -4,7 +4,7 @@ import { compact } from 'lodash'
 import { getExtensionSetting, getExtensionCommandId } from 'vscode-framework'
 import { packageJsonSelector } from './packageJsonComplete'
 
-const scriptLinksCommandRegex = /((?<START>(^|&&|")\s?((pnpm|yarn|npm) run) )(?<NAME>[A-z\d:-]+))|((?<START2>(^|&&|")\s?(pnpm|yarn) )(?<NAME2>[A-z\d:-]+))/g
+const scriptLinksCommandRegex = /((?<START>(^|&&|")\s?((pnpm|yarn|npm) run) )(?<NAME>[\wA-Z\d:-]+))|((?<START2>(^|&&|")\s?(pnpm|yarn) )(?<NAME2>[\wA-Z\d:-]+))/g;
 
 export const registerPackageJsonLinks = () => {
     vscode.languages.registerDocumentLinkProvider(packageJsonSelector, {
