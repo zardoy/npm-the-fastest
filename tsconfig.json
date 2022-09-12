@@ -1,5 +1,16 @@
 {
-    "extends": "@zardoy/tsconfig/node",
-    "include": ["src"],
-    "exclude": ["src/webview"]
+    "extends": "@zardoy/tsconfig",
+    "compilerOptions": {
+        "lib": [
+            "ESNext",
+            "WebWorker"
+        ],
+        "noEmit": true
+    },
+    "include": [
+        "src"
+    ],
+    "exclude": [
+        "src/webview"
+    ]
 }

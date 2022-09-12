@@ -4,7 +4,7 @@ import { compact } from 'lodash'
 import { getExtensionSetting, getExtensionCommandId } from 'vscode-framework'
 import { packageJsonSelector } from './packageJsonComplete'
 
-const scriptLinksCommandRegex = /((^|&&|")\s?((pnpm|yarn)|(pnpm|yarn|npm) run) )(?<NAME>[A-z\d-]+)/g
+const scriptLinksCommandRegex = /((?<START>(^|&&|")\s?((pnpm|yarn|npm) run) )(?<NAME>[A-z\d:-]+))|((?<START2>(^|&&|")\s?(pnpm|yarn) )(?<NAME2>[A-z\d:-]+))/g
 
 export const registerPackageJsonLinks = () => {
     vscode.languages.registerDocumentLinkProvider(packageJsonSelector, {
@@ -21,16 +21,19 @@ export const registerPackageJsonLinks = () => {
             // #region scripts links
             if (getExtensionSetting('packageJsonLinks') && scriptsNodes)
                 for (const scriptNode of nodeObjectMap(scriptsNodes, 'value')) {
-                    const script = getNodeValue(scriptNode)
+                    // ensure script's length matches real text length in JSON document
+                    const script = (getNodeValue(scriptNode) as string)
+                        .replaceAll('\\', '\\\\')
+                        .replace(/[\n\r\t]/g, '\\$&')
+                        .replaceAll('"', '\\"')
                     let match: RegExpExecArray | null
                     while ((match = scriptLinksCommandRegex.exec(script))) {
-                        const scriptRefName = match.groups!.NAME!
+                        const scriptRefName = match.groups!.NAME || match.groups!.NAME2!
                         // if (!(scriptRefName in scriptsObject)) continue
                         const targetScriptNode = scriptsNodes.find(node => node.children![0]!.value === scriptRefName)?.children?.[1]
                         if (!targetScriptNode) continue
                         const getNodeStringStart = (node: Node) => node.offset + 1
-                        let startOffset = getNodeStringStart(scriptNode) + match.index + match[1]!.length
-                        if (match[0]!.startsWith('"')) startOffset += 1
+                        const startOffset = getNodeStringStart(scriptNode) + match.index + (match.groups!.START || match.groups!.START2!).length
                         const { line: targetScriptLine, character: targetScriptCharacter } = document.positionAt(getNodeStringStart(targetScriptNode))
                         const fragment = `L${targetScriptLine + 1},${targetScriptCharacter + 1}`
                         const linkPositions = [startOffset, startOffset + scriptRefName.length].map(offset => document.positionAt(offset)) as [
