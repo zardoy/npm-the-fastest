@@ -1,5 +1,5 @@
 {
-    "extends": "@zardoy/tsconfig",
+    "extends": "@zardoy/tsconfig/tsconfig.json",
     "compilerOptions": {
         "lib": [
             "ESNext",
