@@ -196,7 +196,7 @@
         "@types/jsonfile": "^6.0.1",
         "@types/node": "^16.11.22",
         "@zardoy/utils": "^0.0.9",
-        "@zardoy/vscode-utils": "^0.0.26",
+        "@zardoy/vscode-utils": "^0.0.29",
         "algoliasearch": "^4.12.1",
         "change-case": "^4.1.2",
         "cross-env": "^7.0.3",

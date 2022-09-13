@@ -4,6 +4,7 @@ import * as vscode from 'vscode'
 import { parseTree, getLocation, findNodeAtLocation, getNodeValue, Node } from 'jsonc-parser'
 import { getExtensionCommandId, getExtensionSetting, VSCodeQuickPickItem } from 'vscode-framework'
 import { getJsonCompletingInfo, jsonPathEquals, jsonValuesToCompletions } from '@zardoy/vscode-utils/build/jsonCompletions'
+import { niceLookingCompletion } from '@zardoy/vscode-utils/build/completions'
 import { Utils } from 'vscode-uri'
 import picomatch from 'picomatch/posix'
 import { compact } from '@zardoy/utils'
@@ -97,9 +98,12 @@ export const registerPackageJsonCompletions = () => {
                             console.warn(error)
                         }
 
-                        return jsonValuesToCompletions(
-                            binCommands.map(({ label }) => label),
-                            document.getWordRangeAtPosition(position, nameRangeRegex),
+                        return binCommands.map(
+                            ({ label }): vscode.CompletionItem => ({
+                                label,
+                                range: document.getWordRangeAtPosition(position, nameRangeRegex),
+                                ...niceLookingCompletion('.sh'),
+                            }),
                         )
                     }
                     //
