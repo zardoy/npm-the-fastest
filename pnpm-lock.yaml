@@ -16,6 +16,8 @@ specifiers:
   '@types/vscode': ^1.64.0
   '@types/yamljs': ^0.2.31
   '@vscode/test-electron': ^1.6.2
+  '@withfig/autocomplete': ^2.402.0
+  '@withfig/autocomplete-types': ^1.23.0
   '@zardoy/tsconfig': ^1.4.0
   '@zardoy/utils': ^0.0.9
   '@zardoy/vscode-utils': ^0.0.29
@@ -63,6 +65,8 @@ dependencies:
   '@types/hosted-git-info': 3.0.2
   '@types/jsonfile': 6.0.1
   '@types/node': 16.11.22
+  '@withfig/autocomplete': 2.402.0
+  '@withfig/autocomplete-types': 1.23.0
   '@zardoy/utils': 0.0.9
   '@zardoy/vscode-utils': 0.0.29_bvs34hqjxckwnqtjzklvfxht4y
   algoliasearch: 4.12.1
@@ -457,6 +461,17 @@ packages:
       - supports-color
     dev: true
 
+  /@fig/autocomplete-generators/1.3.0:
+    resolution: {integrity: sha512-bp0ir4pLXWE3dFCJ7b+cgYmH7XWpK60aq/E/IqNAHk8du+DQIhWtKLGHufIJm4gLpcytuvehxozUIeM9mg8grQ==}
+    dev: false
+
+  /@fig/autocomplete-helpers/1.0.6:
+    resolution: {integrity: sha512-SPGLQh/XgdQ2Kwnj2On4nKWoHC7CxHSOb/xXuVgGFE08+HgVBuCv+eC1dkH9cQ+ELt41Pt3myj2uuwzYa8VeOw==}
+    dependencies:
+      semver: 7.3.7
+      typescript: 4.8.3
+    dev: false
+
   /@hediet/live-debug/0.5.2:
     resolution: {integrity: sha512-HBqVbyFez1oQlIPO9dzkFi7/9Gvt6ZpssgURzYaVFREl9Oq03nPd6V7Ay4bW03xFHPo3YT2Yff9mFmGQUX7JEg==}
     dependencies:
@@ -707,6 +722,13 @@ packages:
       '@types/node': 16.11.22
     dev: true
 
+  /@types/glob/7.2.0:
+    resolution: {integrity: sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==}
+    dependencies:
+      '@types/minimatch': 3.0.5
+      '@types/node': 16.11.47
+    dev: false
+
   /@types/hosted-git-info/3.0.2:
     resolution: {integrity: sha512-RURNTeEFUwF+ifnp7kK3WLLlTmBSlRynLNS9jeAsI6RHtSrupV0l0nO6kmpaz75EUJVexy348bR452SvmH98vQ==}
     dev: false
@@ -753,7 +775,6 @@ packages:
 
   /@types/minimatch/3.0.5:
     resolution: {integrity: sha512-Klz949h02Gz2uZCMGwDUSDS1YBlTdDDgbWHi+81l29tQALUtvz4rAYi5uoVhE5Lagoq6DeqAUlbrHvW/mXDgdQ==}
-    dev: true
 
   /@types/ms/0.7.31:
     resolution: {integrity: sha512-iiUgKzV9AuaEkZqkOLDIvlQiL6ltuZd9tGcW3gwpnX8JbuiuhFlEGmmFXEXkN50Cvq7Os88IY2v0dkDqXYWVgA==}
@@ -982,6 +1003,22 @@ packages:
       - utf-8-validate
     dev: false
 
+  /@withfig/autocomplete-types/1.23.0:
+    resolution: {integrity: sha512-dB9gccfRmkARPadT0hPZwzl4seAjeX6ILj9X3ClWeZ/FExJicRGYGTT8B+iF/gW+7EoPbmdY+C5Akl+NQSCEQQ==}
+    dev: false
+
+  /@withfig/autocomplete/2.402.0:
+    resolution: {integrity: sha512-n3re6c/WKACRhM/FFxoHSF2Eyf305TvElnqxmUecANfcQ2CDJfLKGWOXCdAn3QqonQ8kksjuYWw/5KoMAJbJPA==}
+    dependencies:
+      '@fig/autocomplete-generators': 1.3.0
+      '@fig/autocomplete-helpers': 1.0.6
+      '@types/glob': 7.2.0
+      fs: 0.0.1-security
+      semver: 7.3.7
+      strip-json-comments: 4.0.0
+      yaml: 1.10.2
+    dev: false
+
   /@zardoy/tsconfig/1.4.0_typescript@4.5.5:
     resolution: {integrity: sha512-XzVr0p522pYSYrIrfMTY/pYxbezBGQMLN2i6AaYW4kVn+dzUzRlk31BTQ9cinxUoDldtUGUK5vuSFeLyFE3G0w==}
     engines: {node: '>=14'}
@@ -1006,7 +1043,7 @@ packages:
     dependencies:
       lodash.compact: 3.0.1
       rambda: 6.9.0
-      type-fest: 2.18.0
+      type-fest: 2.19.0
     dev: false
 
   /@zardoy/vscode-utils/0.0.29_bvs34hqjxckwnqtjzklvfxht4y:
@@ -1188,7 +1225,7 @@ packages:
     engines: {node: '>= 8'}
     dependencies:
       normalize-path: 3.0.0
-      picomatch: 2.2.2
+      picomatch: 2.3.1
 
   /arg/4.1.3:
     resolution: {integrity: sha512-58S9QDqG0Xx27YwPSt9fJxivjYl432YCwfDMfZ+71RAqUrZef7LrKQZ3LHLOwCS4FLNBplP533Zx895SeOCHvA==}
@@ -3344,6 +3381,10 @@ packages:
   /fs.realpath/1.0.0:
     resolution: {integrity: sha1-FQStJSMVjKpA20onh8sBQRmU6k8=}
 
+  /fs/0.0.1-security:
+    resolution: {integrity: sha512-3XY9e1pP0CVEUCdj5BmfIZxRBTSDycnbqhIOGec9QYtmVH2fbLpj86CFWkrNOkt/Fvty4KZG5lTglL9j/gJ87w==}
+    dev: false
+
   /fsevents/2.3.2:
     resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -5282,10 +5323,6 @@ packages:
     resolution: {integrity: sha512-1fygroTLlHu66zi26VoTDv8yRgm0Fccecssto+MhsZ0D/DGW2sm8E8AjW7NU5VVTRt5GxbeZ5qBuJr+HyLYkjQ==}
     dev: true
 
-  /picomatch/2.2.2:
-    resolution: {integrity: sha512-q0M/9eZHzmr0AulXyPwNfZjtwZ/RBZlbN3K3CErVrk50T2ASYI7Bye0EvekFY3IP1Nt2DHu0re+V2ZHIpMkuWg==}
-    engines: {node: '>=8.6'}
-
   /picomatch/2.3.1:
     resolution: {integrity: sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==}
     engines: {node: '>=8.6'}
@@ -5627,7 +5664,7 @@ packages:
     resolution: {integrity: sha512-hOS089on8RduqdbhvQ5Z37A0ESjsqz6qnRcffsMU3495FuTdqSm+7bhJ29JvIOsBDEEnan5DPu9t3To9VRlMzA==}
     engines: {node: '>=8.10.0'}
     dependencies:
-      picomatch: 2.2.2
+      picomatch: 2.3.1
 
   /readline2/1.0.1:
     resolution: {integrity: sha1-QQWWCP/BVHV7cV2ZidGZ/783LjU=}
@@ -5838,6 +5875,14 @@ packages:
     hasBin: true
     dependencies:
       lru-cache: 6.0.0
+
+  /semver/7.3.7:
+    resolution: {integrity: sha512-QlYTucUYOews+WeEujDoEGziz4K6c47V/Bd+LjSSYcA94p+DmINdf7ncaUinThfvZyu13lN9OY1XDxt8C0Tw0g==}
+    engines: {node: '>=10'}
+    hasBin: true
+    dependencies:
+      lru-cache: 6.0.0
+    dev: false
 
   /sentence-case/3.0.4:
     resolution: {integrity: sha512-8LS0JInaQMCRoQ7YUytAo/xUu5W2XnQxV2HI/6uM6U7CITS1RqPElr30V6uIqyMKM9lJGRVFy5/4CuzcixNYSg==}
@@ -6156,6 +6201,11 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
+  /strip-json-comments/4.0.0:
+    resolution: {integrity: sha512-LzWcbfMbAsEDTRmhjWIioe8GcDRl0fa35YMXFoJKDdiD/quGFmjJjdgPjFJJNwCMaLyQqFIDqCdHD2V4HfLgYA==}
+    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
+    dev: false
+
   /supports-color/2.0.0:
     resolution: {integrity: sha1-U10EXOa2Nj+kARcIRimZXp3zJMc=}
     engines: {node: '>=0.8.0'}
@@ -6390,11 +6440,6 @@ packages:
     resolution: {integrity: sha512-reW2Y2Mpn0QNA/5fvtm5doROLwDPu2zOm5RtY7xQQS05Q7xgC8MOZ3yPNaP9m/s/sNjjFQtHo7VCNqYW2iI+Ig==}
     engines: {node: '>=12.20'}
 
-  /type-fest/2.18.0:
-    resolution: {integrity: sha512-pRS+/yrW5TjPPHNOvxhbNZexr2bS63WjrMU8a+VzEBhUi9Tz1pZeD+vQz3ut0svZ46P+SRqMEPnJmk2XnvNzTw==}
-    engines: {node: '>=12.20'}
-    dev: false
-
   /type-fest/2.19.0:
     resolution: {integrity: sha512-RAH822pAdBgcNMAfWnCBU3CFZcfZ/i1eZjwFU/dsLKumyuuP3niueg2UAukXYF0E2AAoc82ZSSf9J0WQBinzHA==}
     engines: {node: '>=12.20'}
@@ -6482,6 +6527,12 @@ packages:
     resolution: {integrity: sha512-TCTIul70LyWe6IJWT8QSYeA54WQe8EjQFU4wY52Fasj5UKx88LNYKCgBEHcOMOrFF1rKGbD8v/xcNWVUq9SymA==}
     engines: {node: '>=4.2.0'}
     hasBin: true
+
+  /typescript/4.8.3:
+    resolution: {integrity: sha512-goMHfm00nWPa8UvR/CPSvykqf6dVV8x/dp0c5mFTMTIu0u0FlGWRioyy7Nn0PGAdHxpJZnuO/ut+PpQ8UiHAig==}
+    engines: {node: '>=4.2.0'}
+    hasBin: true
+    dev: false
 
   /unbox-primitive/1.0.1:
     resolution: {integrity: sha512-tZU/3NqK3dA5gpE1KtyiJUrEB0lxnGkMFHptJ7q6ewdZ8s12QrODwNbhIJStmJkd1QDXa1NRA8aF2A1zk/Ypyw==}
