@@ -94,9 +94,10 @@ function parse(s, env, opts) {
                     } else if (RegExp('^#$').test(c)) {
                         commented = true
                         if (out.length) {
-                            return [out, { comment: s.slice(i + 1) + match.slice(j + 1).join(' ') }]
+                            // return [out, { comment: s.slice(i + 1) + match.slice(j + 1).join(' ') }]
+                        } else {
+                            return
                         }
-                        return [{ comment: s.slice(i + 1) + match.slice(j + 1).join(' ') }]
                     } else if (c === BS) {
                         esc = true
                     } else if (c === DS) {
@@ -139,13 +140,6 @@ function parse(s, env, opts) {
                     return getVar(null, '', varname)
                 }
             })
-            // finalize parsed aruments
-            .reduce(function (prev, arg) {
-                if (arg === undefined) {
-                    return prev
-                }
-                return prev.concat(arg)
-            }, [])
     )
 
     function getVar(_, pre, key) {
