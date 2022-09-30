@@ -9,6 +9,7 @@ import {
     commands,
     CompletionItem,
     CompletionItemKind,
+    CompletionItemLabel,
     CompletionItemTag,
     languages,
     MarkdownString,
@@ -56,63 +57,41 @@ type ParsedOption = [optionName: string, value?: string]
 
 type UsedOption = { name: string }
 
-const parseOptionToCompletion = (option: Fig.Option, usedOptions: UsedOption[], info: DocumentInfo): CompletionItem[] => {
+// todo hide commands
+const parseOptionToCompletion = (option: Fig.Option, usedOptions: UsedOption[], info: DocumentInfo): CompletionItem | undefined => {
     // todo deprecated option
-    let {
-        displayName,
-        description,
-        isRequired,
-        isRepeatable = false,
-        insertValue,
-        hidden,
-        requiresSeparator: seperator = false,
-        /* replaceValue, */
-        deprecated,
-        dependsOn,
-        exclusiveOn,
-        priority = 50,
-        /* isDangerous, */
-    } = option
+    let { isRequired, isRepeatable = false, requiresSeparator: seperator = false, dependsOn, exclusiveOn } = option
+
     if (seperator === true) seperator = '='
     if (seperator === false) seperator = ''
-    const completions: CompletionItem[] = []
+
     const usedOptionsNames = usedOptions.map(({ name }) => name)
-    for (const optionName of ensureArray(option.name)) {
-        // todo look for both etc -m --message
-        const optionUsedCount = usedOptionsNames.filter(name => name === optionName).length
-        if (isRepeatable === false && optionUsedCount > 0) continue
+    const currentOptionsArr = ensureArray(option.name)
 
-        if (typeof isRepeatable === 'number' && optionUsedCount >= isRepeatable) continue
-        if (hidden && info.typedOption !== optionName) continue
-        if (dependsOn && !dependsOn.every(name => usedOptionsNames.includes(name))) continue
-        if (exclusiveOn?.some(name => usedOptionsNames.includes(name))) continue
+    const optionUsedCount = usedOptionsNames.filter(name => currentOptionsArr.includes(name)).length
+    if (isRepeatable === false && optionUsedCount > 0) return
+    if (typeof isRepeatable === 'number' && optionUsedCount >= isRepeatable) return
 
-        // todo charset option
-        const defaultInsertText = optionName + seperator + (seperator.length !== 1 && globalOptions.insertOnCompletionAccept === 'space' ? ' ' : '')
-        const customInsertText = insertValue !== undefined ? new SnippetString().appendText(insertValue) : undefined
-        if (customInsertText) customInsertText.value = customInsertText.value.replace(/{cursor\\}/, '$1')
-        completions.push({
-            label: {
-                label: displayName || optionName,
-                detail: isRequired ? 'REQUIRED' : getArgPreviewFromOption(option) /** todo description: short documentation */,
-            },
-            // be sure its consistent
-            sortText: priority.toString().padStart(3, '0'),
-            documentation: new MarkdownString(description),
-            insertText: customInsertText ?? defaultInsertText,
-            range: new Range(info.realPosition.translate(0, -info.typedOption.length), info.realPosition),
-            command: {
-                command: APPLY_SUGGESTION_COMPLETION,
-                title: '',
-            },
-            ...(deprecated
-                ? {
-                      tags: [CompletionItemTag.Deprecated],
-                  }
-                : {}),
-        })
+    if (dependsOn && !dependsOn.every(name => usedOptionsNames.includes(name))) return
+    if (exclusiveOn?.some(name => usedOptionsNames.includes(name))) return
+
+    // todo charset option
+    const optionsRender = currentOptionsArr.join(' ')
+    const completion = figBaseSuggestionToVscodeCompletion(option, optionsRender, info.typedOption)
+    ;(completion.label as CompletionItemLabel).detail = isRequired ? 'REQUIRED' : getArgPreviewFromOption(option)
+
+    // todo check while typing
+    const insertOption = Array.isArray(option.name) ? option.name.find(name => name.startsWith(info.typedOption)) : option.name
+    const defaultInsertText = insertOption + seperator + (seperator.length !== 1 && globalOptions.insertOnCompletionAccept === 'space' ? ' ' : '')
+    completion.insertText ??= defaultInsertText
+    // todo also pass
+    completion.range = new Range(info.realPosition.translate(0, -info.typedOption.length), info.realPosition)
+    completion.command = {
+        command: APPLY_SUGGESTION_COMPLETION,
+        title: '',
     }
-    return completions
+
+    return completion
 }
 
 const getArgPreviewFromOption = ({ args }: Fig.Option) => {
@@ -127,7 +106,35 @@ const getArgPreviewFromOption = ({ args }: Fig.Option) => {
 }
 
 // todo
-// const figBaseSuggestionToVscodeCompletion = (baseCompetion: Fig.BaseSuggestion): CompletionItem => {}
+const figBaseSuggestionToVscodeCompletion = (baseCompetion: Fig.BaseSuggestion, initialName: string, lastTypedText: string): CompletionItem => {
+    const {
+        displayName,
+        insertValue,
+        replaceValue,
+        description,
+        icon,
+        /* isDangerous, */
+        priority = 50,
+        hidden,
+        deprecated,
+    } = baseCompetion
+    const STRING_TRUNCATE_LENGTH = 10
+    let descriptionText = undefined
+    // let descriptionText = (description && markdownToTxt(description)) || undefined
+    // if (descriptionText && descriptionText.length > STRING_TRUNCATE_LENGTH) descriptionText = `${descriptionText!.slice(0, STRING_TRUNCATE_LENGTH)}`
+
+    const completion = new CompletionItem({ label: displayName || initialName, description: descriptionText })
+
+    completion.insertText = insertValue !== undefined ? new SnippetString().appendText(insertValue) : undefined
+    if (completion.insertText) completion.insertText.value = completion.insertText.value.replace(/{cursor\\}/, '$1')
+    // lets be sure its consistent
+    completion.sortText = priority.toString().padStart(3, '0')
+    completion.documentation = (description && new MarkdownString(description)) || undefined
+    if (deprecated) completion.tags = [CompletionItemTag.Deprecated]
+    if (hidden && lastTypedText !== initialName) completion.filterText = ''
+
+    return completion
+}
 
 console.clear()
 type CommandParts = [string, number][]
@@ -207,7 +214,7 @@ const getSpecOptions = (__spec: Fig.Spec) => {
 const getSpecCompletions = (__spec: Fig.Spec, documentInfo: DocumentInfo) => {
     const specOptions = getSpecOptions(__spec)
 
-    return specOptions?.flatMap(option => parseOptionToCompletion(option, documentInfo.parsedInfo.usedOptions, documentInfo))
+    return specOptions?.flatMap(option => parseOptionToCompletion(option, documentInfo.parsedInfo.usedOptions, documentInfo)).filter(Boolean)
 }
 
 const loadCompletingSpec = (documentInfo: DocumentInfo): Fig.Spec => {
