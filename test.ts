@@ -24,6 +24,7 @@ import { parse } from './shell-quote-patched'
 import { niceLookingCompletion } from '@zardoy/vscode-utils/build/completions'
 import { join } from 'path'
 import { pathToFileURL } from 'url'
+import _ from 'lodash'
 
 // todo remove all icons from the bundle
 const niceIconMap = {
@@ -34,16 +35,20 @@ const globalOptions = {
     insertOnCompletionAccept: 'space' as 'space' | 'disabled',
 }
 
+// todo resolve sorting!
 type DocumentInfo = {
     typedOption: string
     // used for providing correct editing range
     realPosition: Position
-    loadSpec: string
+    specName: string
     parsedInfo: {
-        usedOptions: UsedOption[]
-        completingArg: string | undefined
+        partsToPos: [isOption: boolean, contents: string][]
+        options: UsedOption[]
+        args: string[]
+        currentlyCompletingArgIndex: number | undefined
+        currentPartValue: string | undefined
         // TODO strip to position
-        completingParamValue:
+        completingOptionValue:
             | {
                   // TODO also strip
                   currentEnteredValue: string
@@ -58,14 +63,14 @@ type ParsedOption = [optionName: string, value?: string]
 type UsedOption = { name: string }
 
 // todo hide commands
-const parseOptionToCompletion = (option: Fig.Option, usedOptions: UsedOption[], info: DocumentInfo): CompletionItem | undefined => {
+const parseOptionToCompletion = (option: Fig.Option, info: DocumentInfo): CompletionItem | undefined => {
     // todo deprecated option
     let { isRequired, isRepeatable = false, requiresSeparator: seperator = false, dependsOn, exclusiveOn } = option
 
     if (seperator === true) seperator = '='
     if (seperator === false) seperator = ''
 
-    const usedOptionsNames = usedOptions.map(({ name }) => name)
+    const usedOptionsNames = info.parsedInfo.options.map(({ name }) => name)
     const currentOptionsArr = ensureArray(option.name)
 
     const optionUsedCount = usedOptionsNames.filter(name => currentOptionsArr.includes(name)).length
@@ -80,8 +85,13 @@ const parseOptionToCompletion = (option: Fig.Option, usedOptions: UsedOption[], 
     const completion = figBaseSuggestionToVscodeCompletion(option, optionsRender, info.typedOption)
     ;(completion.label as CompletionItemLabel).detail = isRequired ? 'REQUIRED' : getArgPreviewFromOption(option)
 
-    // todo check while typing
-    const insertOption = Array.isArray(option.name) ? option.name.find(name => name.startsWith(info.typedOption)) : option.name
+    const insertOption = Array.isArray(option.name)
+        ? // option.name /* filter gracefully */
+          //       .map(name => [name, name.indexOf(info.typedOption)] as const)
+          //       .sort((a, b) => a[1] - b[1])
+          //       .filter(([, index]) => index !== -1)?.[0]?.[0] || option.name[0]
+          option.name.find(name => name.toLowerCase().includes(info.typedOption.toLowerCase())) || option.name[0]
+        : option.name
     const defaultInsertText = insertOption + seperator + (seperator.length !== 1 && globalOptions.insertOnCompletionAccept === 'space' ? ' ' : '')
     completion.insertText ??= defaultInsertText
     // todo also pass
@@ -148,53 +158,73 @@ const parseCommandString = (inputString: string, stringPos: number) => {
         },
         [[]],
     )
+    let currentPartIndex
+    let currentPartValue
     let currentCommandParts: CommandParts | undefined
+    // todo reverse them
     for (const commandParts of commandsParts) {
         const firstCommandPart = commandParts[0]
         if (firstCommandPart?.[1] <= stringPos) {
             currentCommandParts = commandParts
-            // currentCommandOffset = len - stringPos
+        } else {
+            break
         }
     }
-    return currentCommandParts
+    if (!currentCommandParts) return
+    if (currentCommandParts.length && inputString.endsWith(' ')) currentCommandParts.push([' ', stringPos - 1])
+    for (const [i, currentCommandPart] of currentCommandParts.entries()) {
+        if (currentCommandPart?.[1] <= stringPos) {
+            currentPartIndex = i
+            currentPartValue = currentCommandPart[0].slice(0, stringPos - currentCommandPart?.[1])
+            // currentCommandOffset = len - stringPos
+        } else {
+            break
+        }
+    }
+    return { parts: currentCommandParts, currentPartIndex, currentPartValue }
 }
 
 const commandPartsToParsed = (commandParts: CommandParts) => {
+    const [specPart, ...restParts] = commandParts
+    const [args, params] = _.partition(
+        restParts.map(([partString]) => partString),
+        partString => partString.startsWith('-'),
+    )
     return {
-        name: commandParts[0][0],
-        params: commandParts.map(commandPart => commandPart[0]).filter(part => part.startsWith('-')),
+        specName: specPart[0],
+        args,
+        params,
     }
 }
 
+// todo first incomplete
 const getDocumentParsedResult = (stringContents: string, position: Position): DocumentInfo | undefined => {
     const textParts = stringContents.split(' ')
     if (textParts.length < 2) return
-    const commandParts = parseCommandString(stringContents, position.character)
+    const { parts: commandParts, currentPartIndex, currentPartValue } = parseCommandString(stringContents, position.character) ?? {}
     if (!commandParts) return
-    let parsedPartsLength = commandParts.length
-    const { name, params } = commandPartsToParsed(commandParts)
+    const currentPartIsOption = currentPartValue.startsWith('-')
+    const { specName, args, params } = commandPartsToParsed(commandParts)
 
-    let lastValue = commandParts.slice(-1)[0]
-    let preLastValue = commandParts.slice(-2)[0]
-    // TODO
-    if (stringContents.endsWith(' ')) {
-        preLastValue = lastValue
-        lastValue = ['', stringContents.length - 1]
-        parsedPartsLength++
-    }
+    /** can be specName */
+    let preCurrentValue = commandParts[currentPartIndex - 1]?.[0]
     return {
         typedOption: textParts.pop() ?? '',
         realPosition: position,
-        loadSpec: name,
+        specName,
         parsedInfo: {
-            usedOptions: params.map(param => ({ name: param })),
-            completingArg: lastValue && !lastValue?.[0].startsWith('-') && parsedPartsLength === 2 ? lastValue?.[0] : undefined,
-            completingParamValue: preLastValue?.[0].startsWith('-')
-                ? {
-                      paramName: preLastValue[0],
-                      currentEnteredValue: lastValue[0],
-                  }
-                : undefined,
+            partsToPos: commandParts.slice(1, currentPartIndex).map(([contents]) => [contents.startsWith('-'), contents]),
+            currentPartValue,
+            currentlyCompletingArgIndex: !currentPartIsOption ? currentPartIndex : undefined,
+            options: params.map(param => ({ name: param })),
+            args,
+            completingOptionValue:
+                preCurrentValue.startsWith('-') && !currentPartIsOption
+                    ? {
+                          paramName: preCurrentValue,
+                          currentEnteredValue: currentPartValue,
+                      }
+                    : undefined,
         },
     }
 }
@@ -211,20 +241,30 @@ const getSpecOptions = (__spec: Fig.Spec) => {
     return spec.options
 }
 
-const getSpecCompletions = (__spec: Fig.Spec, documentInfo: DocumentInfo) => {
+const normalizeSpecOptions = (__spec: Fig.Spec) => {
     const specOptions = getSpecOptions(__spec)
+    if (!specOptions) return
 
-    return specOptions?.flatMap(option => parseOptionToCompletion(option, documentInfo.parsedInfo.usedOptions, documentInfo)).filter(Boolean)
+    const optionsUniq = _.uniqBy([...specOptions].reverse(), value => value.name.toString())
+    return optionsUniq
 }
 
-const loadCompletingSpec = (documentInfo: DocumentInfo): Fig.Spec => {
+const specOptionsToVscodeCompletions = (__spec: Fig.Spec, documentInfo: DocumentInfo) => {
+    return normalizeSpecOptions(__spec)
+        ?.flatMap(option => parseOptionToCompletion(option, documentInfo))
+        .filter(Boolean)
+}
+
+const getCompletingSpec = (specName: string | Fig.LoadSpec): Fig.Spec | undefined => {
+    // todo
+    if (typeof specName !== 'string') return
     const spec = {
         git: gitSpec,
         node: nodeSpec,
         yarn: yarnSpec,
         webpack: webpackSpec,
         esbuild: esbuildSpec,
-    }[documentInfo.loadSpec] as any
+    }[specName] as any
     return spec
 }
 
@@ -256,33 +296,58 @@ trackDisposable(
             async provideCompletionItems(document, position, token, context) {
                 const documentInfo = getDocumentParsedResult(document.lineAt(position).text.slice(0, position.character), position)
                 if (!documentInfo) return specNames.map(name => ({ label: name }))
-                const spec = loadCompletingSpec(documentInfo)
+                const spec = getCompletingSpec(documentInfo.specName)
+                if (!spec) return
+                const figRootSubcommand = getFigSubcommand(spec)
 
-                const { completingParamValue, completingArg } = documentInfo.parsedInfo
-                const figSubcommand = getFigSubcommand(spec)
-                console.log(figSubcommand.options)
-                const { args, subcommands } = figSubcommand
-                let completingSubcommand = figSubcommand
-                if (completingArg !== undefined && subcommands) {
-                    return subcommands.map(subcommand => ({
-                        label: subcommand.name,
-                        documentation: subcommand.description && new MarkdownString(subcommand.description),
-                    }))
+                const { completingOptionValue: completingParamValue, partsToPos } = documentInfo.parsedInfo
+                let subcommand = figRootSubcommand
+                let lastCompletingArg: Fig.Arg | undefined
+                // in linting all parts
+                for (const [isOption, partContents] of partsToPos) {
+                    lastCompletingArg = undefined
+                    if (isOption) {
+                        // validate option
+                    } else {
+                        const subcommandSwitch = subcommand.subcommands?.find(subcommand => ensureArray(subcommand.name).includes(partContents))
+                        if (subcommandSwitch) subcommand = subcommandSwitch
+                        else if (subcommand.args) {
+                            // subcommand.requiresSubcommand
+                            // todo
+                            const arg = ensureArray(subcommand.args)[0]
+                            // arg.name hint
+                            lastCompletingArg = arg
+                            // note: we don't support deprecated (isModule)
+                            if (!arg.isVariadic) {
+                                let newSubcommand
+                                if (arg.isCommand) newSubcommand = getCompletingSpec(partContents)
+                                else if (arg.loadSpec) newSubcommand = getCompletingSpec(arg.loadSpec)
+                                // we loaded unknown spec now its nothing
+                                if (!newSubcommand) return
+                                subcommand = newSubcommand
+                            }
+                            // validate arg
+                        } else {
+                            // report no arg
+                        }
+                    }
                 }
+                if (lastCompletingArg) {
+                    return figArgToCompletions(lastCompletingArg)
+                }
+
                 if (completingParamValue) {
-                    const specOptions = getSpecOptions(spec)
-                    // console.log(specOptions)
+                    const specOptions = getSpecOptions(subcommand)
                     if (!specOptions) return
                     const completingOption = specOptions.find(specOption => ensureArray(specOption.name).includes(completingParamValue.paramName))
                     if (!completingOption) return
                     const { args } = completingOption
                     if (args) {
-                        // console.log(args, completingOption)
                         if (Array.isArray(args)) return
                         return figArgToCompletions(args)
                     }
                 }
-                const specCompletions = getSpecCompletions(spec, documentInfo)
+                const specCompletions = specOptionsToVscodeCompletions(subcommand, documentInfo)
                 if (!specCompletions) return
 
                 return {
@@ -303,9 +368,9 @@ trackDisposable(
         provideSignatureHelp(document, position, token, context) {
             const documentInfo = getDocumentParsedResult(document.lineAt(position).text.slice(0, position.character), position)
             if (!documentInfo) return
-            const spec = loadCompletingSpec(documentInfo)
+            const spec = getCompletingSpec(documentInfo.specName)
             if (!spec) return
-            const { completingParamValue } = documentInfo.parsedInfo
+            const { completingOptionValue: completingParamValue } = documentInfo.parsedInfo
             if (completingParamValue) {
                 const specOptions = getSpecOptions(spec)
                 console.log(specOptions)
