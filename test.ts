@@ -19,7 +19,7 @@ import {
     TextDocument,
     window,
 } from 'vscode'
-import { ensureArray } from '@zardoy/utils'
+import { compact, ensureArray, findCustomArray } from '@zardoy/utils'
 import { parse } from './shell-quote-patched'
 import { niceLookingCompletion } from '@zardoy/vscode-utils/build/completions'
 import { join } from 'path'
@@ -37,7 +37,6 @@ const globalOptions = {
 
 // todo resolve sorting!
 type DocumentInfo = {
-    typedOption: string
     // used for providing correct editing range
     realPosition: Position
     specName: string
@@ -82,20 +81,19 @@ const parseOptionToCompletion = (option: Fig.Option, info: DocumentInfo): Comple
 
     // todo charset option
     const optionsRender = currentOptionsArr.join(' ')
-    const completion = figBaseSuggestionToVscodeCompletion(option, optionsRender, info.typedOption)
+    const completion = figBaseSuggestionToVscodeCompletion(option, optionsRender, { ...info, sortTextPrepend: 'd' })
     ;(completion.label as CompletionItemLabel).detail = isRequired ? 'REQUIRED' : getArgPreviewFromOption(option)
 
+    const typedOption = info.parsedInfo.currentPartValue ?? ''
     const insertOption = Array.isArray(option.name)
         ? // option.name /* filter gracefully */
-          //       .map(name => [name, name.indexOf(info.typedOption)] as const)
+          //       .map(name => [name, name.indexOf(typedOption)] as const)
           //       .sort((a, b) => a[1] - b[1])
           //       .filter(([, index]) => index !== -1)?.[0]?.[0] || option.name[0]
-          option.name.find(name => name.toLowerCase().includes(info.typedOption.toLowerCase())) || option.name[0]
+          option.name.find(name => name.toLowerCase().includes(typedOption.toLowerCase())) || option.name[0]
         : option.name
     const defaultInsertText = insertOption + seperator + (seperator.length !== 1 && globalOptions.insertOnCompletionAccept === 'space' ? ' ' : '')
     completion.insertText ??= defaultInsertText
-    // todo also pass
-    completion.range = new Range(info.realPosition.translate(0, -info.typedOption.length), info.realPosition)
     completion.command = {
         command: APPLY_SUGGESTION_COMPLETION,
         title: '',
@@ -116,7 +114,11 @@ const getArgPreviewFromOption = ({ args }: Fig.Option) => {
 }
 
 // todo
-const figBaseSuggestionToVscodeCompletion = (baseCompetion: Fig.BaseSuggestion, initialName: string, lastTypedText: string): CompletionItem => {
+const figBaseSuggestionToVscodeCompletion = (
+    baseCompetion: Fig.BaseSuggestion,
+    initialName: string,
+    info: DocumentInfo & { kind?: CompletionItemKind; sortTextPrepend: string },
+): CompletionItem => {
     const {
         displayName,
         insertValue,
@@ -137,11 +139,18 @@ const figBaseSuggestionToVscodeCompletion = (baseCompetion: Fig.BaseSuggestion, 
 
     completion.insertText = insertValue !== undefined ? new SnippetString().appendText(insertValue) : undefined
     if (completion.insertText) completion.insertText.value = completion.insertText.value.replace(/{cursor\\}/, '$1')
-    // lets be sure its consistent
-    completion.sortText = priority.toString().padStart(3, '0')
     completion.documentation = (description && new MarkdownString(description)) || undefined
+    const {
+        parsedInfo: { currentPartValue },
+        kind,
+        sortTextPrepend = '',
+    } = info
+    // lets be sure its consistent
+    completion.sortText = sortTextPrepend + priority.toString().padStart(3, '0')
+    if (kind) completion.kind = kind
     if (deprecated) completion.tags = [CompletionItemTag.Deprecated]
-    if (hidden && lastTypedText !== initialName) completion.filterText = ''
+    if (hidden && currentPartValue !== initialName) completion.filterText = ''
+    completion.range = new Range(info.realPosition.translate(0, -(currentPartValue ?? '').length), info.realPosition)
 
     return completion
 }
@@ -171,7 +180,7 @@ const parseCommandString = (inputString: string, stringPos: number) => {
         }
     }
     if (!currentCommandParts) return
-    if (currentCommandParts.length && inputString.endsWith(' ')) currentCommandParts.push([' ', stringPos - 1])
+    if (currentCommandParts.length && inputString.endsWith(' ')) currentCommandParts.push([' ', stringPos])
     for (const [i, currentCommandPart] of currentCommandParts.entries()) {
         if (currentCommandPart?.[1] <= stringPos) {
             currentPartIndex = i
@@ -186,7 +195,7 @@ const parseCommandString = (inputString: string, stringPos: number) => {
 
 const commandPartsToParsed = (commandParts: CommandParts) => {
     const [specPart, ...restParts] = commandParts
-    const [args, params] = _.partition(
+    const [params, args] = _.partition(
         restParts.map(([partString]) => partString),
         partString => partString.startsWith('-'),
     )
@@ -209,7 +218,6 @@ const getDocumentParsedResult = (stringContents: string, position: Position): Do
     /** can be specName */
     let preCurrentValue = commandParts[currentPartIndex - 1]?.[0]
     return {
-        typedOption: textParts.pop() ?? '',
         realPosition: position,
         specName,
         parsedInfo: {
@@ -241,7 +249,7 @@ const getSpecOptions = (__spec: Fig.Spec) => {
     return spec.options
 }
 
-const normalizeSpecOptions = (__spec: Fig.Spec) => {
+const getNormalizedSpecOptions = (__spec: Fig.Spec) => {
     const specOptions = getSpecOptions(__spec)
     if (!specOptions) return
 
@@ -249,10 +257,9 @@ const normalizeSpecOptions = (__spec: Fig.Spec) => {
     return optionsUniq
 }
 
+// imo specOptions is more memorizable rather than commandOptions
 const specOptionsToVscodeCompletions = (__spec: Fig.Spec, documentInfo: DocumentInfo) => {
-    return normalizeSpecOptions(__spec)
-        ?.flatMap(option => parseOptionToCompletion(option, documentInfo))
-        .filter(Boolean)
+    return compact(getNormalizedSpecOptions(__spec)?.map(option => parseOptionToCompletion(option, documentInfo)) ?? [])
 }
 
 const getCompletingSpec = (specName: string | Fig.LoadSpec): Fig.Spec | undefined => {
@@ -268,12 +275,26 @@ const getCompletingSpec = (specName: string | Fig.LoadSpec): Fig.Spec | undefine
     return spec
 }
 
-const figArgToCompletions = (arg: Fig.Arg) => {
+// current sorting:
+// - a option arg suggestions
+// - b just args
+// - c subcommands
+// - d options
+
+const figArgToCompletions = (arg: Fig.Arg, documentInfo: DocumentInfo) => {
     // if (Array.isArray(arg.generators)) return
     // todo expect all props
     if (!arg.suggestions) return
     return arg.suggestions.map((suggestion): CompletionItem => {
-        const completion = new CompletionItem(typeof suggestion === 'string' ? suggestion : ensureArray(suggestion.name)[0]!, CompletionItemKind.Value)
+        if (typeof suggestion === 'string')
+            suggestion = {
+                name: suggestion,
+            }
+        const completion = figBaseSuggestionToVscodeCompletion(suggestion, ensureArray(suggestion.name)[0]!, {
+            ...documentInfo,
+            kind: CompletionItemKind.Constant,
+            sortTextPrepend: 'a',
+        })
         return completion
     })
 }
@@ -300,23 +321,25 @@ trackDisposable(
                 if (!spec) return
                 const figRootSubcommand = getFigSubcommand(spec)
 
-                const { completingOptionValue: completingParamValue, partsToPos } = documentInfo.parsedInfo
+                const { completingOptionValue: completingParamValue, partsToPos, currentPartValue = '', currentlyCompletingArgIndex } = documentInfo.parsedInfo
                 let subcommand = figRootSubcommand
                 let lastCompletingArg: Fig.Arg | undefined
+                let argMetCount = 0
                 // in linting all parts
                 for (const [isOption, partContents] of partsToPos) {
-                    lastCompletingArg = undefined
                     if (isOption) {
                         // validate option
                     } else {
                         const subcommandSwitch = subcommand.subcommands?.find(subcommand => ensureArray(subcommand.name).includes(partContents))
-                        if (subcommandSwitch) subcommand = subcommandSwitch
-                        else if (subcommand.args) {
+                        if (subcommandSwitch) {
+                            subcommand = subcommandSwitch
+                            argMetCount = 0
+                        } else if (subcommand.args) {
+                            argMetCount++
                             // subcommand.requiresSubcommand
                             // todo
                             const arg = ensureArray(subcommand.args)[0]
                             // arg.name hint
-                            lastCompletingArg = arg
                             // note: we don't support deprecated (isModule)
                             if (!arg.isVariadic) {
                                 let newSubcommand
@@ -324,6 +347,7 @@ trackDisposable(
                                 else if (arg.loadSpec) newSubcommand = getCompletingSpec(arg.loadSpec)
                                 // we loaded unknown spec now its nothing
                                 if (!newSubcommand) return
+                                argMetCount = 0
                                 subcommand = newSubcommand
                             }
                             // validate arg
@@ -332,26 +356,63 @@ trackDisposable(
                         }
                     }
                 }
-                if (lastCompletingArg) {
-                    return figArgToCompletions(lastCompletingArg)
+                const collectedCompletions: CompletionItem[] = []
+                if (currentlyCompletingArgIndex !== undefined) {
+                    for (const arg of ensureArray(subcommand.args ?? [])) {
+                        if (arg && !arg.isVariadic && argMetCount === 0) {
+                            collectedCompletions.push(...(figArgToCompletions(arg, documentInfo) ?? []))
+                        }
+                    }
+                    collectedCompletions.push(
+                        ...(subcommand.subcommands?.map(subc => {
+                            const nameArr = ensureArray(subc.name)
+                            const completion = figBaseSuggestionToVscodeCompletion(
+                                subc,
+                                nameArr.find(name => name.toLowerCase().includes(currentPartValue.toLowerCase())) ?? nameArr[0],
+                                {
+                                    ...documentInfo,
+                                    kind: CompletionItemKind.Module,
+                                    sortTextPrepend: 'c',
+                                },
+                            )
+                            return completion
+                        }) ?? []),
+                    )
                 }
 
-                if (completingParamValue) {
-                    const specOptions = getSpecOptions(subcommand)
-                    if (!specOptions) return
-                    const completingOption = specOptions.find(specOption => ensureArray(specOption.name).includes(completingParamValue.paramName))
-                    if (!completingOption) return
-                    const { args } = completingOption
-                    if (args) {
-                        if (Array.isArray(args)) return
-                        return figArgToCompletions(args)
+                const options = getNormalizedSpecOptions(subcommand)
+                if (options) {
+                    // todo maybe use sep-all optm?
+                    let patchedDocumentInfo = documentInfo
+                    const currentOptionValue =
+                        findCustomArray(options, ({ requiresSeparator, name }) => {
+                            if (!requiresSeparator) return
+                            const sep = requiresSeparator ? '=' : requiresSeparator
+                            const sepIndex = currentPartValue.indexOf(sep)
+                            if (sepIndex === -1) return
+                            const userParamName = currentPartValue.slice(0, sepIndex)
+                            if (!ensureArray(name).includes(userParamName)) return
+                            const userParamValue = currentPartValue.slice(sepIndex + 1)
+                            patchedDocumentInfo = { ...documentInfo, parsedInfo: { ...documentInfo.parsedInfo, currentPartValue: userParamValue } }
+                            return [userParamName, userParamValue] as const
+                        }) || (completingParamValue ? [completingParamValue.paramName, completingParamValue.currentEnteredValue] : undefined)
+
+                    if (currentOptionValue) {
+                        const completingOption = options.find(specOption => ensureArray(specOption.name).includes(currentOptionValue[0]))
+                        if (completingOption) {
+                            const { args } = completingOption
+                            if (args) {
+                                if (Array.isArray(args)) return
+                                collectedCompletions.push(...(figArgToCompletions(args, patchedDocumentInfo) ?? []))
+                            }
+                        }
                     }
+
+                    collectedCompletions.push(...specOptionsToVscodeCompletions(subcommand, patchedDocumentInfo))
                 }
-                const specCompletions = specOptionsToVscodeCompletions(subcommand, documentInfo)
-                if (!specCompletions) return
 
                 return {
-                    items: specCompletions,
+                    items: collectedCompletions,
                     // set it only if dynamic generator or has hidden
                     isIncomplete: true,
                 }
@@ -373,13 +434,14 @@ trackDisposable(
             const { completingOptionValue: completingParamValue } = documentInfo.parsedInfo
             if (completingParamValue) {
                 const specOptions = getSpecOptions(spec)
-                console.log(specOptions)
                 if (!specOptions) return
                 const completingOption = specOptions.find(specOption => ensureArray(specOption.name).includes(completingParamValue.paramName))
                 if (!completingOption) return
                 const { args } = completingOption
                 if (!args || Array.isArray(args)) return
-                const hint = args.name ?? 'argument'
+                let hint = args.description ?? args.name ?? 'argument'
+                if (args.isOptional) hint += '?'
+                if (args.default) hint += ` (${args.default})`
                 return {
                     activeParameter: 0,
                     activeSignature: 0,
@@ -407,3 +469,16 @@ trackDisposable(
         }
     }),
 )
+
+// todo
+const getCurrentCommand = () => {}
+
+// commands
+
+// extremely useful for giving a link to a friend, like hey I was right about the options!
+const openInSheelHow = (skipOpening = false) => {
+    const { activeTextEditor } = window
+    if (!activeTextEditor) return
+    const { document, selection } = activeTextEditor
+    let scriptToOpen = selection.start.isEqual(selection.end) ? getCurrentCommand() : document.getText(selection)
+}
