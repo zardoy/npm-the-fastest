@@ -59,7 +59,8 @@ type DocumentInfo = {
     specName: string
     partsToPos: [isOption: boolean, contents: string][]
     currentPartValue: string | undefined
-    options: UsedOption[]
+    /** all command options except currently completing */
+    usedOptions: UsedOption[]
     parsedInfo: {
         args: string[]
         currentlyCompletingArgIndex: number | undefined
@@ -85,7 +86,7 @@ const parseOptionToCompletion = (option: Fig.Option, info: DocumentInfo): Comple
     if (seperator === true) seperator = '='
     if (seperator === false) seperator = ''
 
-    const usedOptionsNames = info.options
+    const usedOptionsNames = info.usedOptions
     const currentOptionsArr = ensureArray(option.name)
 
     const optionUsedCount = usedOptionsNames.filter(name => currentOptionsArr.includes(name)).length
@@ -238,7 +239,7 @@ const getDocumentParsedResult = (stringContents: string, position: Position): Do
         specName,
         partsToPos,
         currentPartValue,
-        options: commandParts.filter(([content], index) => content.startsWith('-') && index !== currentPartIndex).map(([content]) => content),
+        usedOptions: commandParts.filter(([content], index) => content.startsWith('-') && index !== currentPartIndex).map(([content]) => content),
         parsedInfo: {
             currentlyCompletingArgIndex: !currentPartIsOption ? currentPartIndex : undefined,
             args,
@@ -439,7 +440,7 @@ trackDisposable(
                     // todo maybe use sep-all optm?
                     let patchedDocumentInfo = documentInfo
                     // todo1 refactor to forof
-                    const usedOptions = documentInfo.options
+                    const { usedOptions } = documentInfo
                     const currentOptionValue =
                         findCustomArray(options, ({ requiresSeparator, name }) => {
                             if (!requiresSeparator) return
@@ -458,7 +459,7 @@ trackDisposable(
                             return [userParamName, userParamValue] as const
                         }) || (completingParamValue ? [completingParamValue.paramName, completingParamValue.currentEnteredValue] : undefined)
 
-                    patchedDocumentInfo = { ...patchedDocumentInfo, options: usedOptions }
+                    patchedDocumentInfo = { ...patchedDocumentInfo, usedOptions }
                     if (currentOptionValue) {
                         const completingOption = options.find(specOption => ensureArray(specOption.name).includes(currentOptionValue[0]))
                         const { args } = completingOption ?? {}
