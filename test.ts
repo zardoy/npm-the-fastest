@@ -11,6 +11,8 @@ import {
     CompletionItemKind,
     CompletionItemLabel,
     CompletionItemTag,
+    DiagnosticCollection,
+    DiagnosticSeverity,
     FileType,
     Hover,
     languages,
@@ -482,11 +484,20 @@ const figBaseSuggestionToHover = (
     }
 }
 
+type LintProblemType = 'option'
+type LintProblem = {
+    // for severity
+    type: LintProblemType
+    range: [Position, Position]
+    message: string
+}
+
 interface ParsingCollectedData {
     argSignatureHelp?: Fig.Arg
     hoverRange?: [Position, Position]
     currentOption?: Fig.Option
     currentSubcommand?: Fig.Option
+    lintProblems?: LintProblem[]
 }
 
 // todo it just works
@@ -532,6 +543,7 @@ const fullCommandParse = async (
     const currentPartStartPos = startPos.translate(0, currentPartOffset)
     const currentPartEndPos = startPos.translate(0, fixEndingPos(lineText, currentPartOffset + currentPartValue.length))
     collectedData.hoverRange = [currentPartStartPos, currentPartEndPos]
+    collectedData.lintProblems = []
     const { completingOptionValue: completingParamValue, currentlyCompletingArgIndex } = documentInfo.parsedInfo
     let goingToSuggest = {
         options: true,
@@ -540,15 +552,33 @@ const fullCommandParse = async (
     let subcommand = figRootSubcommand
     // todo r
     let argMetCount = 0
+    // todo resolv
+    let alreadyUsedOptions = [] as string[]
     // in linting all parts
-    for (const [isOption, partContents] of partsToPos) {
+    for (const [isOption, partContents, startPosOffset] of partsToPos) {
         if (isOption) {
             // todo is that right?
             if (partContents === '--') {
                 goingToSuggest.options = false
                 goingToSuggest.subcommands = false
             }
-            // validate option
+            let message: string | undefined
+            if (!subcommand.options || subcommand.options.length === 0) message = "Command doesn't take options here"
+            else {
+                // todo is varaibid
+                if (alreadyUsedOptions.includes(partContents)) {
+                    message = `${partContents} was already used [here]`
+                }
+            }
+            if (message) {
+                collectedData.lintProblems.push({
+                    message,
+                    // todo util fn
+                    range: [startPos.translate(0, startPosOffset), startPos.translate(0, fixEndingPos(lineText, startPosOffset + partContents.length))],
+                    type: 'option',
+                })
+            }
+            alreadyUsedOptions.push(partContents)
         } else {
             const subcommandSwitch = subcommand.subcommands?.find(subcommand => ensureArray(subcommand.name).includes(partContents))
             if (subcommandSwitch) {
@@ -669,6 +699,7 @@ const fullCommandParse = async (
 const APPLY_SUGGESTION_COMPLETION = '_applyFigSuggestion'
 
 declare const trackDisposable
+declare const __TEST
 
 trackDisposable(
     commands.registerCommand(APPLY_SUGGESTION_COMPLETION, () => {
@@ -743,14 +774,35 @@ trackDisposable(
     }),
 )
 
-trackDisposable(
-    window.onDidChangeTextEditorSelection(async ({ selections, textEditor }) => {
-        const text = textEditor.document.getText(textEditor.document.getWordRangeAtPosition(selections[0].anchor))
-        if (text === 'yes') {
-            await commands.executeCommand('editor.action.triggerParameterHints')
+if (typeof __TEST === 'undefined') {
+    const diagnosticCollection: DiagnosticCollection = trackDisposable(languages.createDiagnosticCollection('uniqueUnreleasedFig'))
+    const testingEditor = window.visibleTextEditors.find(({ document: { languageId } }) => languageId === 'bat')
+    if (testingEditor) {
+        const doLinting = async () => {
+            const { document, selection } = testingEditor
+            const collectedData: ParsingCollectedData = {}
+            await fullCommandParse(document, selection.active, collectedData, 'lint')
+            if (!collectedData.lintProblems) return
+            diagnosticCollection.set(
+                document.uri,
+                collectedData.lintProblems.map(({ message, range, type }) => ({
+                    message,
+                    range: new Range(...range),
+                    severity: DiagnosticSeverity.Information,
+                    // code
+                })),
+            )
         }
-    }),
-)
+        trackDisposable(
+            workspace.onDidChangeTextDocument(({ document }) => {
+                // todo context changes: scripts
+                if (document.uri !== testingEditor.document.uri) return
+                doLinting()
+            }),
+        )
+        doLinting()
+    }
+}
 
 // todo codeActions, highlighting, selection
 

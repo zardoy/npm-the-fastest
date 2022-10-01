@@ -19,6 +19,7 @@ vi.mock('vscode', () => ({
 }))
 
 globalThis.trackDisposable = a => a
+globalThis.__TEST = true
 
 import { parseCommandString } from './test'
 
