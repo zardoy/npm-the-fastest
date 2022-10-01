@@ -213,6 +213,12 @@ const listFilesCompletions = async (cwd: Uri, stringContents: string, completion
                 detail: name,
                 // sort bind
                 sortText: `a${isDir ? 1 : 2}`,
+                command: isDir
+                    ? {
+                          command: 'editor.action.triggerSuggest',
+                          title: '',
+                      }
+                    : undefined,
                 range: new Range(completionPos.translate(0, -pathLastPart.length), completionPos),
             }
         })
