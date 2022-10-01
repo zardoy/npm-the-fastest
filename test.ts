@@ -65,7 +65,7 @@ type DocumentInfo = {
     // used for providing correct editing range
     realPosition: Position
     specName: string
-    partsToPos: [isOption: boolean, contents: string][]
+    partsToPos: [isOption: boolean, contents: string, offset: number][]
     currentPartValue: string
     currentPartOffset: number
     // currentCommandPos: number
@@ -324,7 +324,7 @@ const getDocumentParsedResult = (
 
     /** can be specName */
     let preCurrentValue = commandParts[currentPartIndex - 1]?.[0]
-    const partsToPos = commandParts.slice(1, currentPartIndex).map(([contents]) => [contents.startsWith('-'), contents] as [boolean, string])
+    const partsToPos = commandParts.slice(1, currentPartIndex).map(([contents, pos]) => [contents.startsWith('-'), contents, pos] as [boolean, string, number])
     return {
         realPosition: position,
         specName,
@@ -489,6 +489,12 @@ interface ParsingCollectedData {
     currentSubcommand?: Fig.Option
 }
 
+// todo it just works
+const fixEndingPos = (inputString: string, endingOffset: number) => {
+    const char = inputString[endingOffset + 1]
+    return ["'", '"'].includes(char) ? endingOffset + 2 : endingOffset
+}
+
 const fullCommandParse = async (
     document: TextDocument,
     position: Position,
@@ -524,7 +530,7 @@ const fullCommandParse = async (
 
     const { partsToPos, currentPartValue = '', currentPartOffset } = documentInfo
     const currentPartStartPos = startPos.translate(0, currentPartOffset)
-    const currentPartEndPos = currentPartStartPos.translate(0, currentPartValue.length)
+    const currentPartEndPos = startPos.translate(0, fixEndingPos(lineText, currentPartOffset + currentPartValue.length))
     collectedData.hoverRange = [currentPartStartPos, currentPartEndPos]
     const { completingOptionValue: completingParamValue, currentlyCompletingArgIndex } = documentInfo.parsedInfo
     let goingToSuggest = {
@@ -603,26 +609,33 @@ const fullCommandParse = async (
         // todo1 refactor to forof
         // parserDirectives, esbuild args
         const { usedOptions } = documentInfo
+        const optionWithSep = findCustomArray(options, ({ requiresSeparator, name }) => {
+            if (!requiresSeparator) return
+            const sep = requiresSeparator === true ? '=' : requiresSeparator
+            for (const option of usedOptions) {
+                const sepIndex = option.indexOf(sep)
+                if (sepIndex === -1) continue
+                usedOptions.push(option.slice(0, sepIndex))
+            }
+            const sepIndex = currentPartValue.indexOf(sep)
+            if (sepIndex === -1) return
+            const userParamName = currentPartValue.slice(0, sepIndex)
+            if (!ensureArray(name).includes(userParamName)) return
+            const userParamValue = currentPartValue.slice(sepIndex + 1)
+            patchedDocumentInfo = { ...documentInfo, currentPartValue: userParamValue }
+            return [userParamName, userParamValue] as const
+        })
         const currentOptionValue =
-            findCustomArray(options, ({ requiresSeparator, name }) => {
-                if (!requiresSeparator) return
-                const sep = requiresSeparator === true ? '=' : requiresSeparator
-                for (const option of usedOptions) {
-                    const sepIndex = option.indexOf(sep)
-                    if (sepIndex === -1) continue
-                    usedOptions.push(option.slice(0, sepIndex))
-                }
-                const sepIndex = currentPartValue.indexOf(sep)
-                if (sepIndex === -1) return
-                const userParamName = currentPartValue.slice(0, sepIndex)
-                if (!ensureArray(name).includes(userParamName)) return
-                const userParamValue = currentPartValue.slice(sepIndex + 1)
-                patchedDocumentInfo = { ...documentInfo, currentPartValue: userParamValue }
-                return [userParamName, userParamValue] as const
-            }) || (completingParamValue ? [completingParamValue.paramName, completingParamValue.currentEnteredValue] : undefined)
+            optionWithSep || (completingParamValue ? [completingParamValue.paramName, completingParamValue.currentEnteredValue] : undefined)
 
-        const completingParamName = completingParamValue?.[0] ?? completingParamValue?.paramName
+        const completingParamName =
+            currentOptionValue?.[0] ?? completingParamValue?.paramName ?? (currentPartValue.startsWith('-') ? currentPartValue : undefined)
         if (completingParamName) collectedData.currentOption = options.find(specOption => ensureArray(specOption.name).includes(completingParamName))
+        // todo git config --global
+        // todo1 node -e ->
+        if (currentOptionValue && !optionWithSep) {
+            collectedData.hoverRange![0] = startPos.translate(0, partsToPos.slice(-1)[0]![2])
+        }
 
         patchedDocumentInfo = { ...patchedDocumentInfo, usedOptions }
         if (currentOptionValue) {
