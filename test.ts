@@ -1,29 +1,29 @@
 /// <reference types="@withfig/autocomplete-types/index" />
-import specNames from '@withfig/autocomplete/build/'
 import nodeSpec from '@withfig/autocomplete/build/node'
 import gitSpec from '@withfig/autocomplete/build/git'
 import yarnSpec from '@withfig/autocomplete/build/yarn'
 import esbuildSpec from '@withfig/autocomplete/build/esbuild'
 import webpackSpec from '@withfig/autocomplete/build/webpack'
+import picomatch from 'picomatch/posix'
 import {
     commands,
     CompletionItem,
     CompletionItemKind,
     CompletionItemLabel,
     CompletionItemTag,
+    FileType,
     languages,
     MarkdownString,
     Position,
     Range,
     SnippetString,
-    TextDocument,
+    Uri,
     window,
+    workspace,
 } from 'vscode'
+import { niceLookingCompletion } from '@zardoy/vscode-utils/build/completions'
 import { compact, ensureArray, findCustomArray } from '@zardoy/utils'
 import { parse } from './shell-quote-patched'
-import { niceLookingCompletion } from '@zardoy/vscode-utils/build/completions'
-import { join } from 'path'
-import { pathToFileURL } from 'url'
 import _ from 'lodash'
 
 const getFigSubcommand = (__spec: Fig.Spec) => {
@@ -44,8 +44,14 @@ const ALL_LOADED_SPECS = [
 // class CompletionItem extends CompletionItemRaw {}
 
 // todo remove all icons from the bundle
+// todo remove temp for all, introduce placeholders
 const niceIconMap = {
     esbuild: 'esbuild.js',
+}
+
+const stableIconMap = {
+    'fig://icon?type=yarn': 'yarn.lock',
+    'fig://icon?type=npm': 'package.json',
 }
 
 const globalSettings = {
@@ -130,18 +136,17 @@ const getArgPreviewFromOption = ({ args }: Fig.Option) => {
 }
 
 // todo review options mb add them to base
-type DocumentInfoForCompl = Pick<DocumentInfo, 'currentPartValue' | 'realPosition'> & { kind?: CompletionItemKind; sortTextPrepend?: string }
+type DocumentInfoForCompl = Pick<DocumentInfo, 'currentPartValue' | 'realPosition'> & { kind?: CompletionItemKind; sortTextPrepend?: string; specName?: string }
 
 // todo
 const figBaseSuggestionToVscodeCompletion = (
     baseCompetion: Fig.BaseSuggestion,
     initialName: string,
-    { currentPartValue, kind, sortTextPrepend = '', realPosition }: DocumentInfoForCompl & { sortTextPrepend: string },
+    { currentPartValue, kind, sortTextPrepend = '', realPosition, specName }: DocumentInfoForCompl & { sortTextPrepend: string },
 ): CompletionItem => {
     const {
         displayName,
         insertValue,
-        replaceValue,
         description,
         icon,
         /* isDangerous, */
@@ -166,10 +171,77 @@ const figBaseSuggestionToVscodeCompletion = (
     if (hidden && currentPartValue !== initialName) completion.filterText = ''
     if (currentPartValue) completion.range = new Range(realPosition.translate(0, -currentPartValue.length), realPosition)
 
+    if (specName && kind === undefined) {
+        const niceLookingIcon = niceIconMap[specName]
+        if (niceLookingIcon) Object.assign(completion, niceLookingCompletion(niceLookingIcon))
+    }
+    if (icon) {
+        const mappedIcon = stableIconMap[icon]
+        if (mappedIcon) Object.assign(completion, niceLookingCompletion(mappedIcon))
+    }
+
     return completion
 }
 
-const templateToVscodeCompletion = () => {}
+const getCwdUri = () => {
+    // todo (easy) parse cd commands
+    const allowSchemes = ['file', 'vscode-vfs']
+    const { activeTextEditor } = window
+    if (!activeTextEditor) return
+    const {
+        document: { uri },
+    } = activeTextEditor
+    if (allowSchemes.includes(uri.scheme)) return Uri.joinPath(uri, '..')
+    const firstWorkspace = workspace.workspaceFolders?.[0]
+    return firstWorkspace?.uri
+}
+
+// todo to options, introduce flattened lvl
+const listFilesCompletions = async (cwd: Uri, stringContents: string, completionPos: Position, globFilter?: string, includeType?: FileType) => {
+    const folderPath = stringContents.split('/').slice(0, -1).join('/')
+    const pathLastPart = stringContents.split('/').pop()!
+    const filesList = await workspace.fs.readDirectory(Uri.joinPath(cwd, folderPath))
+    const isMatch = globFilter && picomatch(globFilter)
+    // todo insertText
+    return filesList
+        .map(([name, type]): CompletionItem => {
+            if ((includeType && !(type & includeType)) || (isMatch && !isMatch(name))) return undefined!
+            const isDir = type & FileType.Directory
+            return {
+                label: isDir ? `${name}/` : name,
+                kind: !isDir ? CompletionItemKind.File : CompletionItemKind.Folder,
+                detail: name,
+                // sort bind
+                sortText: `a${isDir ? 1 : 2}`,
+                range: new Range(completionPos.translate(0, -pathLastPart.length), completionPos),
+            }
+        })
+        .filter(Boolean)
+}
+
+const templateToVscodeCompletion = async (_template: Fig.Template, info: DocumentInfo) => {
+    const templates = ensureArray(_template)
+    const completions: CompletionItem[] = []
+    let includeFilesKindType: FileType | true | undefined
+    if (templates.includes('folders')) includeFilesKindType = FileType.Directory
+    if (templates.includes('filepaths')) includeFilesKindType = true
+    // todo
+    const includeHelp = templates.includes('help')
+    if (includeFilesKindType) {
+        const cwd = getCwdUri()
+        if (cwd)
+            completions.push(
+                ...(await listFilesCompletions(
+                    cwd,
+                    info.currentPartValue ?? '',
+                    info.realPosition,
+                    // undefined,
+                    // includeFilesKindType === true ? undefined : includeFilesKindType,
+                )),
+            )
+    }
+    return completions
+}
 
 console.clear()
 type CommandParts = [string, number][]
@@ -299,11 +371,38 @@ const figSuggestionToCompletion = (suggestion: string | Fig.Suggestion, document
     return completion
 }
 
-const figArgToCompletions = (arg: Fig.Arg, documentInfo: DocumentInfo) => {
-    // if (Array.isArray(arg.generators)) return
-    // todo expect all props
-    if (!arg.suggestions) return
-    return arg.suggestions.map((suggestion): CompletionItem => figSuggestionToCompletion(suggestion, documentInfo))
+const figArgToCompletions = async (arg: Fig.Arg, documentInfo: DocumentInfo) => {
+    const completions: CompletionItem[] = []
+    // todo optionsCanBreakVariadicArg suggestCurrentToken
+    const { suggestions, template, default: defaultValue, generators } = arg
+    // todo expect all props, handle type
+    if (suggestions) completions.push(...suggestions.map((suggestion): CompletionItem => figSuggestionToCompletion(suggestion, documentInfo)))
+    if (template) completions.push(...(await templateToVscodeCompletion(template, documentInfo)))
+    if (generators) {
+        for (const { template, filterTemplateSuggestions } of ensureArray(generators)) {
+            // todo
+            if (!template) continue
+            let suggestions = await templateToVscodeCompletion(template, documentInfo)
+            if (filterTemplateSuggestions)
+                suggestions = filterTemplateSuggestions(
+                    suggestions.map(suggestion => ({
+                        ...suggestion,
+                        name: suggestion.label as string,
+                        context: { templateType: 'filepaths' },
+                    })),
+                ) as any
+            console.log(suggestions)
+            completions.push(...suggestions)
+        }
+    }
+    if (defaultValue) {
+        for (const completion of completions) {
+            if (typeof completion.label !== 'object') continue
+            // todo comp name?
+            if (completion.label.label === defaultValue) completion.label.description = 'DEFAULT'
+        }
+    }
+    return completions
 }
 
 const figSubcommandsToVscodeCompletions = (subcommands: Fig.Subcommand[], info: DocumentInfo): CompletionItem[] | undefined => {
@@ -341,7 +440,9 @@ const getRootSpecCompletions = (info: Omit<DocumentInfoForCompl, 'sortTextPrepen
             // todo
             if (Array.isArray(specCommand.name)) return undefined!
             if (includeOnlyList && !includeOnlyList.includes(specCommand.name)) return undefined!
-            return figBaseSuggestionToVscodeCompletion(specCommand, specCommand.name, { ...info, sortTextPrepend: '' })
+            const completion = figBaseSuggestionToVscodeCompletion(specCommand, specCommand.name, { ...info, sortTextPrepend: '' })
+            Object.assign(completion, niceLookingCompletion('.sh'))
+            return completion
         })
         .filter(Boolean)
 }
@@ -357,6 +458,7 @@ trackDisposable(
     }),
 )
 
+// todo git config
 trackDisposable(
     languages.registerCompletionItemProvider(
         'bat',
@@ -365,10 +467,8 @@ trackDisposable(
                 const documentInfo = getDocumentParsedResult(document.lineAt(position).text.slice(0, position.character), position)
                 // todo?
                 if (!documentInfo) return getRootSpecCompletions({ realPosition: position, currentPartValue: undefined })
-                console.log(documentInfo.specName)
                 const spec = getCompletingSpec(documentInfo.specName)
                 if (!spec) return
-                console.log('good')
                 const figRootSubcommand = getFigSubcommand(spec)
 
                 const { partsToPos, currentPartValue = '' } = documentInfo
@@ -420,7 +520,7 @@ trackDisposable(
                 if (currentlyCompletingArgIndex !== undefined) {
                     for (const arg of ensureArray(subcommand.args ?? [])) {
                         if (arg && !arg.isVariadic && argMetCount === 0) {
-                            collectedCompletions.push(...(figArgToCompletions(arg, documentInfo) ?? []))
+                            collectedCompletions.push(...((await figArgToCompletions(arg, documentInfo)) ?? []))
                         }
                     }
                     if (goingToSuggest.subcommands) {
@@ -440,6 +540,7 @@ trackDisposable(
                     // todo maybe use sep-all optm?
                     let patchedDocumentInfo = documentInfo
                     // todo1 refactor to forof
+                    // parserDirectives, esbuild args
                     const { usedOptions } = documentInfo
                     const currentOptionValue =
                         findCustomArray(options, ({ requiresSeparator, name }) => {
@@ -470,7 +571,7 @@ trackDisposable(
                                 collectedCompletions.splice(0, collectedCompletions.length)
                                 goingToSuggest.options = false
                             }
-                            collectedCompletions.push(...(figArgToCompletions(args, patchedDocumentInfo) ?? []))
+                            collectedCompletions.push(...((await figArgToCompletions(args, patchedDocumentInfo)) ?? []))
                         }
                     }
 
@@ -486,7 +587,10 @@ trackDisposable(
         },
         ' ',
         '-',
+        // file path
         '/',
+        // file ext
+        '.',
     ),
 )
 
