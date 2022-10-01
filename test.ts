@@ -26,12 +26,29 @@ import { join } from 'path'
 import { pathToFileURL } from 'url'
 import _ from 'lodash'
 
+const getFigSubcommand = (__spec: Fig.Spec) => {
+    const _spec = typeof __spec === 'function' ? __spec() : __spec
+    const spec = 'versionedSpecPath' in _spec ? undefined! : _spec
+    return spec
+}
+
+const ALL_LOADED_SPECS = [
+    gitSpec,
+    nodeSpec,
+    yarnSpec,
+    webpackSpec,
+    esbuildSpec,
+    // todo
+].map(value => getFigSubcommand(value)!)
+
+// class CompletionItem extends CompletionItemRaw {}
+
 // todo remove all icons from the bundle
 const niceIconMap = {
     esbuild: 'esbuild.js',
 }
 
-const globalOptions = {
+const globalSettings = {
     insertOnCompletionAccept: 'space' as 'space' | 'disabled',
 }
 
@@ -40,13 +57,12 @@ type DocumentInfo = {
     // used for providing correct editing range
     realPosition: Position
     specName: string
+    partsToPos: [isOption: boolean, contents: string][]
+    currentPartValue: string | undefined
+    options: UsedOption[]
     parsedInfo: {
-        partsToPos: [isOption: boolean, contents: string][]
-        options: UsedOption[]
         args: string[]
         currentlyCompletingArgIndex: number | undefined
-        currentPartValue: string | undefined
-        // TODO strip to position
         completingOptionValue:
             | {
                   // TODO also strip
@@ -59,17 +75,17 @@ type DocumentInfo = {
 
 type ParsedOption = [optionName: string, value?: string]
 
-type UsedOption = { name: string }
+// type UsedOption = { name: string }
+type UsedOption = string
 
 // todo hide commands
 const parseOptionToCompletion = (option: Fig.Option, info: DocumentInfo): CompletionItem | undefined => {
-    // todo deprecated option
     let { isRequired, isRepeatable = false, requiresSeparator: seperator = false, dependsOn, exclusiveOn } = option
 
     if (seperator === true) seperator = '='
     if (seperator === false) seperator = ''
 
-    const usedOptionsNames = info.parsedInfo.options.map(({ name }) => name)
+    const usedOptionsNames = info.options
     const currentOptionsArr = ensureArray(option.name)
 
     const optionUsedCount = usedOptionsNames.filter(name => currentOptionsArr.includes(name)).length
@@ -79,12 +95,11 @@ const parseOptionToCompletion = (option: Fig.Option, info: DocumentInfo): Comple
     if (dependsOn && !dependsOn.every(name => usedOptionsNames.includes(name))) return
     if (exclusiveOn?.some(name => usedOptionsNames.includes(name))) return
 
-    // todo charset option
     const optionsRender = currentOptionsArr.join(' ')
     const completion = figBaseSuggestionToVscodeCompletion(option, optionsRender, { ...info, sortTextPrepend: 'd' })
     ;(completion.label as CompletionItemLabel).detail = isRequired ? 'REQUIRED' : getArgPreviewFromOption(option)
 
-    const typedOption = info.parsedInfo.currentPartValue ?? ''
+    const typedOption = info.currentPartValue ?? ''
     const insertOption = Array.isArray(option.name)
         ? // option.name /* filter gracefully */
           //       .map(name => [name, name.indexOf(typedOption)] as const)
@@ -92,7 +107,7 @@ const parseOptionToCompletion = (option: Fig.Option, info: DocumentInfo): Comple
           //       .filter(([, index]) => index !== -1)?.[0]?.[0] || option.name[0]
           option.name.find(name => name.toLowerCase().includes(typedOption.toLowerCase())) || option.name[0]
         : option.name
-    const defaultInsertText = insertOption + seperator + (seperator.length !== 1 && globalOptions.insertOnCompletionAccept === 'space' ? ' ' : '')
+    const defaultInsertText = insertOption + seperator + (seperator.length !== 1 && globalSettings.insertOnCompletionAccept === 'space' ? ' ' : '')
     completion.insertText ??= defaultInsertText
     completion.command = {
         command: APPLY_SUGGESTION_COMPLETION,
@@ -113,11 +128,14 @@ const getArgPreviewFromOption = ({ args }: Fig.Option) => {
     return ` ${argsPreview}`
 }
 
+// todo review options mb add them to base
+type DocumentInfoForCompl = Pick<DocumentInfo, 'currentPartValue' | 'realPosition'> & { kind?: CompletionItemKind; sortTextPrepend?: string }
+
 // todo
 const figBaseSuggestionToVscodeCompletion = (
     baseCompetion: Fig.BaseSuggestion,
     initialName: string,
-    info: DocumentInfo & { kind?: CompletionItemKind; sortTextPrepend: string },
+    { currentPartValue, kind, sortTextPrepend = '', realPosition }: DocumentInfoForCompl & { sortTextPrepend: string },
 ): CompletionItem => {
     const {
         displayName,
@@ -140,20 +158,17 @@ const figBaseSuggestionToVscodeCompletion = (
     completion.insertText = insertValue !== undefined ? new SnippetString().appendText(insertValue) : undefined
     if (completion.insertText) completion.insertText.value = completion.insertText.value.replace(/{cursor\\}/, '$1')
     completion.documentation = (description && new MarkdownString(description)) || undefined
-    const {
-        parsedInfo: { currentPartValue },
-        kind,
-        sortTextPrepend = '',
-    } = info
     // lets be sure its consistent
     completion.sortText = sortTextPrepend + priority.toString().padStart(3, '0')
     if (kind) completion.kind = kind
     if (deprecated) completion.tags = [CompletionItemTag.Deprecated]
     if (hidden && currentPartValue !== initialName) completion.filterText = ''
-    completion.range = new Range(info.realPosition.translate(0, -(currentPartValue ?? '').length), info.realPosition)
+    if (currentPartValue) completion.range = new Range(realPosition.translate(0, -currentPartValue.length), realPosition)
 
     return completion
 }
+
+const templateToVscodeCompletion = () => {}
 
 console.clear()
 type CommandParts = [string, number][]
@@ -217,14 +232,15 @@ const getDocumentParsedResult = (stringContents: string, position: Position): Do
 
     /** can be specName */
     let preCurrentValue = commandParts[currentPartIndex - 1]?.[0]
+    const partsToPos = commandParts.slice(1, currentPartIndex).map(([contents]) => [contents.startsWith('-'), contents] as [boolean, string])
     return {
         realPosition: position,
         specName,
+        partsToPos,
+        currentPartValue,
+        options: commandParts.filter(([content], index) => content.startsWith('-') && index !== currentPartIndex).map(([content]) => content),
         parsedInfo: {
-            partsToPos: commandParts.slice(1, currentPartIndex).map(([contents]) => [contents.startsWith('-'), contents]),
-            currentPartValue,
             currentlyCompletingArgIndex: !currentPartIsOption ? currentPartIndex : undefined,
-            options: params.map(param => ({ name: param })),
             args,
             completingOptionValue:
                 preCurrentValue.startsWith('-') && !currentPartIsOption
@@ -235,12 +251,6 @@ const getDocumentParsedResult = (stringContents: string, position: Position): Do
                     : undefined,
         },
     }
-}
-
-const getFigSubcommand = (__spec: Fig.Spec) => {
-    const _spec = typeof __spec === 'function' ? __spec() : __spec
-    const spec = 'versionedSpecPath' in _spec ? undefined! : _spec
-    return spec
 }
 
 const getSpecOptions = (__spec: Fig.Spec) => {
@@ -265,13 +275,7 @@ const specOptionsToVscodeCompletions = (__spec: Fig.Spec, documentInfo: Document
 const getCompletingSpec = (specName: string | Fig.LoadSpec): Fig.Spec | undefined => {
     // todo
     if (typeof specName !== 'string') return
-    const spec = {
-        git: gitSpec,
-        node: nodeSpec,
-        yarn: yarnSpec,
-        webpack: webpackSpec,
-        esbuild: esbuildSpec,
-    }[specName] as any
+    const spec = ALL_LOADED_SPECS.find(({ name }) => ensureArray(name).includes(specName))
     return spec
 }
 
@@ -281,22 +285,64 @@ const getCompletingSpec = (specName: string | Fig.LoadSpec): Fig.Spec | undefine
 // - c subcommands
 // - d options
 
+const figSuggestionToCompletion = (suggestion: string | Fig.Suggestion, documentInfo: DocumentInfoForCompl) => {
+    if (typeof suggestion === 'string')
+        suggestion = {
+            name: suggestion,
+        }
+    const completion = figBaseSuggestionToVscodeCompletion(suggestion, ensureArray(suggestion.name)[0]!, {
+        kind: CompletionItemKind.Constant,
+        sortTextPrepend: 'a',
+        ...documentInfo,
+    })
+    return completion
+}
+
 const figArgToCompletions = (arg: Fig.Arg, documentInfo: DocumentInfo) => {
     // if (Array.isArray(arg.generators)) return
     // todo expect all props
     if (!arg.suggestions) return
-    return arg.suggestions.map((suggestion): CompletionItem => {
-        if (typeof suggestion === 'string')
-            suggestion = {
-                name: suggestion,
+    return arg.suggestions.map((suggestion): CompletionItem => figSuggestionToCompletion(suggestion, documentInfo))
+}
+
+const figSubcommandsToVscodeCompletions = (subcommands: Fig.Subcommand[], info: DocumentInfo): CompletionItem[] | undefined => {
+    const { currentPartValue = '' } = info
+    return subcommands.map(subcommand => {
+        const nameArr = ensureArray(subcommand.name)
+        const completion = figBaseSuggestionToVscodeCompletion(
+            subcommand,
+            nameArr.find(name => name.toLowerCase().includes(currentPartValue.toLowerCase())) ?? nameArr[0],
+            {
+                ...info,
+                kind: CompletionItemKind.Module,
+                sortTextPrepend: 'c',
+            },
+        )
+        let insertSpace = subcommand.requiresSubcommand /*  && globalSettings.insertOnCompletionAccept === 'space' */
+        if (!insertSpace) {
+            // todo is that right?
+            if (subcommand.subcommands) insertSpace = true
+            for (const arg of ensureArray(subcommand.args ?? [])) {
+                if (arg.isOptional) continue
+                insertSpace = true
+                break
             }
-        const completion = figBaseSuggestionToVscodeCompletion(suggestion, ensureArray(suggestion.name)[0]!, {
-            ...documentInfo,
-            kind: CompletionItemKind.Constant,
-            sortTextPrepend: 'a',
-        })
+        }
+        if (completion.insertText === undefined && insertSpace) completion.insertText = (completion.label as CompletionItemLabel).label + ' '
         return completion
     })
+}
+
+const getRootSpecCompletions = (info: Omit<DocumentInfoForCompl, 'sortTextPrepend'>, includeOnlyList?: string[]) => {
+    // todo root loadSpec, filterGracefully, requiresSubcommand
+    return Object.values(ALL_LOADED_SPECS)
+        .map(specCommand => {
+            // todo
+            if (Array.isArray(specCommand.name)) return undefined!
+            if (includeOnlyList && !includeOnlyList.includes(specCommand.name)) return undefined!
+            return figBaseSuggestionToVscodeCompletion(specCommand, specCommand.name, { ...info, sortTextPrepend: '' })
+        })
+        .filter(Boolean)
 }
 
 const APPLY_SUGGESTION_COMPLETION = '_applyFigSuggestion'
@@ -316,18 +362,31 @@ trackDisposable(
         {
             async provideCompletionItems(document, position, token, context) {
                 const documentInfo = getDocumentParsedResult(document.lineAt(position).text.slice(0, position.character), position)
-                if (!documentInfo) return specNames.map(name => ({ label: name }))
+                // todo?
+                if (!documentInfo) return getRootSpecCompletions({ realPosition: position, currentPartValue: undefined })
+                console.log(documentInfo.specName)
                 const spec = getCompletingSpec(documentInfo.specName)
                 if (!spec) return
+                console.log('good')
                 const figRootSubcommand = getFigSubcommand(spec)
 
-                const { completingOptionValue: completingParamValue, partsToPos, currentPartValue = '', currentlyCompletingArgIndex } = documentInfo.parsedInfo
+                const { partsToPos, currentPartValue = '' } = documentInfo
+                const { completingOptionValue: completingParamValue, currentlyCompletingArgIndex } = documentInfo.parsedInfo
+                let goingToSuggest = {
+                    options: true,
+                    subcommands: true,
+                }
                 let subcommand = figRootSubcommand
-                let lastCompletingArg: Fig.Arg | undefined
+                // todo r
                 let argMetCount = 0
                 // in linting all parts
                 for (const [isOption, partContents] of partsToPos) {
                     if (isOption) {
+                        // todo is that right?
+                        if (partContents === '--') {
+                            goingToSuggest.options = false
+                            goingToSuggest.subcommands = false
+                        }
                         // validate option
                     } else {
                         const subcommandSwitch = subcommand.subcommands?.find(subcommand => ensureArray(subcommand.name).includes(partContents))
@@ -345,7 +404,7 @@ trackDisposable(
                                 let newSubcommand
                                 if (arg.isCommand) newSubcommand = getCompletingSpec(partContents)
                                 else if (arg.loadSpec) newSubcommand = getCompletingSpec(arg.loadSpec)
-                                // we loaded unknown spec now its nothing
+                                // we failed to load unknown spec now its nothing
                                 if (!newSubcommand) return
                                 argMetCount = 0
                                 subcommand = newSubcommand
@@ -363,52 +422,58 @@ trackDisposable(
                             collectedCompletions.push(...(figArgToCompletions(arg, documentInfo) ?? []))
                         }
                     }
-                    collectedCompletions.push(
-                        ...(subcommand.subcommands?.map(subc => {
-                            const nameArr = ensureArray(subc.name)
-                            const completion = figBaseSuggestionToVscodeCompletion(
-                                subc,
-                                nameArr.find(name => name.toLowerCase().includes(currentPartValue.toLowerCase())) ?? nameArr[0],
-                                {
-                                    ...documentInfo,
-                                    kind: CompletionItemKind.Module,
-                                    sortTextPrepend: 'c',
-                                },
+                    if (goingToSuggest.subcommands) {
+                        const { subcommands, additionalSuggestions } = subcommand
+                        collectedCompletions.push(...((subcommands && figSubcommandsToVscodeCompletions(subcommands, documentInfo)) ?? []))
+                        if (additionalSuggestions)
+                            collectedCompletions.push(
+                                ...additionalSuggestions.map(suggest =>
+                                    figSuggestionToCompletion(suggest, { ...documentInfo, kind: CompletionItemKind.Event, sortTextPrepend: 'c' }),
+                                ),
                             )
-                            return completion
-                        }) ?? []),
-                    )
+                    }
                 }
 
                 const options = getNormalizedSpecOptions(subcommand)
                 if (options) {
                     // todo maybe use sep-all optm?
                     let patchedDocumentInfo = documentInfo
+                    // todo1 refactor to forof
+                    const usedOptions = documentInfo.options
                     const currentOptionValue =
                         findCustomArray(options, ({ requiresSeparator, name }) => {
                             if (!requiresSeparator) return
-                            const sep = requiresSeparator ? '=' : requiresSeparator
+                            const sep = requiresSeparator === true ? '=' : requiresSeparator
+                            for (const option of usedOptions) {
+                                const sepIndex = option.indexOf(sep)
+                                if (sepIndex === -1) continue
+                                usedOptions.push(option.slice(0, sepIndex))
+                            }
                             const sepIndex = currentPartValue.indexOf(sep)
                             if (sepIndex === -1) return
                             const userParamName = currentPartValue.slice(0, sepIndex)
                             if (!ensureArray(name).includes(userParamName)) return
                             const userParamValue = currentPartValue.slice(sepIndex + 1)
-                            patchedDocumentInfo = { ...documentInfo, parsedInfo: { ...documentInfo.parsedInfo, currentPartValue: userParamValue } }
+                            patchedDocumentInfo = { ...documentInfo, currentPartValue: userParamValue }
                             return [userParamName, userParamValue] as const
                         }) || (completingParamValue ? [completingParamValue.paramName, completingParamValue.currentEnteredValue] : undefined)
 
+                    patchedDocumentInfo = { ...patchedDocumentInfo, options: usedOptions }
                     if (currentOptionValue) {
                         const completingOption = options.find(specOption => ensureArray(specOption.name).includes(currentOptionValue[0]))
-                        if (completingOption) {
-                            const { args } = completingOption
-                            if (args) {
-                                if (Array.isArray(args)) return
-                                collectedCompletions.push(...(figArgToCompletions(args, patchedDocumentInfo) ?? []))
+                        const { args } = completingOption ?? {}
+                        if (args && !Array.isArray(args)) {
+                            if (!args.isOptional) {
+                                // make sure only arg completions are showed
+                                // todo r
+                                collectedCompletions.splice(0, collectedCompletions.length)
+                                goingToSuggest.options = false
                             }
+                            collectedCompletions.push(...(figArgToCompletions(args, patchedDocumentInfo) ?? []))
                         }
                     }
 
-                    collectedCompletions.push(...specOptionsToVscodeCompletions(subcommand, patchedDocumentInfo))
+                    if (goingToSuggest.options) collectedCompletions.push(...specOptionsToVscodeCompletions(subcommand, patchedDocumentInfo))
                 }
 
                 return {
@@ -473,7 +538,7 @@ trackDisposable(
 // todo
 const getCurrentCommand = () => {}
 
-// commands
+// COMMANDS
 
 // extremely useful for giving a link to a friend, like hey I was right about the options!
 const openInSheelHow = (skipOpening = false) => {
@@ -481,4 +546,10 @@ const openInSheelHow = (skipOpening = false) => {
     if (!activeTextEditor) return
     const { document, selection } = activeTextEditor
     let scriptToOpen = selection.start.isEqual(selection.end) ? getCurrentCommand() : document.getText(selection)
+}
+
+// this is to allow some other extensions to contribute/extend their completions!
+const api = {
+    // todo
+    extendCompletions(rootSubcommand: Fig.Subcommand) {},
 }
