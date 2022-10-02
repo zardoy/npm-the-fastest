@@ -16,6 +16,7 @@ import {
     FileType,
     Hover,
     languages,
+    LocationLink,
     MarkdownString,
     Position,
     Range,
@@ -560,7 +561,8 @@ const fullCommandParse = async (
     document: TextDocument,
     position: Position,
     collectedData: ParsingCollectedData,
-    paringReason: 'completions' | 'signatureHelp' | 'hover' | 'lint',
+    // needs cleanup
+    parsingReason: 'completions' | 'signatureHelp' | 'hover' | 'lint' | 'basicData',
 ): Promise<
     | {
           completions: {
@@ -572,7 +574,7 @@ const fullCommandParse = async (
     | undefined
 > => {
     let additionalParsingData
-    const stripText = paringReason !== 'hover' && paringReason !== 'lint'
+    const stripText = parsingReason === 'completions'
     const line = document.lineAt(position)
     const lineText = line.text
     const startPos = line.range.start
@@ -585,8 +587,8 @@ const fullCommandParse = async (
         // if (paringReason === 'hover') collectedData.currentSubcommand = ALL_LOADED_SPECS.find(({ name }) => ensureArray(name).includes(document))
         return { completions: { items: getRootSpecCompletions({ realPosition: position, currentPartValue: '' }) } }
     }
-    // avoid using pos to avoid translate crashes
-    if (paringReason === 'lint') documentInfo.realPosition = undefined
+    // avoid using pos to avoid .translate() crashes
+    if (parsingReason === 'lint') documentInfo.realPosition = undefined
     const spec = getCompletingSpec(documentInfo.specName)
     if (!spec) return
     const figRootSubcommand = getFigSubcommand(spec)
@@ -597,10 +599,10 @@ const fullCommandParse = async (
         return [startPos.translate(0, offset), startPos.translate(0, fixEndingPos(lineText, offset + contents.length))] as [Position, Position]
     }
     const changeCollectedDataPath = (arg: Fig.Arg) => {
-        const isPathTemplate = ({ template }: { template?: Fig.Template }) =>
-            template && ensureArray(arg.template).filter(item => item === 'filepaths' || item === 'folders').length > 0
+        const isPathTemplate = ({ template }: { template?: Fig.Template }): boolean =>
+            !!template && ensureArray(template).filter(item => item === 'filepaths' || item === 'folders').length > 0
 
-        const isPathPart = isPathTemplate(arg) || ensureArray(arg.generators ?? []).find(gen => isPathTemplate(gen))
+        const isPathPart = isPathTemplate(arg) || ensureArray(arg.generators ?? []).some(gen => isPathTemplate(gen))
         collectedData.partPathContents = isPathPart ? currentPartValue : undefined
     }
     collectedData.hoverRange = partToRange(currentPartIndex)
@@ -620,7 +622,7 @@ const fullCommandParse = async (
     collectedData.currentPart = allParts[currentPartIndex]
     collectedData.currentPartRange = partToRange(currentPartIndex)
     // in linting all parts
-    for (const [iteratingPartIndex, [partContents, partStartPos, partIsOption]] of (paringReason !== 'lint'
+    for (const [iteratingPartIndex, [partContents, partStartPos, partIsOption]] of (parsingReason !== 'lint'
         ? allParts.slice(1, currentPartIndex)
         : allParts.slice(1)
     ).entries()) {
@@ -632,7 +634,7 @@ const fullCommandParse = async (
             }
             let message: string | undefined
             // don't be too annoying for -- and -
-            if (paringReason !== 'lint' || /^--?$/.exec(partContents) || subcommand.parserDirectives?.optionArgSeparators) continue
+            if (parsingReason !== 'lint' || /^--?$/.exec(partContents) || subcommand.parserDirectives?.optionArgSeparators) continue
             // below: lint option
             if (!subcommand.options || subcommand.options.length === 0) message = "Command doesn't take options here"
             else {
@@ -709,7 +711,7 @@ const fullCommandParse = async (
                     ),
                 )
         }
-        if (paringReason === 'hover' && subcommands) {
+        if (parsingReason === 'hover' && subcommands) {
             collectedData.currentSubcommand = subcommands.find(({ name }) => ensureArray(name).includes(currentPartValue))
         }
     }
@@ -885,6 +887,65 @@ trackDisposable(
             const hover = figBaseSuggestionToHover(someSuggestion, { type, range: hoverRange })
             return hover
         },
+    }),
+)
+
+const SCHEME = 'FIG_UNRELEASED_REVEAL_FILE'
+
+let fromProvider = false
+trackDisposable(
+    workspace.registerFileSystemProvider(SCHEME, {
+        createDirectory() {},
+        delete() {},
+        onDidChangeFile() {
+            return { dispose() {} }
+        },
+        readDirectory() {
+            return []
+        },
+        readFile() {
+            const startContent = 'Reveal in explorer'
+            return new TextEncoder().encode(startContent)
+        },
+        rename() {},
+        stat() {
+            return { ctime: 0, mtime: 0, size: 0, type: 0 }
+        },
+        watch() {
+            return { dispose() {} }
+        },
+        writeFile(uri, content) {},
+    }),
+)
+
+trackDisposable(
+    languages.registerDefinitionProvider('bat', {
+        async provideDefinition(document, position, token) {
+            const collectedData: ParsingCollectedData = {}
+            await fullCommandParse(document, position, collectedData, 'signatureHelp')
+            const { partPathContents, currentPartRange } = collectedData
+            if (!partPathContents) return
+            // also its possible to migrate to link provider that support command
+            return [
+                {
+                    targetRange: new Range(new Position(0, 0), new Position(0, 100)),
+                    targetUri: Uri.from({ scheme: SCHEME, path: `/${partPathContents}` }),
+                    // todo use inner
+                    originSelectionRange: new Range(...currentPartRange!),
+                } as LocationLink,
+            ]
+        },
+    }),
+)
+
+trackDisposable(
+    window.onDidChangeActiveTextEditor(async editor => {
+        const uri = editor?.document.uri
+        if (uri?.scheme !== SCHEME) return
+        await commands.executeCommand('workbench.action.closeActiveEditor')
+        const cwd = getCwdUri()
+        if (!cwd) return
+        commands.executeCommand('revealInExplorer', Uri.joinPath(cwd, uri.path.slice(1)))
     }),
 )
 
