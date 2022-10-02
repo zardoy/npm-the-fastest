@@ -45,9 +45,9 @@ const testCommandPart = (input: string, expectedValue: string, expectedOffset: n
 describe('parseCommandString', () => {
     test('Basic', () => {
         const result = parseCommandStringWithCursor('yarn &&  pnpm| test')
-        expect(result?.parts).toEqual([
-            ['pnpm', 9],
-            ['test', 14],
+        expect(result?.allParts).toEqual([
+            ['pnpm', 9, false],
+            ['test', 14, false],
         ])
     })
 
@@ -56,7 +56,8 @@ describe('parseCommandString', () => {
         expect(result?.currentPartValue).toBe('--define:')
     })
 
-    testCommandPart('|', '', 0, 0)
+    // todo
+    // testCommandPart('|', '', 0, 0)
     testCommandPart('yarn && pnpm |test', 'test', 13, 1)
     testCommandPart('esbuild "test 2.js" --define:yes|', '--define:yes', 20, 2)
     testCommandPart('esbui|ld "test 2.js" --define:yes ', 'esbuild', 0, 0)
@@ -67,4 +68,15 @@ describe('parseCommandString', () => {
     testCommandPart('esbuild "v" --allow-overwrite| ', '--allow-overwrite', 12, 2)
     // todo
     testCommandPart('esbuild "v" --allow-overwrite |', ' ', 30, 3)
+})
+
+// describe('getDocumentParsedResult', () => {
+
+// })
+
+describe('Real test', () => {
+    test.todo('git switch -b test(arg) test(arg) test(arg)')
+    test.todo('git config test(arg-compl) --global')
+    test.todo('git config --global test(arg-compl)')
+    test.todo('git esbuild (arg) test(arg-compl)')
 })

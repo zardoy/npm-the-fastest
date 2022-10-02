@@ -19,6 +19,7 @@ import {
     MarkdownString,
     Position,
     Range,
+    SelectionRange,
     SnippetString,
     TextDocument,
     Uri,
@@ -56,26 +57,26 @@ const niceIconMap = {
 const stableIconMap = {
     'fig://icon?type=yarn': 'yarn.lock',
     'fig://icon?type=npm': 'package.json',
+    'ffig://icon?type=git': '.gitkeep',
 }
 
 const globalSettings = {
     insertOnCompletionAccept: 'space' as 'space' | 'disabled',
+    // clickPathAction: 'revealInExplorer' | 'openInEditor'
 }
 
+type CommandPartTuple = [contents: string, offset: number, isOption: boolean]
+
 // todo resolve sorting!
-type DocumentInfo = {
+interface DocumentInfo extends ParseCommandStringResult {
     // used for providing correct editing range
-    realPosition: Position
+    realPosition: Position | undefined
     specName: string
-    partsToPos: [isOption: boolean, contents: string, offset: number][]
-    currentPartValue: string
-    currentPartOffset: number
+    // partsToPos: PartTuple[]
     // currentCommandPos: number
     /** all command options except currently completing */
     usedOptions: UsedOption[]
     parsedInfo: {
-        args: string[]
-        currentlyCompletingArgIndex: number | undefined
         completingOptionValue:
             | {
                   // TODO also strip
@@ -83,6 +84,7 @@ type DocumentInfo = {
                   paramName: string
               }
             | undefined
+        completingOptionFull: [optionIndex: number, argIndex: number] | undefined
     }
 }
 
@@ -177,7 +179,7 @@ const figBaseSuggestionToVscodeCompletion = (
     completion.sortText = sortTextPrepend + priority.toString().padStart(3, '0')
     if (kind) completion.kind = kind
     if (deprecated) completion.tags = [CompletionItemTag.Deprecated]
-    if (currentPartValue) completion.range = new Range(realPosition.translate(0, -currentPartValue.length), realPosition)
+    if (currentPartValue && realPosition) completion.range = new Range(realPosition.translate(0, -currentPartValue.length), realPosition)
 
     if (specName && kind === undefined) {
         const niceLookingIcon = niceIconMap[specName]
@@ -205,7 +207,7 @@ const getCwdUri = () => {
 }
 
 // todo to options, introduce flattened lvl
-const listFilesCompletions = async (cwd: Uri, stringContents: string, completionPos: Position, globFilter?: string, includeType?: FileType) => {
+const listFilesCompletions = async (cwd: Uri, stringContents: string, completionPos: Position | undefined, globFilter?: string, includeType?: FileType) => {
     const folderPath = stringContents.split('/').slice(0, -1).join('/')
     const pathLastPart = stringContents.split('/').pop()!
     const filesList = await workspace.fs.readDirectory(Uri.joinPath(cwd, folderPath))
@@ -227,7 +229,7 @@ const listFilesCompletions = async (cwd: Uri, stringContents: string, completion
                           title: '',
                       }
                     : undefined,
-                range: new Range(completionPos.translate(0, -pathLastPart.length), completionPos),
+                range: completionPos && new Range(completionPos.translate(0, -pathLastPart.length), completionPos),
             }
         })
         .filter(Boolean)
@@ -259,7 +261,18 @@ const templateToVscodeCompletion = async (_template: Fig.Template, info: Documen
 
 console.clear()
 type CommandParts = [string, number][]
-export const parseCommandString = (inputString: string, stringPos: number, stripCurrentValue: boolean) => {
+
+interface ParseCommandStringResult {
+    allParts: CommandPartTuple[]
+    currentPartValue: string
+    currentPartIsOption: boolean
+    currentPartOffset: number
+    currentPartIndex: number
+}
+
+const commandPartIsOption = (contents: string | undefined): boolean => contents?.startsWith('-') ?? false
+
+export const parseCommandString = (inputString: string, stringPos: number, stripCurrentValue: boolean): ParseCommandStringResult | undefined => {
     // todo parse fig completion separators later
     const commandsParts = parse(inputString).reduce<CommandParts[]>(
         (prev, parsedPart) => {
@@ -293,10 +306,16 @@ export const parseCommandString = (inputString: string, stringPos: number, strip
             break
         }
     }
-    return { parts: currentCommandParts, currentPartIndex, currentPartValue, currentPartOffset }
+    return {
+        allParts: currentCommandParts.map(([c, offset]) => [c, offset, commandPartIsOption(c)] as CommandPartTuple),
+        currentPartIndex,
+        currentPartValue,
+        currentPartOffset,
+        currentPartIsOption: commandPartIsOption(currentPartValue),
+    }
 }
 
-const commandPartsToParsed = (commandParts: CommandParts) => {
+const commandPartsToParsed = (commandParts: CommandPartTuple[]) => {
     const [specPart, ...restParts] = commandParts
     const [params, args] = _.partition(
         restParts.map(([partString]) => partString),
@@ -320,30 +339,38 @@ const getDocumentParsedResult = (
     if (textParts.length < 2) return
     const parseCommandResult = parseCommandString(stringContents, position.character, options.stripCurrentValue)
     if (!parseCommandResult) return
-    const { parts: commandParts, currentPartIndex = -1, currentPartValue, currentPartOffset: currentPartPos } = parseCommandResult
-    const currentPartIsOption = currentPartValue?.startsWith('-')
-    const { specName, args, params } = commandPartsToParsed(commandParts)
+    const { allParts, currentPartIndex, currentPartValue, currentPartOffset: currentPartPos, currentPartIsOption } = parseCommandResult
+    const { specName, args, params } = commandPartsToParsed(allParts)
 
     /** can be specName */
-    let preCurrentValue = commandParts[currentPartIndex - 1]?.[0]
-    const partsToPos = commandParts.slice(1, currentPartIndex).map(([contents, pos]) => [contents.startsWith('-'), contents, pos] as [boolean, string, number])
+    const preCurrentValue = allParts[currentPartIndex - 1]?.[0]
+    const nextPartValue = allParts[currentPartIndex + 1]?.[0]
+    const previousPartIsOptionWithArg = commandPartIsOption(preCurrentValue) && !currentPartIsOption
+    const currentPartIsOptionWithArg = nextPartValue && !commandPartIsOption(nextPartValue) && currentPartIsOption
+    const completingOptionFull: DocumentInfo['parsedInfo']['completingOptionFull'] = previousPartIsOptionWithArg
+        ? [currentPartIndex - 1, currentPartIndex]
+        : currentPartIsOptionWithArg
+        ? [currentPartIndex, currentPartIndex + 1]
+        : undefined
     return {
         realPosition: position,
         specName,
-        partsToPos,
+        // partsToPos,
         currentPartValue,
-        usedOptions: commandParts.filter(([content], index) => content.startsWith('-') && index !== currentPartIndex).map(([content]) => content),
+        usedOptions: allParts.filter(([content], index) => content.startsWith('-') && index !== currentPartIndex).map(([content]) => content),
         currentPartOffset: currentPartPos ?? 0,
+        currentPartIndex,
+        allParts,
+        currentPartIsOption,
         parsedInfo: {
-            currentlyCompletingArgIndex: !currentPartIsOption ? currentPartIndex : undefined,
-            args,
-            completingOptionValue:
-                preCurrentValue.startsWith('-') && !currentPartIsOption
-                    ? {
-                          paramName: preCurrentValue,
-                          currentEnteredValue: currentPartValue!,
-                      }
-                    : undefined,
+            completingOptionValue: previousPartIsOptionWithArg
+                ? {
+                      paramName: preCurrentValue,
+                      currentEnteredValue: currentPartValue!,
+                  }
+                : undefined,
+            // holds option + value, used for things like hover
+            completingOptionFull,
         },
     }
 }
@@ -498,6 +525,9 @@ interface ParsingCollectedData {
     currentOption?: Fig.Option
     currentSubcommand?: Fig.Option
     lintProblems?: LintProblem[]
+    partPathContents?: string
+    currentPart?: CommandPartTuple
+    currentPartRange?: [Position, Position]
 }
 
 // todo it just works
@@ -506,6 +536,26 @@ const fixEndingPos = (inputString: string, endingOffset: number) => {
     return ["'", '"'].includes(char) ? endingOffset + 2 : endingOffset
 }
 
+export const guessSimilarName = (invalidName: string, validNames: string[]) => {
+    // dont even try for flags like -b
+    if (/^-[^-]/.exec(invalidName)) return
+    return validNames.find(validName => {
+        if (/^-[^-]/.exec(validName)) return
+        const mainComparingName = invalidName.length > validName.length ? invalidName : validName
+        const otherComparingName = invalidName.length > validName.length ? validName : invalidName
+        let diffChars = mainComparingName.length - otherComparingName.length
+        // actually always 2 at start
+        let sameChars = 0
+        for (const i in [...mainComparingName]) {
+            if (mainComparingName[i] === otherComparingName[i]) sameChars++
+            else diffChars++
+        }
+        if (sameChars >= 4 && diffChars <= 2) return validName
+    })
+}
+
+// rough parser limitation: "--test" is always treated & validated is an option
+// todo doesn't support parserDirectives at all
 const fullCommandParse = async (
     document: TextDocument,
     position: Position,
@@ -535,46 +585,78 @@ const fullCommandParse = async (
         // if (paringReason === 'hover') collectedData.currentSubcommand = ALL_LOADED_SPECS.find(({ name }) => ensureArray(name).includes(document))
         return { completions: { items: getRootSpecCompletions({ realPosition: position, currentPartValue: '' }) } }
     }
+    // avoid using pos to avoid translate crashes
+    if (paringReason === 'lint') documentInfo.realPosition = undefined
     const spec = getCompletingSpec(documentInfo.specName)
     if (!spec) return
     const figRootSubcommand = getFigSubcommand(spec)
 
-    const { partsToPos, currentPartValue = '', currentPartOffset } = documentInfo
-    const currentPartStartPos = startPos.translate(0, currentPartOffset)
-    const currentPartEndPos = startPos.translate(0, fixEndingPos(lineText, currentPartOffset + currentPartValue.length))
-    collectedData.hoverRange = [currentPartStartPos, currentPartEndPos]
+    const { allParts, currentPartValue, currentPartOffset, currentPartIndex, currentPartIsOption } = documentInfo
+    const partToRange = (index: number) => {
+        const [contents, offset] = allParts[index]
+        return [startPos.translate(0, offset), startPos.translate(0, fixEndingPos(lineText, offset + contents.length))] as [Position, Position]
+    }
+    const changeCollectedDataPath = (arg: Fig.Arg) => {
+        const isPathTemplate = ({ template }: { template?: Fig.Template }) =>
+            template && ensureArray(arg.template).filter(item => item === 'filepaths' || item === 'folders').length > 0
+
+        const isPathPart = isPathTemplate(arg) || ensureArray(arg.generators ?? []).find(gen => isPathTemplate(gen))
+        collectedData.partPathContents = isPathPart ? currentPartValue : undefined
+    }
+    collectedData.hoverRange = partToRange(currentPartIndex)
     collectedData.lintProblems = []
-    const { completingOptionValue: completingParamValue, currentlyCompletingArgIndex } = documentInfo.parsedInfo
+    const { completingOptionValue: completingParamValue, completingOptionFull } = documentInfo.parsedInfo
     let goingToSuggest = {
         options: true,
         subcommands: true,
     }
     let subcommand = figRootSubcommand
+    const getSubcommandOption = (name: string) =>
+        subcommand.options?.find(({ name: optName }) => (Array.isArray(optName) ? optName.includes(name) : optName === name))
     // todo r
     let argMetCount = 0
     // todo resolv
     let alreadyUsedOptions = [] as string[]
+    collectedData.currentPart = allParts[currentPartIndex]
+    collectedData.currentPartRange = partToRange(currentPartIndex)
     // in linting all parts
-    for (const [isOption, partContents, startPosOffset] of partsToPos) {
-        if (isOption) {
+    for (const [iteratingPartIndex, [partContents, partStartPos, partIsOption]] of (paringReason !== 'lint'
+        ? allParts.slice(1, currentPartIndex)
+        : allParts.slice(1)
+    ).entries()) {
+        if (partIsOption) {
             // todo is that right?
             if (partContents === '--') {
                 goingToSuggest.options = false
                 goingToSuggest.subcommands = false
             }
             let message: string | undefined
+            // don't be too annoying for -- and -
+            if (paringReason !== 'lint' || /^--?$/.exec(partContents) || subcommand.parserDirectives?.optionArgSeparators) continue
+            // below: lint option
             if (!subcommand.options || subcommand.options.length === 0) message = "Command doesn't take options here"
             else {
+                // todo what to do with args starting with - or -- ?
                 // todo is varaibid
-                if (alreadyUsedOptions.includes(partContents)) {
-                    message = `${partContents} was already used [here]`
+                const option = getSubcommandOption(partContents)
+                if (!option) {
+                    const { options } = subcommand
+                    const guessedOptionName =
+                        options &&
+                        guessSimilarName(
+                            partContents,
+                            options.flatMap(({ name }) => ensureArray(name)),
+                        )
+                    message = `${partContents} option doesn't exist`
+                    if (guessedOptionName) message += ` Did you mean ${guessedOptionName}?`
+                } else if (alreadyUsedOptions.includes(partContents)) {
+                    message = `${partContents} option was already used [here]`
                 }
             }
             if (message) {
                 collectedData.lintProblems.push({
                     message,
-                    // todo util fn
-                    range: [startPos.translate(0, startPosOffset), startPos.translate(0, fixEndingPos(lineText, startPosOffset + partContents.length))],
+                    range: partToRange(iteratingPartIndex + 1),
                     type: 'option',
                 })
             }
@@ -587,18 +669,17 @@ const fullCommandParse = async (
             } else if (subcommand.args) {
                 argMetCount++
                 // subcommand.requiresSubcommand
-                // todo
                 const arg = ensureArray(subcommand.args)[0]
-                // arg.name hint
                 // note: we don't support deprecated (isModule)
-                if (!arg.isVariadic) {
-                    let newSubcommand
-                    if (arg.isCommand) newSubcommand = getCompletingSpec(partContents)
-                    else if (arg.loadSpec) newSubcommand = getCompletingSpec(arg.loadSpec)
+                if (!arg.isVariadic && (arg.isCommand || arg.loadSpec)) {
+                    // switch spec
+                    let newSpec: Fig.Spec | undefined
+                    if (arg.isCommand) newSpec = getCompletingSpec(partContents)
+                    else if (arg.loadSpec) newSpec = getCompletingSpec(arg.loadSpec)
                     // we failed to load unknown spec now its nothing
-                    if (!newSubcommand) return
+                    if (!newSpec) return
                     argMetCount = 0
-                    subcommand = newSubcommand
+                    subcommand = newSpec
                 }
                 // validate arg
             } else {
@@ -607,13 +688,14 @@ const fullCommandParse = async (
         }
     }
     const collectedCompletions: CompletionItem[] = []
-    if (currentlyCompletingArgIndex !== undefined) {
+    if (/* !currentPartIsOption */ true) {
         for (const arg of ensureArray(subcommand.args ?? [])) {
-            if (arg && !arg.isVariadic && argMetCount === 0) {
-                collectedCompletions.push(...((await figArgToCompletions(arg, documentInfo)) ?? []))
-            }
-            // todo is that right?
+            if (!arg.isVariadic && argMetCount !== 0) continue
+            collectedCompletions.push(...((await figArgToCompletions(arg, documentInfo)) ?? []))
+            changeCollectedDataPath(arg)
             collectedData.argSignatureHelp = arg
+            // todo is that right? (stopping at first one)
+            break
         }
         const { subcommands, additionalSuggestions } = subcommand
         if (goingToSuggest.subcommands) {
@@ -663,17 +745,22 @@ const fullCommandParse = async (
         if (completingParamName) collectedData.currentOption = options.find(specOption => ensureArray(specOption.name).includes(completingParamName))
         // todo git config --global
         // todo1 node -e ->
-        if (currentOptionValue && !optionWithSep) {
-            collectedData.hoverRange![0] = startPos.translate(0, partsToPos.slice(-1)[0]![2])
+        if (completingOptionFull) {
+            const [optionIndex, argIndex] = completingOptionFull
+            const optionHasArg = !!getSubcommandOption(allParts[optionIndex][0])?.args
+            const endPos = partToRange(argIndex)[1]
+            if (optionHasArg) collectedData.hoverRange = [partToRange(optionIndex)[0], endPos]
         }
 
         patchedDocumentInfo = { ...patchedDocumentInfo, usedOptions }
         if (currentOptionValue) {
-            const completingOption = options.find(specOption => ensureArray(specOption.name).includes(currentOptionValue[0]))
-            const { args } = completingOption ?? {}
+            const completingOption = getSubcommandOption(currentOptionValue[0])
+            let { args } = completingOption ?? {}
             // todo
-            if (args && !Array.isArray(args)) {
+            if (Array.isArray(args)) args = args[0]
+            if (args) {
                 collectedData.argSignatureHelp = args
+                changeCollectedDataPath(args)
                 if (!args.isOptional) {
                     // make sure only arg completions are showed
                     // todo r
@@ -752,6 +839,33 @@ trackDisposable(
                     },
                 ],
             }
+        },
+    }),
+)
+
+trackDisposable(
+    languages.registerSelectionRangeProvider('bat', {
+        async provideSelectionRanges(document, positions, token) {
+            const ranges: SelectionRange[] = []
+            for (const position of positions) {
+                const line = document.lineAt(position)
+                const startPos = line.range.start
+                const parseResult = parseCommandString(line.text, position.character, false)
+                if (!parseResult) continue
+                const { currentPartOffset, currentPartValue } = parseResult
+                const range = new Range(
+                    startPos.translate(0, currentPartOffset),
+                    startPos.translate(0, fixEndingPos(line.text, currentPartOffset + currentPartValue.length)),
+                )
+                const includeInnerRange = ['"', "'"].includes(line.text[currentPartOffset])
+                const firstRange = includeInnerRange ? range.with(range.start.translate(0, 1), range.end.translate(0, -1)) : range
+                const secondRange = includeInnerRange ? range : undefined
+                ranges.push({
+                    range: firstRange,
+                    parent: secondRange ? { range: secondRange } : undefined,
+                })
+            }
+            return ranges
         },
     }),
 )
