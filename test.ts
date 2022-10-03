@@ -94,7 +94,6 @@ interface DocumentInfo extends ParseCommandStringResult {
 
 type ParsedOption = [optionName: string, value?: string]
 
-// type UsedOption = { name: string }
 type UsedOption = string
 
 // todo need think: it seems that fig does start-only filtering by default
@@ -303,7 +302,7 @@ interface ParseCommandStringResult {
 const commandPartIsOption = (contents: string | undefined): boolean => contents?.startsWith('-') ?? false
 
 const getAllCommandsFromString = (inputString: string) => {
-    const commandsParts = parse(inputString).reduce<CommandParts[]>(
+    const commandsParts = (parse(inputString) as any[]).reduce<CommandParts[]>(
         (prev, parsedPart) => {
             if (Array.isArray(parsedPart)) prev.slice(-1)[0]!.push(parsedPart as any)
             else prev.push([])
@@ -354,10 +353,8 @@ const getDocumentParsedResult = (
     stringContents: string,
     realPos: Position,
     startPos: Position,
-    options: { stripCurrentValue: boolean; additionalParsingData },
+    options: { stripCurrentValue: boolean },
 ): DocumentInfo | undefined => {
-    const textParts = stringContents.split(' ')
-    if (textParts.length < 2) return
     const parseCommandResult = parseCommandString(stringContents, realPos.character, options.stripCurrentValue)
     if (!parseCommandResult) return
     const { allParts, currentPartIndex, currentPartValue, currentPartOffset: currentPartPos, currentPartIsOption } = parseCommandResult
@@ -522,17 +519,18 @@ const getRootSpecCompletions = (info: Omit<DocumentInfoForCompl, 'sortTextPrepen
 
 const figBaseSuggestionToHover = (
     { description }: Fig.BaseSuggestion,
-    { type, range }: { type: Fig.SuggestionType; range?: [Position, Position] },
+    { type = '', range }: { type: Fig.SuggestionType | '' | undefined; range?: [Position, Position] },
 ): Hover | undefined => {
+    if (!description) return
     // todo escape markdown
-    let text = `(${type}) `
+    let text = type && `(${type}) `
     return {
-        contents: [new MarkdownString().appendText(text).appendMarkdown(description ?? '')],
+        contents: [new MarkdownString().appendText(text).appendMarkdown(description)],
         range: range && new Range(range[0], range[1]),
     }
 }
 
-type LintProblemType = 'option' | 'arg'
+type LintProblemType = 'commandName' | 'option' | 'arg'
 type LintProblem = {
     // for severity
     type: LintProblemType
@@ -548,6 +546,7 @@ interface ParsingCollectedData {
     currentSubcommand?: Fig.Option
 
     currentPart?: CommandPartTuple
+    currentPartIndex?: number
     currentPartRange?: [Position, Position]
 
     collectedCompletions?: CompletionItem[]
@@ -594,39 +593,59 @@ const fullCommandParse = (
     // needs cleanup
     parsingReason: 'completions' | 'signatureHelp' | 'hover' | 'lint' | 'basicData' | 'semanticHighlight',
 ): undefined => {
-    let additionalParsingData
-    const stripText = parsingReason === 'completions'
+    // todo
+    const knownSpecNames = ALL_LOADED_SPECS.flatMap(({ name }) => ensureArray(name))
     const line = document.lineAt(position)
     const lineText = line.text
     const startPos = line.range.start
     const documentInfo = getDocumentParsedResult(lineText, position, startPos, {
-        stripCurrentValue: stripText,
-        additionalParsingData,
+        stripCurrentValue: parsingReason === 'completions',
     })
-    // todo?
-    if (!documentInfo) {
-        // if (paringReason === 'hover') collectedData.currentSubcommand = ALL_LOADED_SPECS.find(({ name }) => ensureArray(name).includes(document))
-        // todo
-        collectedData.collectedCompletions = getRootSpecCompletions({
-            realPos: position,
-            currentPartValue: '',
-            allParts: [[lineText, 0, false]],
-            currentPartIndex: 0,
-            startPos,
-        })
-        return
-    }
-    // avoid using pos to avoid .translate() crashes
-    if (parsingReason !== 'completions') documentInfo.realPos = undefined
-    const spec = getCompletingSpec(documentInfo.specName)
-    if (!spec) return
-    const figRootSubcommand = getFigSubcommand(spec)
-
+    if (!documentInfo) return
     let { allParts, currentPartValue, currentPartOffset, currentPartIndex, currentPartIsOption } = documentInfo
+    const inspectOnlyAllParts = oneOf(parsingReason, 'lint', 'semanticHighlight') as boolean
+
+    // avoid using positions to avoid .translate() crashes
+    if (parsingReason !== 'completions') {
+        documentInfo.realPos = undefined
+        documentInfo.startPos = undefined
+    }
     const partToRange = (index: number) => {
         const [contents, offset] = allParts[index]
         return [startPos.translate(0, offset), startPos.translate(0, fixEndingPos(lineText, offset + contents.length))] as [Position, Position]
     }
+    collectedData.partsSemanticTypes = []
+    collectedData.currentPartIndex = currentPartIndex
+    collectedData.hoverRange = partToRange(currentPartIndex)
+    collectedData.lintProblems = []
+    collectedData.collectedCompletions = []
+    collectedData.collectedCompletionsPromise = []
+
+    const setSemanticType = (index: number, type: SemanticLegendType) => {
+        collectedData.partsSemanticTypes!.push([new Range(...partToRange(index)), type])
+    }
+    setSemanticType(0, 'command')
+    // is in command name
+    if (currentPartIndex === 0) {
+        collectedData.collectedCompletions = getRootSpecCompletions(documentInfo)
+        if (parsingReason === 'hover') {
+            const spec = getCompletingSpec(documentInfo.specName)
+            collectedData.currentSubcommand = spec && getFigSubcommand(spec)
+        }
+        if (!inspectOnlyAllParts) return
+    }
+    // validate command name
+    if (parsingReason === 'lint' && !knownSpecNames.includes(documentInfo.specName)) {
+        collectedData.lintProblems.push({
+            message: `Unknown command ${documentInfo.specName}`,
+            range: partToRange(0),
+            type: 'commandName',
+        })
+    }
+    const spec = getCompletingSpec(documentInfo.specName)
+    if (!spec) return
+    const figRootSubcommand = getFigSubcommand(spec)
+
     const changeCollectedDataPath = (arg: Fig.Arg) => {
         const isPathTemplate = ({ template }: { template?: Fig.Template }): boolean =>
             !!template && ensureArray(template).filter(item => item === 'filepaths' || item === 'folders').length > 0
@@ -634,15 +653,7 @@ const fullCommandParse = (
         const isPathPart = isPathTemplate(arg) || ensureArray(arg.generators ?? []).some(gen => isPathTemplate(gen))
         collectedData.partPathContents = isPathPart ? currentPartValue : undefined
     }
-    collectedData.partsSemanticTypes = []
-    const setSemanticType = (index: number, type: SemanticLegendType) => {
-        collectedData.partsSemanticTypes!.push([new Range(...partToRange(index)), type])
-    }
 
-    collectedData.hoverRange = partToRange(currentPartIndex)
-    collectedData.lintProblems = []
-    collectedData.collectedCompletions = []
-    collectedData.collectedCompletionsPromise = []
     const { completingOptionValue: completingParamValue, completingOptionFull } = documentInfo.parsedInfo
     const goingToSuggest = {
         options: true,
@@ -657,11 +668,7 @@ const fullCommandParse = (
     const alreadyUsedOptions = [] as string[]
     collectedData.currentPart = allParts[currentPartIndex]
     collectedData.currentPartRange = partToRange(currentPartIndex)
-    // in linting all parts
-    setSemanticType(0, 'command')
-    // todo rename
-    const inspectOnlyParts = oneOf(parsingReason, 'lint', 'semanticHighlight')
-    for (const [_iteratingPartIndex, [partContents, _partStartPos, partIsOption]] of (!inspectOnlyParts
+    for (const [_iteratingPartIndex, [partContents, _partStartPos, partIsOption]] of (!inspectOnlyAllParts
         ? allParts.slice(1, currentPartIndex)
         : allParts.slice(1)
     ).entries()) {
@@ -674,7 +681,7 @@ const fullCommandParse = (
             }
             let message: string | undefined
             // don't be too annoying for -- and -
-            if (!inspectOnlyParts || /^--?$/.exec(partContents)) continue
+            if (!inspectOnlyAllParts || /^--?$/.exec(partContents)) continue
             // todo arg
             if (getSubcommandOption(partContents)?.isDangerous) setSemanticType(partIndex, 'dangerous')
             else setSemanticType(partIndex, 'option')
@@ -742,7 +749,7 @@ const fullCommandParse = (
         }
     }
     // todo make it easier to see & understand
-    if (inspectOnlyParts) return
+    if (inspectOnlyAllParts) return
     const { collectedCompletions, collectedCompletionsPromise } = collectedData
     if (/* !currentPartIsOption */ true) {
         const { subcommands, additionalSuggestions } = subcommand
@@ -773,7 +780,7 @@ const fullCommandParse = (
     const options = getNormalizedSpecOptions(subcommand)
     if (options) {
         // hack to not treat location in option name as arg position
-        currentPartValue = currentPartValue.slice(0, position.character - currentPartOffset)
+        if (parsingReason === 'completions') currentPartValue = currentPartValue.slice(0, position.character - currentPartOffset)
         // todo maybe use sep-all optm?
         let patchedDocumentInfo = documentInfo
         // todo1 refactor to forof
@@ -935,12 +942,13 @@ trackDisposable(
         provideHover(document, position) {
             const collectedData: ParsingCollectedData = {}
             fullCommandParse(document, position, collectedData, 'hover')
-            const { argSignatureHelp: arg, currentOption, currentSubcommand, hoverRange } = collectedData
+            const { argSignatureHelp: arg, currentOption, currentSubcommand, hoverRange, currentPartIndex } = collectedData
             const someSuggestion = currentSubcommand || currentOption || arg
-            let type!: Fig.SuggestionType
+            let type: Fig.SuggestionType | undefined
             if (arg) type = 'arg'
             if (currentOption) type = 'option'
-            if (currentSubcommand) type = 'subcommand'
+            // don't display (subcommand) for root command
+            if (currentSubcommand && currentPartIndex !== 0) type = 'subcommand'
             if (!someSuggestion) return
             const hover = figBaseSuggestionToHover(someSuggestion, { type, range: hoverRange })
             return hover
@@ -950,7 +958,6 @@ trackDisposable(
 
 const SCHEME = 'FIG_UNRELEASED_REVEAL_FILE'
 
-let fromProvider = false
 trackDisposable(
     workspace.registerFileSystemProvider(SCHEME, {
         createDirectory() {},
