@@ -21,6 +21,8 @@ import {
     Position,
     Range,
     SelectionRange,
+    SemanticTokensBuilder,
+    SemanticTokensLegend,
     SnippetString,
     TextDocument,
     Uri,
@@ -28,7 +30,7 @@ import {
     workspace,
 } from 'vscode'
 import { niceLookingCompletion } from '@zardoy/vscode-utils/build/completions'
-import { compact, ensureArray, findCustomArray } from '@zardoy/utils'
+import { compact, ensureArray, findCustomArray, oneOf } from '@zardoy/utils'
 import { parse } from './shell-quote-patched'
 import _ from 'lodash'
 
@@ -94,6 +96,7 @@ type ParsedOption = [optionName: string, value?: string]
 // type UsedOption = { name: string }
 type UsedOption = string
 
+// todo need think: it seems that fig does start-only filtering by default
 // todo hide commands
 const parseOptionToCompletion = (option: Fig.Option, info: DocumentInfo): CompletionItem | undefined => {
     let { isRequired, isRepeatable = false, requiresSeparator: seperator = false, dependsOn, exclusiveOn } = option
@@ -261,7 +264,7 @@ const templateToVscodeCompletion = async (_template: Fig.Template, info: Documen
 }
 
 console.clear()
-type CommandParts = [string, number][]
+type CommandParts = [content: string, offset: number][]
 
 interface ParseCommandStringResult {
     allParts: CommandPartTuple[]
@@ -273,8 +276,7 @@ interface ParseCommandStringResult {
 
 const commandPartIsOption = (contents: string | undefined): boolean => contents?.startsWith('-') ?? false
 
-export const parseCommandString = (inputString: string, stringPos: number, stripCurrentValue: boolean): ParseCommandStringResult | undefined => {
-    // todo parse fig completion separators later
+const getAllCommandsFromString = (inputString: string) => {
     const commandsParts = parse(inputString).reduce<CommandParts[]>(
         (prev, parsedPart) => {
             if (Array.isArray(parsedPart)) prev.slice(-1)[0]!.push(parsedPart as any)
@@ -283,12 +285,17 @@ export const parseCommandString = (inputString: string, stringPos: number, strip
         },
         [[]],
     )
+    return commandsParts
+}
+
+// todo parserDirectives
+export const parseCommandString = (inputString: string, stringPos: number, stripCurrentValue: boolean): ParseCommandStringResult | undefined => {
     let currentPartIndex = 0
     let currentPartOffset = 0
     let currentPartValue = ''
     let currentCommandParts: CommandParts | undefined
     // todo reverse them
-    for (const commandParts of commandsParts) {
+    for (const commandParts of getAllCommandsFromString(inputString)) {
         const firstCommandPart = commandParts[0]
         if (firstCommandPart?.[1] <= stringPos) {
             currentCommandParts = commandParts
@@ -512,7 +519,7 @@ const figBaseSuggestionToHover = (
     }
 }
 
-type LintProblemType = 'option'
+type LintProblemType = 'option' | 'arg'
 type LintProblem = {
     // for severity
     type: LintProblemType
@@ -529,6 +536,7 @@ interface ParsingCollectedData {
     partPathContents?: string
     currentPart?: CommandPartTuple
     currentPartRange?: [Position, Position]
+    partsSemanticTypes?: [Range, SemanticLegendType][]
 }
 
 // todo it just works
@@ -562,7 +570,7 @@ const fullCommandParse = async (
     position: Position,
     collectedData: ParsingCollectedData,
     // needs cleanup
-    parsingReason: 'completions' | 'signatureHelp' | 'hover' | 'lint' | 'basicData',
+    parsingReason: 'completions' | 'signatureHelp' | 'hover' | 'lint' | 'basicData' | 'semanticHighlight',
 ): Promise<
     | {
           completions: {
@@ -588,7 +596,7 @@ const fullCommandParse = async (
         return { completions: { items: getRootSpecCompletions({ realPosition: position, currentPartValue: '' }) } }
     }
     // avoid using pos to avoid .translate() crashes
-    if (parsingReason === 'lint') documentInfo.realPosition = undefined
+    if (parsingReason !== 'completions') documentInfo.realPosition = undefined
     const spec = getCompletingSpec(documentInfo.specName)
     if (!spec) return
     const figRootSubcommand = getFigSubcommand(spec)
@@ -605,6 +613,11 @@ const fullCommandParse = async (
         const isPathPart = isPathTemplate(arg) || ensureArray(arg.generators ?? []).some(gen => isPathTemplate(gen))
         collectedData.partPathContents = isPathPart ? currentPartValue : undefined
     }
+    collectedData.partsSemanticTypes = []
+    const setSemanticType = (index: number, type: SemanticLegendType) => {
+        collectedData.partsSemanticTypes!.push([new Range(...partToRange(index)), type])
+    }
+
     collectedData.hoverRange = partToRange(currentPartIndex)
     collectedData.lintProblems = []
     const { completingOptionValue: completingParamValue, completingOptionFull } = documentInfo.parsedInfo
@@ -622,10 +635,14 @@ const fullCommandParse = async (
     collectedData.currentPart = allParts[currentPartIndex]
     collectedData.currentPartRange = partToRange(currentPartIndex)
     // in linting all parts
-    for (const [iteratingPartIndex, [partContents, partStartPos, partIsOption]] of (parsingReason !== 'lint'
+    setSemanticType(0, 'command')
+    // todo rename
+    const fullInspect = oneOf(parsingReason, 'lint', 'semanticHighlight')
+    for (const [_iteratingPartIndex, [partContents, _partStartPos, partIsOption]] of (!fullInspect
         ? allParts.slice(1, currentPartIndex)
         : allParts.slice(1)
     ).entries()) {
+        const partIndex = _iteratingPartIndex + 1
         if (partIsOption) {
             // todo is that right?
             if (partContents === '--') {
@@ -634,7 +651,11 @@ const fullCommandParse = async (
             }
             let message: string | undefined
             // don't be too annoying for -- and -
-            if (parsingReason !== 'lint' || /^--?$/.exec(partContents) || subcommand.parserDirectives?.optionArgSeparators) continue
+            if (!fullInspect || /^--?$/.exec(partContents)) continue
+            // todo arg
+            if (getSubcommandOption(partContents)?.isDangerous) setSemanticType(partIndex, 'dangerous')
+            else setSemanticType(partIndex, 'option')
+            if (subcommand.parserDirectives?.optionArgSeparators) continue
             // below: lint option
             if (!subcommand.options || subcommand.options.length === 0) message = "Command doesn't take options here"
             else {
@@ -649,7 +670,7 @@ const fullCommandParse = async (
                             partContents,
                             options.flatMap(({ name }) => ensureArray(name)),
                         )
-                    message = `${partContents} option doesn't exist`
+                    message = `Unknown option ${partContents}`
                     if (guessedOptionName) message += ` Did you mean ${guessedOptionName}?`
                 } else if (alreadyUsedOptions.includes(partContents)) {
                     message = `${partContents} option was already used [here]`
@@ -658,7 +679,7 @@ const fullCommandParse = async (
             if (message) {
                 collectedData.lintProblems.push({
                     message,
-                    range: partToRange(iteratingPartIndex + 1),
+                    range: partToRange(partIndex),
                     type: 'option',
                 })
             }
@@ -667,12 +688,16 @@ const fullCommandParse = async (
             const subcommandSwitch = subcommand.subcommands?.find(subcommand => ensureArray(subcommand.name).includes(partContents))
             if (subcommandSwitch) {
                 subcommand = subcommandSwitch
+                setSemanticType(partIndex, 'subcommand')
                 argMetCount = 0
+            } else if (allParts[partIndex - 1][2] && getSubcommandOption(allParts[partIndex - 1][0])?.args) {
+                setSemanticType(partIndex, 'option-arg')
             } else if (subcommand.args) {
+                setSemanticType(partIndex, 'arg')
                 argMetCount++
                 // subcommand.requiresSubcommand
                 const arg = ensureArray(subcommand.args)[0]
-                // note: we don't support deprecated (isModule)
+                // note: doesn't support deprecated (isModule)
                 if (!arg.isVariadic && (arg.isCommand || arg.loadSpec)) {
                     // switch spec
                     let newSpec: Fig.Spec | undefined
@@ -685,21 +710,28 @@ const fullCommandParse = async (
                 }
                 // validate arg
             } else {
-                // report no arg
+                collectedData.lintProblems.push({
+                    message: `${subcommand.name} doesn't take argument here`,
+                    range: partToRange(partIndex),
+                    type: 'arg',
+                })
             }
         }
     }
     const collectedCompletions: CompletionItem[] = []
     if (/* !currentPartIsOption */ true) {
+        const { subcommands, additionalSuggestions } = subcommand
         for (const arg of ensureArray(subcommand.args ?? [])) {
             if (!arg.isVariadic && argMetCount !== 0) continue
             collectedCompletions.push(...((await figArgToCompletions(arg, documentInfo)) ?? []))
             changeCollectedDataPath(arg)
-            collectedData.argSignatureHelp = arg
+            if (!currentPartIsOption) collectedData.argSignatureHelp = arg
             // todo is that right? (stopping at first one)
             break
         }
-        const { subcommands, additionalSuggestions } = subcommand
+        if (!currentPartIsOption && parsingReason === 'hover' && subcommands) {
+            collectedData.currentSubcommand = subcommands.find(({ name }) => ensureArray(name).includes(currentPartValue))
+        }
         if (goingToSuggest.subcommands) {
             collectedCompletions.push(...((subcommands && figSubcommandsToVscodeCompletions(subcommands, documentInfo)) ?? []))
             if (additionalSuggestions)
@@ -710,9 +742,6 @@ const fullCommandParse = async (
                         ),
                     ),
                 )
-        }
-        if (parsingReason === 'hover' && subcommands) {
-            collectedData.currentSubcommand = subcommands.find(({ name }) => ensureArray(name).includes(currentPartValue))
         }
     }
 
@@ -743,10 +772,9 @@ const fullCommandParse = async (
             optionWithSep || (completingParamValue ? [completingParamValue.paramName, completingParamValue.currentEnteredValue] : undefined)
 
         const completingParamName =
-            currentOptionValue?.[0] ?? completingParamValue?.paramName ?? (currentPartValue.startsWith('-') ? currentPartValue : undefined)
+            currentOptionValue?.[0] ?? completingParamValue?.paramName ?? (commandPartIsOption(currentPartValue) ? currentPartValue : undefined)
         if (completingParamName) collectedData.currentOption = options.find(specOption => ensureArray(specOption.name).includes(completingParamName))
         // todo git config --global
-        // todo1 node -e ->
         if (completingOptionFull) {
             const [optionIndex, argIndex] = completingOptionFull
             const optionHasArg = !!getSubcommandOption(allParts[optionIndex][0])?.args
@@ -854,17 +882,22 @@ trackDisposable(
                 const startPos = line.range.start
                 const parseResult = parseCommandString(line.text, position.character, false)
                 if (!parseResult) continue
-                const { currentPartOffset, currentPartValue } = parseResult
-                const range = new Range(
+                const { currentPartOffset, currentPartValue, allParts } = parseResult
+                const curRange = new Range(
                     startPos.translate(0, currentPartOffset),
                     startPos.translate(0, fixEndingPos(line.text, currentPartOffset + currentPartValue.length)),
                 )
                 const includeInnerRange = ['"', "'"].includes(line.text[currentPartOffset])
-                const firstRange = includeInnerRange ? range.with(range.start.translate(0, 1), range.end.translate(0, -1)) : range
-                const secondRange = includeInnerRange ? range : undefined
+
+                const commandStartPos = startPos.translate(0, allParts[0][1])
+                const commandEndPos = startPos.translate(0, allParts.at(-1)![1] + allParts.at(-1)![0].length)
+                const commandRangeSelection = { range: new Range(commandStartPos, commandEndPos) }
+
+                const firstRange = includeInnerRange ? curRange.with(curRange.start.translate(0, 1), curRange.end.translate(0, -1)) : curRange
+                const secondRange = includeInnerRange ? curRange : undefined
                 ranges.push({
                     range: firstRange,
-                    parent: secondRange ? { range: secondRange } : undefined,
+                    parent: secondRange ? { range: secondRange, parent: commandRangeSelection } : commandRangeSelection,
                 })
             }
             return ranges
@@ -938,6 +971,64 @@ trackDisposable(
     }),
 )
 
+const bannedLineRegex = /^\s*(#|::|if|else|fi|return|function|"|'|[\w\d]+=)/i
+const getAllCommandsPositions = (document: TextDocument) => {
+    const positions: Position[] = []
+    for (let lineNum = 0; lineNum < document.lineCount; lineNum++) {
+        const { text } = document.lineAt(lineNum)
+        bannedLineRegex.lastIndex = 0
+        if (bannedLineRegex.test(text)) continue
+        const allCommands = getAllCommandsFromString(text)
+        positions.push(
+            ...compact(
+                allCommands.map(parts => {
+                    const firstPart = parts[0]
+                    if (!firstPart) return
+                    const [, offset] = firstPart
+                    return new Position(lineNum, offset)
+                }),
+            ),
+        )
+    }
+    return positions
+}
+
+const semanticLegendTypes = ['command', 'subcommand', 'arg', 'option', 'option-arg', 'dangerous'] as const
+type SemanticLegendType = typeof semanticLegendTypes[number]
+// temporarily use existing tokens, instead of defining own in demo purposes
+const tempTokensMap: Record<SemanticLegendType, string> = {
+    command: 'namespace',
+    subcommand: 'number',
+    'option-arg': 'method',
+    option: 'enumMember',
+    // option:
+    arg: 'string',
+    dangerous: 'keyword',
+}
+const semanticLegend = new SemanticTokensLegend(Object.values(tempTokensMap))
+
+trackDisposable(
+    languages.registerDocumentSemanticTokensProvider(
+        'bat',
+        {
+            async provideDocumentSemanticTokens(document, token) {
+                const builder = new SemanticTokensBuilder(semanticLegend)
+                const positions = getAllCommandsPositions(document)
+                for (const pos of positions) {
+                    const collectedData: ParsingCollectedData = {}
+                    await fullCommandParse(document, pos, collectedData, 'semanticHighlight')
+                    for (const part of collectedData.partsSemanticTypes ?? []) {
+                        builder.push(part[0], tempTokensMap[part[1]])
+                    }
+                }
+
+                return builder.build()
+            },
+        },
+        semanticLegend,
+    ),
+)
+
 trackDisposable(
     window.onDidChangeActiveTextEditor(async editor => {
         const uri = editor?.document.uri
@@ -954,13 +1045,18 @@ if (typeof __TEST === 'undefined') {
     const testingEditor = window.visibleTextEditors.find(({ document: { languageId } }) => languageId === 'bat')
     if (testingEditor) {
         const doLinting = async () => {
-            const { document, selection } = testingEditor
-            const collectedData: ParsingCollectedData = {}
-            await fullCommandParse(document, selection.active, collectedData, 'lint')
-            if (!collectedData.lintProblems) return
+            const { document } = testingEditor
+            // use delta edit optimizations?
+            const positions = getAllCommandsPositions(document)
+            const allLintProblems: ParsingCollectedData['lintProblems'] = []
+            for (const pos of positions) {
+                const collectedData: ParsingCollectedData = {}
+                await fullCommandParse(document, pos, collectedData, 'lint')
+                allLintProblems.push(...(collectedData.lintProblems ?? []))
+            }
             diagnosticCollection.set(
                 document.uri,
-                collectedData.lintProblems.map(({ message, range, type }) => ({
+                allLintProblems.map(({ message, range, type }) => ({
                     message,
                     range: new Range(...range),
                     severity: DiagnosticSeverity.Information,
@@ -979,7 +1075,7 @@ if (typeof __TEST === 'undefined') {
     }
 }
 
-// todo codeActions, highlighting, selection
+// todo codeActions to shorten, unshorten options, args
 
 // todo
 const getCurrentCommand = () => {}

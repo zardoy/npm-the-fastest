@@ -12,10 +12,14 @@ vi.mock('vscode', () => ({
             },
         },
     ),
-    workspace: {},
+    workspace: {
+        registerFileSystemProvider() {},
+    },
     window: {
         onDidChangeTextEditorSelection() {},
+        onDidChangeActiveTextEditor() {},
     },
+    SemanticTokensLegend: class {},
 }))
 
 globalThis.trackDisposable = a => a
