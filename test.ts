@@ -13,6 +13,7 @@ import {
     CompletionItemTag,
     DiagnosticCollection,
     DiagnosticSeverity,
+    DocumentSelector,
     FileType,
     Hover,
     languages,
@@ -33,6 +34,7 @@ import { niceLookingCompletion } from '@zardoy/vscode-utils/build/completions'
 import { compact, ensureArray, findCustomArray, oneOf } from '@zardoy/utils'
 import { parse } from './shell-quote-patched'
 import _ from 'lodash'
+import { findNodeAtLocation, Node, parseTree } from 'jsonc-parser'
 
 const getFigSubcommand = (__spec: Fig.Spec) => {
     const _spec = typeof __spec === 'function' ? __spec() : __spec
@@ -48,6 +50,8 @@ const ALL_LOADED_SPECS = [
     esbuildSpec,
     // todo
 ].map(value => getFigSubcommand(value)!)
+
+const SUPPORTED_SELECTOR: DocumentSelector = ['bat', 'shellscript', 'json', 'jsonc']
 
 // class CompletionItem extends CompletionItemRaw {}
 
@@ -588,6 +592,7 @@ export const guessSimilarName = (invalidName: string, validNames: string[]) => {
 // todo doesn't support parserDirectives at all
 const fullCommandParse = (
     document: TextDocument,
+    inputRange: Range,
     position: Position,
     collectedData: ParsingCollectedData,
     // needs cleanup
@@ -595,10 +600,9 @@ const fullCommandParse = (
 ): undefined => {
     // todo
     const knownSpecNames = ALL_LOADED_SPECS.flatMap(({ name }) => ensureArray(name))
-    const line = document.lineAt(position)
-    const lineText = line.text
-    const startPos = line.range.start
-    const documentInfo = getDocumentParsedResult(lineText, position, startPos, {
+    const inputText = document.getText(inputRange)
+    const startPos = inputRange.start
+    const documentInfo = getDocumentParsedResult(inputText, position, startPos, {
         stripCurrentValue: parsingReason === 'completions',
     })
     if (!documentInfo) return
@@ -612,7 +616,7 @@ const fullCommandParse = (
     }
     const partToRange = (index: number) => {
         const [contents, offset] = allParts[index]
-        return [startPos.translate(0, offset), startPos.translate(0, fixEndingPos(lineText, offset + contents.length))] as [Position, Position]
+        return [startPos.translate(0, offset), startPos.translate(0, fixEndingPos(inputText, offset + contents.length))] as [Position, Position]
     }
     collectedData.partsSemanticTypes = []
     collectedData.currentPartIndex = currentPartIndex
@@ -862,7 +866,7 @@ trackDisposable(
         {
             async provideCompletionItems(document, position, token, context) {
                 const collectedData: ParsingCollectedData = {}
-                fullCommandParse(document, position, collectedData, 'completions')
+                fullCommandParse(document, document.lineAt(position).range, position, collectedData, 'completions')
                 const { collectedCompletions = [], collectedCompletionsPromise = [], collectedCompletionsIncomplete } = collectedData
                 const completionsFromPromise = await Promise.all(collectedCompletionsPromise)
                 return { items: [...collectedCompletions, ...completionsFromPromise.flat(1)] ?? [], isIncomplete: collectedCompletionsIncomplete }
@@ -881,7 +885,7 @@ trackDisposable(
     languages.registerSignatureHelpProvider('bat', {
         provideSignatureHelp(document, position, token, context) {
             const collectedData: ParsingCollectedData = {}
-            fullCommandParse(document, position, collectedData, 'signatureHelp')
+            fullCommandParse(document, document.lineAt(position).range, position, collectedData, 'signatureHelp')
             const { argSignatureHelp: arg } = collectedData
             if (!arg) return
             let hint = arg.description ?? arg.name ?? 'argument'
@@ -941,7 +945,7 @@ trackDisposable(
     languages.registerHoverProvider('bat', {
         provideHover(document, position) {
             const collectedData: ParsingCollectedData = {}
-            fullCommandParse(document, position, collectedData, 'hover')
+            fullCommandParse(document, document.lineAt(position).range, position, collectedData, 'hover')
             const { argSignatureHelp: arg, currentOption, currentSubcommand, hoverRange, currentPartIndex } = collectedData
             const someSuggestion = currentSubcommand || currentOption || arg
             let type: Fig.SuggestionType | undefined
@@ -987,7 +991,7 @@ trackDisposable(
     languages.registerDefinitionProvider('bat', {
         provideDefinition(document, position, token) {
             const collectedData: ParsingCollectedData = {}
-            fullCommandParse(document, position, collectedData, 'signatureHelp')
+            fullCommandParse(document, document.lineAt(position).range, position, collectedData, 'signatureHelp')
             const { partPathContents, currentPartRange } = collectedData
             if (!partPathContents) return
             // also its possible to migrate to link provider that support command
@@ -1004,26 +1008,60 @@ trackDisposable(
 )
 
 const bannedLineRegex = /^\s*(#|::|if|else|fi|return|function|"|'|[\w\d]+=)/i
-const getAllCommandsPositions = (document: TextDocument) => {
-    const positions: Position[] = []
+const getCommandFileInputCommands = (document: TextDocument) => {
+    const ranges: Range[] = []
     for (let lineNum = 0; lineNum < document.lineCount; lineNum++) {
-        const { text } = document.lineAt(lineNum)
+        const { text, range } = document.lineAt(lineNum)
         bannedLineRegex.lastIndex = 0
         if (bannedLineRegex.test(text)) continue
-        const allCommands = getAllCommandsFromString(text)
-        positions.push(
+        ranges.push(range)
+    }
+    return ranges
+}
+const getAllCommandsLocations = (document: TextDocument) => {
+    const outputRanges: Range[] = []
+    const inputRanges = languages.match(['json', 'jsonc'], document) ? getPackageJsonInputCommands(document) : getCommandFileInputCommands(document)
+    for (const range of inputRanges ?? []) {
+        const allCommands = getAllCommandsFromString(document.getText(range))
+        outputRanges.push(
             ...compact(
                 allCommands.map(parts => {
                     const firstPart = parts[0]
                     if (!firstPart) return
-                    const [, offset] = firstPart
-                    return new Position(lineNum, offset)
+                    const [, startOffset] = firstPart
+                    const [lastContents, endOffset] = parts.at(-1)
+                    const startPos = range.start
+                    return new Range(startPos.translate(0, startOffset), startPos.translate(0, endOffset + lastContents.length))
                 }),
             ),
         )
     }
-    return positions
+    return outputRanges
 }
+
+const getPackageJsonInputCommands = (document: TextDocument) => {
+    const root = parseTree(document.getText())!
+    const scriptsRootNode = findNodeAtLocation(root, ['scripts'])
+    const scriptsNodes = scriptsRootNode?.children
+    if (!scriptsNodes) return
+    const nodeObjectMap = (nodes: Node[], type: 'prop' | 'value') => {
+        const indexGetter = type === 'prop' ? 0 : 1
+        return compact(nodes.map(value => value.type === 'property' && value.children![indexGetter]))
+    }
+    const ranges = [] as Range[]
+    for (const node of nodeObjectMap(scriptsNodes, 'value')) {
+        const startOffset = node.offset + 1
+        const range = new Range(document.positionAt(startOffset), document.positionAt(startOffset + node.length - 2))
+        ranges.push(range)
+    }
+    return ranges
+}
+
+trackDisposable(
+    commands.registerCommand('runActiveDevelopmentCommand', () => {
+        console.log(getPackageJsonInputCommands(window.activeTextEditor.document))
+    }),
+)
 
 const semanticLegendTypes = ['command', 'subcommand', 'arg', 'option', 'option-arg', 'dangerous'] as const
 type SemanticLegendType = typeof semanticLegendTypes[number]
@@ -1041,14 +1079,14 @@ const semanticLegend = new SemanticTokensLegend(Object.values(tempTokensMap))
 
 trackDisposable(
     languages.registerDocumentSemanticTokensProvider(
-        'bat',
+        SUPPORTED_SELECTOR,
         {
             provideDocumentSemanticTokens(document, token) {
                 const builder = new SemanticTokensBuilder(semanticLegend)
-                const positions = getAllCommandsPositions(document)
-                for (const pos of positions) {
+                const ranges = getAllCommandsLocations(document)
+                for (const range of ranges) {
                     const collectedData: ParsingCollectedData = {}
-                    fullCommandParse(document, pos, collectedData, 'semanticHighlight')
+                    fullCommandParse(document, range, range.start, collectedData, 'semanticHighlight')
                     for (const part of collectedData.partsSemanticTypes ?? []) {
                         builder.push(part[0], tempTokensMap[part[1]])
                     }
@@ -1079,11 +1117,11 @@ if (typeof __TEST === 'undefined') {
         const doLinting = () => {
             const { document } = testingEditor
             // use delta edit optimizations?
-            const positions = getAllCommandsPositions(document)
+            const ranges = getAllCommandsLocations(document)
             const allLintProblems: ParsingCollectedData['lintProblems'] = []
-            for (const pos of positions) {
+            for (const range of ranges) {
                 const collectedData: ParsingCollectedData = {}
-                fullCommandParse(document, pos, collectedData, 'lint')
+                fullCommandParse(document, range, range.start, collectedData, 'lint')
                 allLintProblems.push(...(collectedData.lintProblems ?? []))
             }
             diagnosticCollection.set(
