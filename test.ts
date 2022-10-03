@@ -2,7 +2,7 @@
 import nodeSpec from '@withfig/autocomplete/build/node'
 import gitSpec from '@withfig/autocomplete/build/git'
 import yarnSpec from '@withfig/autocomplete/build/yarn'
-import esbuildSpec from '@withfig/autocomplete/build/esbuild'
+import eslintSpec from '@withfig/autocomplete/build/eslint'
 import webpackSpec from '@withfig/autocomplete/build/webpack'
 import picomatch from 'picomatch/posix'
 import {
@@ -34,7 +34,8 @@ import { niceLookingCompletion } from '@zardoy/vscode-utils/build/completions'
 import { compact, ensureArray, findCustomArray, oneOf } from '@zardoy/utils'
 import { parse } from './shell-quote-patched'
 import _ from 'lodash'
-import { findNodeAtLocation, Node, parseTree } from 'jsonc-parser'
+import { findNodeAtLocation, getLocation, Node, parseTree } from 'jsonc-parser'
+import { getJsonCompletingInfo } from '@zardoy/vscode-utils/build/jsonCompletions'
 
 const getFigSubcommand = (__spec: Fig.Spec) => {
     const _spec = typeof __spec === 'function' ? __spec() : __spec
@@ -47,11 +48,12 @@ const ALL_LOADED_SPECS = [
     nodeSpec,
     yarnSpec,
     webpackSpec,
-    esbuildSpec,
+    eslintSpec,
     // todo
 ].map(value => getFigSubcommand(value)!)
 
-const SUPPORTED_SELECTOR: DocumentSelector = ['bat', 'shellscript', 'json', 'jsonc']
+const SUPPORTED_SHELL_SELECTOR: string[] = ['bat', 'shellscript']
+const SUPPORTED_SELECTOR: DocumentSelector = [...SUPPORTED_SHELL_SELECTOR, 'json', 'jsonc']
 
 // class CompletionItem extends CompletionItemRaw {}
 
@@ -80,6 +82,7 @@ interface DocumentInfo extends ParseCommandStringResult {
     realPos: Position | undefined
     startPos: Position | undefined
     specName: string
+    inputString: string
     // partsToPos: PartTuple[]
     // currentCommandPos: number
     /** all command options except currently completing */
@@ -131,7 +134,9 @@ const parseOptionToCompletion = (option: Fig.Option, info: DocumentInfo): Comple
           //       .filter(([, index]) => index !== -1)?.[0]?.[0] || option.name[0]
           option.name.find(name => name.toLowerCase().includes(typedOption.toLowerCase())) || option.name[0]
         : option.name
-    const defaultInsertText = insertOption + seperator + (seperator.length !== 1 && globalSettings.insertOnCompletionAccept === 'space' ? ' ' : '')
+    const defaultInsertSpace =
+        globalSettings.insertOnCompletionAccept === 'space' && info.inputString[info.currentPartOffset + info.currentPartValue.length] !== ' '
+    const defaultInsertText = insertOption + seperator + (seperator.length !== 1 && defaultInsertSpace ? ' ' : '')
     completion.insertText ??= defaultInsertText
     completion.command = {
         command: APPLY_SUGGESTION_COMPLETION,
@@ -153,7 +158,7 @@ const getArgPreviewFromOption = ({ args }: Fig.Option) => {
 }
 
 // todo review options mb add them to base
-type DocumentInfoForCompl = Pick<DocumentInfo, 'currentPartValue' | 'realPos' | 'allParts' | 'currentPartIndex' | 'startPos'> & {
+type DocumentInfoForCompl = DocumentInfo & {
     kind?: CompletionItemKind
     sortTextPrepend?: string
     specName?: string
@@ -356,10 +361,11 @@ export const parseCommandString = (inputString: string, stringPos: number, strip
 const getDocumentParsedResult = (
     stringContents: string,
     realPos: Position,
+    cursorStringOffset: number,
     startPos: Position,
     options: { stripCurrentValue: boolean },
 ): DocumentInfo | undefined => {
-    const parseCommandResult = parseCommandString(stringContents, realPos.character, options.stripCurrentValue)
+    const parseCommandResult = parseCommandString(stringContents, cursorStringOffset, options.stripCurrentValue)
     if (!parseCommandResult) return
     const { allParts, currentPartIndex, currentPartValue, currentPartOffset: currentPartPos, currentPartIsOption } = parseCommandResult
 
@@ -376,6 +382,7 @@ const getDocumentParsedResult = (
     return {
         realPos,
         startPos,
+        inputString: stringContents.slice(allParts[0][1], allParts.at(-1)![1] + allParts.at(-1)![0].length),
         specName: allParts[0][0],
         // partsToPos,
         currentPartValue,
@@ -593,7 +600,7 @@ export const guessSimilarName = (invalidName: string, validNames: string[]) => {
 const fullCommandParse = (
     document: TextDocument,
     inputRange: Range,
-    position: Position,
+    _position: Position,
     collectedData: ParsingCollectedData,
     // needs cleanup
     parsingReason: 'completions' | 'signatureHelp' | 'hover' | 'lint' | 'basicData' | 'semanticHighlight',
@@ -602,11 +609,12 @@ const fullCommandParse = (
     const knownSpecNames = ALL_LOADED_SPECS.flatMap(({ name }) => ensureArray(name))
     const inputText = document.getText(inputRange)
     const startPos = inputRange.start
-    const documentInfo = getDocumentParsedResult(inputText, position, startPos, {
+    const stringPos = _position.character - startPos.character
+    const documentInfo = getDocumentParsedResult(inputText, _position, stringPos, startPos, {
         stripCurrentValue: parsingReason === 'completions',
     })
     if (!documentInfo) return
-    let { allParts, currentPartValue, currentPartOffset, currentPartIndex, currentPartIsOption } = documentInfo
+    let { allParts, currentPartValue, currentPartIndex, currentPartIsOption } = documentInfo
     const inspectOnlyAllParts = oneOf(parsingReason, 'lint', 'semanticHighlight') as boolean
 
     // avoid using positions to avoid .translate() crashes
@@ -784,7 +792,7 @@ const fullCommandParse = (
     const options = getNormalizedSpecOptions(subcommand)
     if (options) {
         // hack to not treat location in option name as arg position
-        if (parsingReason === 'completions') currentPartValue = currentPartValue.slice(0, position.character - currentPartOffset)
+        if (parsingReason === 'completions') currentPartValue = currentPartValue.slice(0, stringPos)
         // todo maybe use sep-all optm?
         let patchedDocumentInfo = documentInfo
         // todo1 refactor to forof
@@ -862,11 +870,13 @@ trackDisposable(
 // todo git config
 trackDisposable(
     languages.registerCompletionItemProvider(
-        'bat',
+        SUPPORTED_SELECTOR,
         {
             async provideCompletionItems(document, position, token, context) {
+                const commandRange = provideRangeFromDocumentPosition(document, position)
+                if (!commandRange) return
                 const collectedData: ParsingCollectedData = {}
-                fullCommandParse(document, document.lineAt(position).range, position, collectedData, 'completions')
+                fullCommandParse(document, commandRange, position, collectedData, 'completions')
                 const { collectedCompletions = [], collectedCompletionsPromise = [], collectedCompletionsIncomplete } = collectedData
                 const completionsFromPromise = await Promise.all(collectedCompletionsPromise)
                 return { items: [...collectedCompletions, ...completionsFromPromise.flat(1)] ?? [], isIncomplete: collectedCompletionsIncomplete }
@@ -882,10 +892,12 @@ trackDisposable(
 )
 
 trackDisposable(
-    languages.registerSignatureHelpProvider('bat', {
+    languages.registerSignatureHelpProvider(SUPPORTED_SELECTOR, {
         provideSignatureHelp(document, position, token, context) {
+            const commandRange = provideRangeFromDocumentPosition(document, position)
+            if (!commandRange) return
             const collectedData: ParsingCollectedData = {}
-            fullCommandParse(document, document.lineAt(position).range, position, collectedData, 'signatureHelp')
+            fullCommandParse(document, commandRange, position, collectedData, 'signatureHelp')
             const { argSignatureHelp: arg } = collectedData
             if (!arg) return
             let hint = arg.description ?? arg.name ?? 'argument'
@@ -910,42 +922,12 @@ trackDisposable(
 )
 
 trackDisposable(
-    languages.registerSelectionRangeProvider('bat', {
-        provideSelectionRanges(document, positions, token) {
-            const ranges: SelectionRange[] = []
-            for (const position of positions) {
-                const line = document.lineAt(position)
-                const startPos = line.range.start
-                const parseResult = parseCommandString(line.text, position.character, false)
-                if (!parseResult) continue
-                const { currentPartOffset, currentPartValue, allParts } = parseResult
-                const curRange = new Range(
-                    startPos.translate(0, currentPartOffset),
-                    startPos.translate(0, fixEndingPos(line.text, currentPartOffset + currentPartValue.length)),
-                )
-                const includeInnerRange = ['"', "'"].includes(line.text[currentPartOffset])
-
-                const commandStartPos = startPos.translate(0, allParts[0][1])
-                const commandEndPos = startPos.translate(0, allParts.at(-1)![1] + allParts.at(-1)![0].length)
-                const commandRangeSelection = { range: new Range(commandStartPos, commandEndPos) }
-
-                const firstRange = includeInnerRange ? curRange.with(curRange.start.translate(0, 1), curRange.end.translate(0, -1)) : curRange
-                const secondRange = includeInnerRange ? curRange : undefined
-                ranges.push({
-                    range: firstRange,
-                    parent: secondRange ? { range: secondRange, parent: commandRangeSelection } : commandRangeSelection,
-                })
-            }
-            return ranges
-        },
-    }),
-)
-
-trackDisposable(
-    languages.registerHoverProvider('bat', {
+    languages.registerHoverProvider(SUPPORTED_SELECTOR, {
         provideHover(document, position) {
+            const commandRange = provideRangeFromDocumentPosition(document, position)
+            if (!commandRange) return
             const collectedData: ParsingCollectedData = {}
-            fullCommandParse(document, document.lineAt(position).range, position, collectedData, 'hover')
+            fullCommandParse(document, commandRange, position, collectedData, 'hover')
             const { argSignatureHelp: arg, currentOption, currentSubcommand, hoverRange, currentPartIndex } = collectedData
             const someSuggestion = currentSubcommand || currentOption || arg
             let type: Fig.SuggestionType | undefined
@@ -988,10 +970,12 @@ trackDisposable(
 )
 
 trackDisposable(
-    languages.registerDefinitionProvider('bat', {
+    languages.registerDefinitionProvider(SUPPORTED_SELECTOR, {
         provideDefinition(document, position, token) {
+            const commandRange = provideRangeFromDocumentPosition(document, position)
+            if (!commandRange) return
             const collectedData: ParsingCollectedData = {}
-            fullCommandParse(document, document.lineAt(position).range, position, collectedData, 'signatureHelp')
+            fullCommandParse(document, commandRange, position, collectedData, 'signatureHelp')
             const { partPathContents, currentPartRange } = collectedData
             if (!partPathContents) return
             // also its possible to migrate to link provider that support command
@@ -1007,20 +991,97 @@ trackDisposable(
     }),
 )
 
-const bannedLineRegex = /^\s*(#|::|if|else|fi|return|function|"|'|[\w\d]+=)/i
-const getCommandFileInputCommands = (document: TextDocument) => {
+trackDisposable(
+    languages.registerSelectionRangeProvider(SUPPORTED_SELECTOR, {
+        provideSelectionRanges(document, positions, token) {
+            const ranges: SelectionRange[] = []
+            for (const position of positions) {
+                const commandRange = provideRangeFromDocumentPosition(document, position)
+                if (!commandRange) continue
+                const startPos = commandRange.start
+                const text = document.getText(commandRange)
+                const parseResult = parseCommandString(text, position.character, false)
+                if (!parseResult) continue
+                const { currentPartOffset, currentPartValue, allParts } = parseResult
+                const curRange = new Range(
+                    startPos.translate(0, currentPartOffset),
+                    startPos.translate(0, fixEndingPos(text, currentPartOffset + currentPartValue.length)),
+                )
+                const includeInnerRange = ['"', "'"].includes(text[currentPartOffset])
+
+                const commandStartPos = startPos.translate(0, allParts[0][1])
+                const commandEndPos = startPos.translate(0, allParts.at(-1)![1] + allParts.at(-1)![0].length)
+                const commandRangeSelection = { range: new Range(commandStartPos, commandEndPos) }
+
+                const firstRange = includeInnerRange ? curRange.with(curRange.start.translate(0, 1), curRange.end.translate(0, -1)) : curRange
+                const secondRange = includeInnerRange ? curRange : undefined
+                ranges.push({
+                    range: firstRange,
+                    parent: secondRange ? { range: secondRange, parent: commandRangeSelection } : commandRangeSelection,
+                })
+            }
+            return ranges
+        },
+    }),
+)
+
+const provideRangeFromDocumentPositionPackageJson = (document: TextDocument, position: Position) => {
+    const offset = document.offsetAt(position)
+    const location = getLocation(document.getText(), offset)
+    if (!location?.matches(['scripts', '*'])) return
+    const jsonCompletingInfo = getJsonCompletingInfo(location, document, position)
+    const { insideStringRange } = jsonCompletingInfo || {}
+    if (!insideStringRange) return
+    return insideStringRange
+}
+
+const shellBannedLineRegex = /^\s*(#|::|if|else|fi|return|function|"|'|[\w\d]+(=|\())/i
+const provideRangeFromDocumentPositionShellFile = (document: TextDocument, position: Position) => {
+    const line = document.lineAt(position)
+    shellBannedLineRegex.lastIndex = 0
+    if (shellBannedLineRegex.test(line.text)) return
+    return line.range
+}
+
+const provideRangeFromDocumentPosition = (document: TextDocument, position: Position) => {
+    return document.uri.path.endsWith('package.json')
+        ? provideRangeFromDocumentPositionPackageJson(document, position)
+        : provideRangeFromDocumentPositionShellFile(document, position)
+}
+
+const getInputCommandsShellFile = (document: TextDocument) => {
     const ranges: Range[] = []
     for (let lineNum = 0; lineNum < document.lineCount; lineNum++) {
         const { text, range } = document.lineAt(lineNum)
-        bannedLineRegex.lastIndex = 0
-        if (bannedLineRegex.test(text)) continue
+        shellBannedLineRegex.lastIndex = 0
+        if (shellBannedLineRegex.test(text)) continue
         ranges.push(range)
     }
     return ranges
 }
+
+const getInputCommandsPackageJson = (document: TextDocument) => {
+    const root = parseTree(document.getText())
+    if (!root) return
+    const scriptsRootNode = findNodeAtLocation(root, ['scripts'])
+    const scriptsNodes = scriptsRootNode?.children
+    if (!scriptsNodes) return
+    const nodeObjectMap = (nodes: Node[], type: 'prop' | 'value') => {
+        const indexGetter = type === 'prop' ? 0 : 1
+        return compact(nodes.map(value => value.type === 'property' && value.children![indexGetter]))
+    }
+    const ranges = [] as Range[]
+    for (const node of nodeObjectMap(scriptsNodes, 'value')) {
+        const startOffset = node.offset + 1
+        const range = new Range(document.positionAt(startOffset), document.positionAt(startOffset + node.length - 2))
+        ranges.push(range)
+    }
+    return ranges
+}
+
 const getAllCommandsLocations = (document: TextDocument) => {
     const outputRanges: Range[] = []
-    const inputRanges = languages.match(['json', 'jsonc'], document) ? getPackageJsonInputCommands(document) : getCommandFileInputCommands(document)
+    const inputRanges = languages.match(['json', 'jsonc'], document) ? getInputCommandsPackageJson(document) : getInputCommandsShellFile(document)
     for (const range of inputRanges ?? []) {
         const allCommands = getAllCommandsFromString(document.getText(range))
         outputRanges.push(
@@ -1039,27 +1100,9 @@ const getAllCommandsLocations = (document: TextDocument) => {
     return outputRanges
 }
 
-const getPackageJsonInputCommands = (document: TextDocument) => {
-    const root = parseTree(document.getText())!
-    const scriptsRootNode = findNodeAtLocation(root, ['scripts'])
-    const scriptsNodes = scriptsRootNode?.children
-    if (!scriptsNodes) return
-    const nodeObjectMap = (nodes: Node[], type: 'prop' | 'value') => {
-        const indexGetter = type === 'prop' ? 0 : 1
-        return compact(nodes.map(value => value.type === 'property' && value.children![indexGetter]))
-    }
-    const ranges = [] as Range[]
-    for (const node of nodeObjectMap(scriptsNodes, 'value')) {
-        const startOffset = node.offset + 1
-        const range = new Range(document.positionAt(startOffset), document.positionAt(startOffset + node.length - 2))
-        ranges.push(range)
-    }
-    return ranges
-}
-
 trackDisposable(
     commands.registerCommand('runActiveDevelopmentCommand', () => {
-        console.log(getPackageJsonInputCommands(window.activeTextEditor.document))
+        console.log(getInputCommandsPackageJson(window.activeTextEditor.document))
     }),
 )
 
@@ -1112,7 +1155,7 @@ trackDisposable(
 
 if (typeof __TEST === 'undefined') {
     const diagnosticCollection: DiagnosticCollection = trackDisposable(languages.createDiagnosticCollection('uniqueUnreleasedFig'))
-    const testingEditor = window.visibleTextEditors.find(({ document: { languageId } }) => languageId === 'bat')
+    const testingEditor = window.visibleTextEditors.find(({ document }) => languages.match(SUPPORTED_SELECTOR, document))
     if (testingEditor) {
         const doLinting = () => {
             const { document } = testingEditor
