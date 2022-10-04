@@ -37,7 +37,7 @@ function parse(s, env, opts) {
                 }
                 const s = match[0]
                 if (RegExp('^' + CONTROL + '$').test(s)) {
-                    return { op: s }
+                    return { op: s, index: match.index }
                 }
 
                 // Hand-written scanner/parser for Bash quoting rules:
@@ -90,7 +90,7 @@ function parse(s, env, opts) {
                     } else if (c === DQ || c === SQ) {
                         quote = c
                     } else if (RegExp('^' + CONTROL + '$').test(c)) {
-                        return { op: s }
+                        return { op: s, index: match.index }
                     } else if (RegExp('^#$').test(c)) {
                         commented = true
                         if (out.length) {
@@ -105,7 +105,7 @@ function parse(s, env, opts) {
                     } else out += c
                 }
 
-                if (isGlob) return { op: 'glob', pattern: out }
+                if (isGlob) return { op: 'glob', index: match.index, pattern: out }
 
                 return [out, match.index]
 

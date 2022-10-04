@@ -38,7 +38,7 @@ import { parse } from './shell-quote-patched'
 import _ from 'lodash'
 import { findNodeAtLocation, getLocation, Node, parseTree } from 'jsonc-parser'
 import { getJsonCompletingInfo } from '@zardoy/vscode-utils/build/jsonCompletions'
-import { basename, dirname, relative } from 'path/posix'
+import { relative } from 'path/posix'
 
 const getFigSubcommand = (__spec: Fig.Spec) => {
     const _spec = typeof __spec === 'function' ? __spec() : __spec
@@ -267,7 +267,8 @@ const listFilesCompletions = async (cwd: Uri, stringContents: string, completion
                           title: '',
                       }
                     : undefined,
-                range: completionPos && new Range(completionPos.translate(0, -pathLastPart.length), completionPos),
+                // todo-low
+                range: completionPos && new Range(completionPos.translate(0, -pathLastPart.replace(/^ /, '').length), completionPos),
             }
         })
         .filter(Boolean)
@@ -304,6 +305,7 @@ interface ParseCommandStringResult {
     allParts: CommandPartTuple[]
     currentPartValue: string
     currentPartIsOption: boolean
+    /** offset in input string */
     currentPartOffset: number
     currentPartIndex: number
 }
@@ -313,8 +315,15 @@ const commandPartIsOption = (contents: string | undefined): boolean => contents?
 const getAllCommandsFromString = (inputString: string) => {
     const commandsParts = (parse(inputString) as any[]).reduce<CommandParts[]>(
         (prev, parsedPart) => {
-            if (Array.isArray(parsedPart)) prev.slice(-1)[0]!.push(parsedPart as any)
-            else prev.push([])
+            if (Array.isArray(parsedPart)) {
+                const last = prev.slice(-1)[0]!
+                // remove placeholder
+                if (last.length === 1 && last[0][0] === '') last.splice(0, 1)
+                last.push(parsedPart as any)
+            } else {
+                // add empty placeholder so we know op position
+                prev.push([['', parsedPart.index]])
+            }
             return prev
         },
         [[]],
@@ -329,7 +338,8 @@ export const parseCommandString = (inputString: string, stringPos: number, strip
     let currentPartValue = ''
     let currentCommandParts: CommandParts | undefined
     // todo reverse them
-    for (const commandParts of getAllCommandsFromString(inputString)) {
+    const allCommandsFromString = getAllCommandsFromString(inputString).map(parts => (parts.length ? parts : ([['', inputString.length]] as CommandParts)))
+    for (const commandParts of allCommandsFromString) {
         const firstCommandPart = commandParts[0]
         if (firstCommandPart?.[1] <= stringPos) {
             currentCommandParts = commandParts
@@ -337,8 +347,10 @@ export const parseCommandString = (inputString: string, stringPos: number, strip
             break
         }
     }
-    if (!currentCommandParts) return
-    if (currentCommandParts.length && inputString.endsWith(' ')) currentCommandParts.push([' ', inputString.length])
+    // needs currentCommandPartEnd
+    // pushing even if in mid pos
+    if (currentCommandParts[0][0] !== '' && inputString[stringPos - 1] === ' ')
+        currentCommandParts.push([' ', currentCommandParts.at(-1)[1] + currentCommandParts.at(-1)[0].length])
     for (const [i, currentCommandPart] of currentCommandParts.entries()) {
         if (currentCommandPart?.[1] <= stringPos) {
             currentPartIndex = i
@@ -368,7 +380,7 @@ const getDocumentParsedResult = (
 ): DocumentInfo | undefined => {
     const parseCommandResult = parseCommandString(stringContents, cursorStringOffset, options.stripCurrentValue)
     if (!parseCommandResult) return
-    const { allParts, currentPartIndex, currentPartValue, currentPartOffset: currentPartPos, currentPartIsOption } = parseCommandResult
+    const { allParts, currentPartIndex, currentPartValue, currentPartOffset, currentPartIsOption } = parseCommandResult
 
     /** can be specName */
     const preCurrentValue = allParts[currentPartIndex - 1]?.[0]
@@ -389,7 +401,7 @@ const getDocumentParsedResult = (
         // partsToPos,
         currentPartValue,
         usedOptions: allParts.filter(([content], index) => commandPartIsOption(content) && index !== currentPartIndex).map(([content]) => content),
-        currentPartOffset: currentPartPos ?? 0,
+        currentPartOffset,
         currentPartIndex,
         allParts,
         currentPartIsOption,
@@ -584,10 +596,11 @@ const fixPathArgRange = (inputString: string, startOffset: number, rangePos: [Po
     return ["'", '"'].includes(char) ? [rangePos[0].translate(0, 1), rangePos[1].translate(0, -1)] : rangePos
 }
 
-export const guessSimilarName = (invalidName: string, validNames: string[]) => {
+export const guessOptionSimilarName = (invalidName: string, validNames: string[]) => {
     // dont even try for flags like -b
     if (/^-[^-]/.exec(invalidName)) return
     return validNames.find(validName => {
+        // todo support options
         if (/^-[^-]/.exec(validName)) return
         const mainComparingName = invalidName.length > validName.length ? invalidName : validName
         const otherComparingName = invalidName.length > validName.length ? validName : invalidName
@@ -655,7 +668,7 @@ const fullCommandParse = (
         if (!inspectOnlyAllParts) return
     }
     // validate command name
-    if (parsingReason === 'lint' && !knownSpecNames.includes(documentInfo.specName)) {
+    if (parsingReason === 'lint' && documentInfo.specName !== '' && !knownSpecNames.includes(documentInfo.specName)) {
         collectedData.lintProblems.push({
             message: `Unknown command ${documentInfo.specName}`,
             range: partToRange(0),
@@ -725,7 +738,7 @@ const fullCommandParse = (
                     const { options } = subcommand
                     const guessedOptionName =
                         options &&
-                        guessSimilarName(
+                        guessOptionSimilarName(
                             partContents,
                             options.flatMap(({ name }) => ensureArray(name)),
                         )
@@ -781,12 +794,13 @@ const fullCommandParse = (
     }
     // todo make it easier to see & understand
     if (inspectOnlyAllParts) return
-    const { collectedCompletions, collectedCompletionsPromise } = collectedData
+    const pushCompletions = (items: CompletionItem[] | undefined) => collectedData.collectedCompletions.push(...(items ?? []))
+    const pushPromiseCompletions = (items: Promise<CompletionItem[]> | undefined) => collectedData.collectedCompletionsPromise.push(...([items] ?? []))
     if (/* !currentPartIsOption */ true) {
         const { subcommands, additionalSuggestions } = subcommand
         for (const arg of ensureArray(subcommand.args ?? [])) {
             if (!arg.isVariadic && argMetCount !== 0) continue
-            collectedCompletionsPromise.push(figArgToCompletions(arg, documentInfo))
+            pushPromiseCompletions(figArgToCompletions(arg, documentInfo))
             changeCollectedDataPath(arg, currentPartIndex)
             if (!currentPartIsOption) collectedData.argSignatureHelp = arg
             // todo is that right? (stopping at first one)
@@ -796,10 +810,10 @@ const fullCommandParse = (
             collectedData.currentSubcommand = subcommands.find(({ name }) => ensureArray(name).includes(currentPartValue))
         }
         if (goingToSuggest.subcommands) {
-            collectedCompletions.push(...((subcommands && figSubcommandsToVscodeCompletions(subcommands, documentInfo)) ?? []))
+            pushCompletions(subcommands && figSubcommandsToVscodeCompletions(subcommands, documentInfo))
             if (additionalSuggestions)
-                collectedCompletions.push(
-                    ...compact(
+                pushCompletions(
+                    compact(
                         additionalSuggestions.map(suggest =>
                             figSuggestionToCompletion(suggest, { ...documentInfo, kind: CompletionItemKind.Event, sortTextPrepend: 'c' }),
                         ),
@@ -861,14 +875,14 @@ const fullCommandParse = (
                 if (!args.isOptional) {
                     // make sure only arg completions are showed
                     // todo r
-                    collectedCompletions.splice(0, collectedCompletions.length)
+                    collectedData.collectedCompletions.splice(0, collectedData.collectedCompletions.length)
                     goingToSuggest.options = false
                 }
-                collectedCompletionsPromise.push(figArgToCompletions(args, patchedDocumentInfo))
+                pushPromiseCompletions(figArgToCompletions(args, patchedDocumentInfo))
             }
         }
 
-        if (goingToSuggest.options) collectedCompletions.push(...specOptionsToVscodeCompletions(subcommand, patchedDocumentInfo))
+        if (goingToSuggest.options) pushCompletions(specOptionsToVscodeCompletions(subcommand, patchedDocumentInfo))
     }
 
     collectedData.collectedCompletionsIncomplete = true
@@ -1067,7 +1081,6 @@ trackDisposable(
             for (const range of ranges) {
                 const collectedData: ParsingCollectedData = {}
                 fullCommandParse(document, range, range.start, collectedData, 'path-parts')
-                // console.log(collectedData.filePathParts)
                 for (const part of collectedData.filePathParts ?? []) {
                     const docCwd = getCwdUri(document)!
                     const renamedFile = renamedFiles.find(({ oldUri }) => oldUri.toString() === Uri.joinPath(docCwd, part[0]).toString())
@@ -1093,7 +1106,7 @@ trackDisposable(
                 if (!commandRange) continue
                 const startPos = commandRange.start
                 const text = document.getText(commandRange)
-                const parseResult = parseCommandString(text, position.character, false)
+                const parseResult = parseCommandString(text, position.character - startPos.character, false)
                 if (!parseResult) continue
                 const { currentPartOffset, currentPartValue, allParts } = parseResult
                 const curRange = new Range(

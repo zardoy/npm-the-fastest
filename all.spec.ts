@@ -14,6 +14,7 @@ vi.mock('vscode', () => ({
     ),
     workspace: {
         registerFileSystemProvider() {},
+        onDidRenameFiles() {},
     },
     window: {
         onDidChangeTextEditorSelection() {},
@@ -60,8 +61,7 @@ describe('parseCommandString', () => {
         expect(result?.currentPartValue).toBe('--define:')
     })
 
-    // todo
-    // testCommandPart('|', '', 0, 0)
+    testCommandPart('|', '', 0, 0)
     testCommandPart('yarn && pnpm |test', 'test', 13, 1)
     testCommandPart('esbuild "test 2.js" --define:yes|', '--define:yes', 20, 2)
     testCommandPart('esbui|ld "test 2.js" --define:yes ', 'esbuild', 0, 0)
@@ -70,8 +70,10 @@ describe('parseCommandString', () => {
     testCommandPart('esbuild "--opt=|value " --define:yes ', '--opt=value ', 8, 1)
     testCommandPart('esbuild --allow-|overwrite ', '--allow-overwrite', 8, 1)
     testCommandPart('esbuild "v" --allow-overwrite| ', '--allow-overwrite', 12, 2)
-    // todo
-    testCommandPart('esbuild "v" --allow-overwrite |', ' ', 30, 3)
+    testCommandPart('eslint && |', '', 7, 0)
+    testCommandPart('eslint && | &&', '', 7, 0)
+    testCommandPart('eslint && eslint | &&', ' ', 16, 1)
+    testCommandPart('esbuild "v" --allow-overwrite |', ' ', 29, 3)
 })
 
 // describe('getDocumentParsedResult', () => {
