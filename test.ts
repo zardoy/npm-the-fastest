@@ -26,9 +26,11 @@ import {
     SemanticTokensLegend,
     SnippetString,
     TextDocument,
+    TextEdit,
     Uri,
     window,
     workspace,
+    WorkspaceEdit,
 } from 'vscode'
 import { niceLookingCompletion } from '@zardoy/vscode-utils/build/completions'
 import { compact, ensureArray, findCustomArray, oneOf } from '@zardoy/utils'
@@ -36,6 +38,7 @@ import { parse } from './shell-quote-patched'
 import _ from 'lodash'
 import { findNodeAtLocation, getLocation, Node, parseTree } from 'jsonc-parser'
 import { getJsonCompletingInfo } from '@zardoy/vscode-utils/build/jsonCompletions'
+import { basename, dirname, relative } from 'path/posix'
 
 const getFigSubcommand = (__spec: Fig.Spec) => {
     const _spec = typeof __spec === 'function' ? __spec() : __spec
@@ -83,6 +86,8 @@ interface DocumentInfo extends ParseCommandStringResult {
     startPos: Position | undefined
     specName: string
     inputString: string
+    // prefixed to try avoid usages
+    _document: TextDocument
     // partsToPos: PartTuple[]
     // currentCommandPos: number
     /** all command options except currently completing */
@@ -226,14 +231,9 @@ const figBaseSuggestionToVscodeCompletion = (
     return completion
 }
 
-const getCwdUri = () => {
+const getCwdUri = ({ uri }: Pick<TextDocument, 'uri'>) => {
     // todo (easy) parse cd commands
     const allowSchemes = ['file', 'vscode-vfs']
-    const { activeTextEditor } = window
-    if (!activeTextEditor) return
-    const {
-        document: { uri },
-    } = activeTextEditor
     if (allowSchemes.includes(uri.scheme)) return Uri.joinPath(uri, '..')
     const firstWorkspace = workspace.workspaceFolders?.[0]
     return firstWorkspace?.uri
@@ -282,7 +282,7 @@ const templateToVscodeCompletion = async (_template: Fig.Template, info: Documen
     // todo
     const includeHelp = templates.includes('help')
     if (includeFilesKindType) {
-        const cwd = getCwdUri()
+        const cwd = getCwdUri(info._document)
         if (cwd)
             completions.push(
                 ...(await listFilesCompletions(
@@ -359,6 +359,7 @@ export const parseCommandString = (inputString: string, stringPos: number, strip
 
 // todo first incomplete
 const getDocumentParsedResult = (
+    _document: TextDocument,
     stringContents: string,
     realPos: Position,
     cursorStringOffset: number,
@@ -380,6 +381,7 @@ const getDocumentParsedResult = (
         ? [currentPartIndex, currentPartIndex + 1]
         : undefined
     return {
+        _document,
         realPos,
         startPos,
         inputString: stringContents.slice(allParts[0][1], allParts.at(-1)![1] + allParts.at(-1)![0].length),
@@ -566,7 +568,8 @@ interface ParsingCollectedData {
 
     lintProblems?: LintProblem[]
 
-    partPathContents?: string
+    currentFilePathPart?: [...CommandPartTuple, Range]
+    filePathParts?: [...CommandPartTuple, Range][]
 
     partsSemanticTypes?: [Range, SemanticLegendType][]
 }
@@ -575,6 +578,10 @@ interface ParsingCollectedData {
 const fixEndingPos = (inputString: string, endingOffset: number) => {
     const char = inputString[endingOffset + 1]
     return ["'", '"'].includes(char) ? endingOffset + 2 : endingOffset
+}
+const fixPathArgRange = (inputString: string, startOffset: number, rangePos: [Position, Position]): [Position, Position] => {
+    const char = inputString[startOffset]
+    return ["'", '"'].includes(char) ? [rangePos[0].translate(0, 1), rangePos[1].translate(0, -1)] : rangePos
 }
 
 export const guessSimilarName = (invalidName: string, validNames: string[]) => {
@@ -603,19 +610,19 @@ const fullCommandParse = (
     _position: Position,
     collectedData: ParsingCollectedData,
     // needs cleanup
-    parsingReason: 'completions' | 'signatureHelp' | 'hover' | 'lint' | 'basicData' | 'semanticHighlight',
+    parsingReason: 'completions' | 'signatureHelp' | 'hover' | 'lint' | 'path-parts' | 'semanticHighlight',
 ): undefined => {
     // todo
     const knownSpecNames = ALL_LOADED_SPECS.flatMap(({ name }) => ensureArray(name))
     const inputText = document.getText(inputRange)
     const startPos = inputRange.start
     const stringPos = _position.character - startPos.character
-    const documentInfo = getDocumentParsedResult(inputText, _position, stringPos, startPos, {
+    const documentInfo = getDocumentParsedResult(document, inputText, _position, stringPos, startPos, {
         stripCurrentValue: parsingReason === 'completions',
     })
     if (!documentInfo) return
     let { allParts, currentPartValue, currentPartIndex, currentPartIsOption } = documentInfo
-    const inspectOnlyAllParts = oneOf(parsingReason, 'lint', 'semanticHighlight') as boolean
+    const inspectOnlyAllParts = oneOf(parsingReason, 'lint', 'semanticHighlight', 'path-parts') as boolean
 
     // avoid using positions to avoid .translate() crashes
     if (parsingReason !== 'completions') {
@@ -632,6 +639,7 @@ const fullCommandParse = (
     collectedData.lintProblems = []
     collectedData.collectedCompletions = []
     collectedData.collectedCompletionsPromise = []
+    collectedData.filePathParts = []
 
     const setSemanticType = (index: number, type: SemanticLegendType) => {
         collectedData.partsSemanticTypes!.push([new Range(...partToRange(index)), type])
@@ -658,12 +666,21 @@ const fullCommandParse = (
     if (!spec) return
     const figRootSubcommand = getFigSubcommand(spec)
 
-    const changeCollectedDataPath = (arg: Fig.Arg) => {
+    const getIsPathPart = (arg: Fig.Arg) => {
         const isPathTemplate = ({ template }: { template?: Fig.Template }): boolean =>
             !!template && ensureArray(template).filter(item => item === 'filepaths' || item === 'folders').length > 0
-
-        const isPathPart = isPathTemplate(arg) || ensureArray(arg.generators ?? []).some(gen => isPathTemplate(gen))
-        collectedData.partPathContents = isPathPart ? currentPartValue : undefined
+        return isPathTemplate(arg) || ensureArray(arg.generators ?? []).some(gen => isPathTemplate(gen))
+    }
+    const changeCollectedDataPath = (arg: Fig.Arg, i: number) => {
+        const part = allParts[i]
+        // todo duplication
+        collectedData.currentFilePathPart = getIsPathPart(arg) ? [...part, new Range(...fixPathArgRange(inputText, part[1], partToRange(i)))] : undefined
+    }
+    const addPossiblyPathPart = (i: number, args: Fig.Arg[] | Fig.Arg) => {
+        const isPathPart = ensureArray(args).some(arg => getIsPathPart(arg))
+        if (!isPathPart) return
+        const part = allParts[i]
+        collectedData.filePathParts.push([...part, new Range(...fixPathArgRange(inputText, part[1], partToRange(i)))])
     }
 
     const { completingOptionValue: completingParamValue, completingOptionFull } = documentInfo.parsedInfo
@@ -734,8 +751,10 @@ const fullCommandParse = (
                 argMetCount = 0
             } else if (allParts[partIndex - 1][2] && getSubcommandOption(allParts[partIndex - 1][0])?.args) {
                 setSemanticType(partIndex, 'option-arg')
+                addPossiblyPathPart(partIndex, getSubcommandOption(allParts[partIndex - 1][0]).args)
             } else if (subcommand.args) {
                 setSemanticType(partIndex, 'arg')
+                addPossiblyPathPart(partIndex, subcommand.args)
                 argMetCount++
                 // subcommand.requiresSubcommand
                 const arg = ensureArray(subcommand.args)[0]
@@ -768,7 +787,7 @@ const fullCommandParse = (
         for (const arg of ensureArray(subcommand.args ?? [])) {
             if (!arg.isVariadic && argMetCount !== 0) continue
             collectedCompletionsPromise.push(figArgToCompletions(arg, documentInfo))
-            changeCollectedDataPath(arg)
+            changeCollectedDataPath(arg, currentPartIndex)
             if (!currentPartIsOption) collectedData.argSignatureHelp = arg
             // todo is that right? (stopping at first one)
             break
@@ -838,7 +857,7 @@ const fullCommandParse = (
             if (Array.isArray(args)) args = args[0]
             if (args) {
                 collectedData.argSignatureHelp = args
-                changeCollectedDataPath(args)
+                changeCollectedDataPath(args, currentPartIndex)
                 if (!args.isOptional) {
                     // make sure only arg completions are showed
                     // todo r
@@ -854,6 +873,8 @@ const fullCommandParse = (
 
     collectedData.collectedCompletionsIncomplete = true
 }
+
+type DocumentWithPos<R> = (document: TextDocument, position: Position) => R
 
 const APPLY_SUGGESTION_COMPLETION = '_applyFigSuggestion'
 
@@ -969,25 +990,97 @@ trackDisposable(
     }),
 )
 
+const pathStringToUri = (document: TextDocument, contents: string) => {
+    const cwdUri = getCwdUri(document)
+    if (!cwdUri) return
+    return Uri.joinPath(cwdUri, contents)
+}
+
+const getFilePathPart: DocumentWithPos<{ range: Range; contents: string; uri?: Thenable<Uri | undefined> } | undefined> = (document, position) => {
+    const commandRange = provideRangeFromDocumentPosition(document, position)
+    if (!commandRange) return
+    const collectedData: ParsingCollectedData = {}
+    fullCommandParse(document, commandRange, position, collectedData, 'signatureHelp')
+    let { currentFilePathPart } = collectedData
+    if (!currentFilePathPart) return
+    const uri = pathStringToUri(document, currentFilePathPart[0])
+    return {
+        range: currentFilePathPart[3],
+        contents: currentFilePathPart[0],
+        // uri of existing file
+        uri: workspace.fs.stat(uri).then(
+            () => uri,
+            () => undefined,
+        ),
+    }
+}
+
 trackDisposable(
     languages.registerDefinitionProvider(SUPPORTED_SELECTOR, {
         provideDefinition(document, position, token) {
-            const commandRange = provideRangeFromDocumentPosition(document, position)
-            if (!commandRange) return
-            const collectedData: ParsingCollectedData = {}
-            fullCommandParse(document, commandRange, position, collectedData, 'signatureHelp')
-            const { partPathContents, currentPartRange } = collectedData
-            if (!partPathContents) return
-            // also its possible to migrate to link provider that support command
+            const { contents, uri, range } = getFilePathPart(document, position) ?? {}
+            if (!contents) return
+            // also its possible to migrate to link provider that support command: protocol
             return [
                 {
                     targetRange: new Range(new Position(0, 0), new Position(0, 100)),
-                    targetUri: Uri.from({ scheme: SCHEME, path: `/${partPathContents}` }),
+                    targetUri: Uri.from({ scheme: SCHEME, path: `/${contents}` }),
                     // todo use inner
-                    originSelectionRange: new Range(...currentPartRange!),
+                    originSelectionRange: range,
                 } as LocationLink,
             ]
         },
+    }),
+)
+
+trackDisposable(
+    languages.registerRenameProvider(SUPPORTED_SELECTOR, {
+        async prepareRename(document, position, token) {
+            const { range, uri } = getFilePathPart(document, position) ?? {}
+            if (!range) throw new Error('You cannot rename this element')
+            if (!(await uri)) throw new Error("Renaming file doesn't exist")
+            return range
+        },
+        async provideRenameEdits(document, position, newName, token) {
+            const { range, uri } = getFilePathPart(document, position) ?? {}
+            if (!uri) return
+            const edit = new WorkspaceEdit()
+            edit.set(document.uri, [{ range, newText: newName }])
+            edit.renameFile(await uri, Uri.joinPath(getCwdUri({ uri: await uri })!, newName))
+            return edit
+        },
+    }),
+)
+
+trackDisposable(
+    workspace.onDidRenameFiles(async ({ files: renamedFiles }) => {
+        // todo done for demo purposes / don't make implicit edits
+        const documentsToParse = window.visibleTextEditors
+            .map(({ document }) => document)
+            .filter(document => languages.match(SUPPORTED_SHELL_SELECTOR, document) || document.uri.path.endsWith('package.json'))
+        // const updateLocations
+        const edit = new WorkspaceEdit()
+        for (const document of documentsToParse) {
+            const docTextEdits: TextEdit[] = []
+            const ranges = getAllCommandsLocations(document)
+            if (!ranges) continue
+            for (const range of ranges) {
+                const collectedData: ParsingCollectedData = {}
+                fullCommandParse(document, range, range.start, collectedData, 'path-parts')
+                // console.log(collectedData.filePathParts)
+                for (const part of collectedData.filePathParts ?? []) {
+                    const docCwd = getCwdUri(document)!
+                    const renamedFile = renamedFiles.find(({ oldUri }) => oldUri.toString() === Uri.joinPath(docCwd, part[0]).toString())
+                    if (!renamedFile) continue
+                    const newPath = renamedFile.newUri.path
+                    const newRelativePath = relative(docCwd.path, newPath)
+                    // todo1 preserve ./
+                    docTextEdits.push({ range: part[3], newText: newRelativePath })
+                }
+            }
+            if (docTextEdits.length > 0) edit.set(document.uri, docTextEdits)
+        }
+        if (edit.size) await workspace.applyEdit(edit)
     }),
 )
 
@@ -1025,7 +1118,7 @@ trackDisposable(
     }),
 )
 
-const provideRangeFromDocumentPositionPackageJson = (document: TextDocument, position: Position) => {
+const provideRangeFromDocumentPositionPackageJson: DocumentWithPos<Range> = (document, position) => {
     const offset = document.offsetAt(position)
     const location = getLocation(document.getText(), offset)
     if (!location?.matches(['scripts', '*'])) return
@@ -1036,14 +1129,14 @@ const provideRangeFromDocumentPositionPackageJson = (document: TextDocument, pos
 }
 
 const shellBannedLineRegex = /^\s*(#|::|if|else|fi|return|function|"|'|[\w\d]+(=|\())/i
-const provideRangeFromDocumentPositionShellFile = (document: TextDocument, position: Position) => {
+const provideRangeFromDocumentPositionShellFile: DocumentWithPos<Range> = (document, position) => {
     const line = document.lineAt(position)
     shellBannedLineRegex.lastIndex = 0
     if (shellBannedLineRegex.test(line.text)) return
     return line.range
 }
 
-const provideRangeFromDocumentPosition = (document: TextDocument, position: Position) => {
+const provideRangeFromDocumentPosition: DocumentWithPos<Range> = (document, position) => {
     return document.uri.path.endsWith('package.json')
         ? provideRangeFromDocumentPositionPackageJson(document, position)
         : provideRangeFromDocumentPositionShellFile(document, position)
@@ -1100,12 +1193,6 @@ const getAllCommandsLocations = (document: TextDocument) => {
     return outputRanges
 }
 
-trackDisposable(
-    commands.registerCommand('runActiveDevelopmentCommand', () => {
-        console.log(getInputCommandsPackageJson(window.activeTextEditor.document))
-    }),
-)
-
 const semanticLegendTypes = ['command', 'subcommand', 'arg', 'option', 'option-arg', 'dangerous'] as const
 type SemanticLegendType = typeof semanticLegendTypes[number]
 // temporarily use existing tokens, instead of defining own in demo purposes
@@ -1147,7 +1234,7 @@ trackDisposable(
         const uri = editor?.document.uri
         if (uri?.scheme !== SCHEME) return
         await commands.executeCommand('workbench.action.closeActiveEditor')
-        const cwd = getCwdUri()
+        const cwd = getCwdUri({ uri })
         if (!cwd) return
         commands.executeCommand('revealInExplorer', Uri.joinPath(cwd, uri.path.slice(1)))
     }),
