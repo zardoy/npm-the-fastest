@@ -7,9 +7,8 @@ type PromiseType<T> = T extends Promise<infer U> ? U : never
 
 const detectAndAssignProblemMatcher = (task: vscode.Task, scriptContent: string) => {
     // TODO! simple cmd parser &&
-    // TODO! resolve final command with links
-    if (scriptContent.startsWith('tsc')) task.problemMatchers = ['$tsc']
-    if (scriptContent.startsWith('esbuild')) task.problemMatchers = scriptContent.includes('--watch') ? ['$esbuild-watch'] : ['$esbuild']
+    if (scriptContent.includes('tsc')) task.problemMatchers = ['$tsc']
+    if (scriptContent.includes('esbuild')) task.problemMatchers = scriptContent.includes('--watch') ? ['$esbuild-watch'] : ['$esbuild']
 }
 
 /**
