@@ -29,31 +29,27 @@ export const runBinCommand = async () => {
 }
 
 export const getBinCommands = async () => {
-    const documentPath = vscode.window.activeTextEditor?.document.uri.fsPath
-    const workspacePath = vscode.workspace.workspaceFolders?.[0]!.uri.fsPath
-    if (!workspacePath) throw new Error('available only in workspace')
+    const _docUri = vscode.window.activeTextEditor?.document.uri
+    if (!_docUri) return []
+    const folderUri = vscode.Uri.joinPath(_docUri, '..')
+    const workspaceUri = vscode.workspace.workspaceFolders?.[0]!.uri
+    const isFileInWorkspace = !workspaceUri || folderUri.toString().startsWith(workspaceUri.toString())
 
     const nodeModulesPaths = await (async () => {
-        if (documentPath) {
-            const findUpArgs = [
-                'node_modules',
-                {
-                    cwd: documentPath,
-                    stopAt: workspacePath,
-                    type: 'directory',
-                },
-            ] as const
-            if (getExtensionSetting('runBinCommand.searchLocation') === 'nearest') {
-                const path = await findUp(...findUpArgs)
-                return path !== undefined && [path]
-            }
-
-            return findUpMultiple(...findUpArgs)
+        const findUpArgs = [
+            'node_modules',
+            {
+                cwd: folderUri.fsPath,
+                stopAt: isFileInWorkspace ? workspaceUri!.fsPath : undefined,
+                type: 'directory',
+            },
+        ] as const
+        if (getExtensionSetting('runBinCommand.searchLocation') === 'nearest') {
+            const path = await findUp(...findUpArgs)
+            return path !== undefined && [path]
         }
 
-        const nodeModulesPath = join(workspacePath, 'node_modules')
-        if (fs.existsSync(nodeModulesPath)) return [nodeModulesPath]
-        return []
+        return findUpMultiple(...findUpArgs)
     })()
     if (!nodeModulesPaths || nodeModulesPaths.length === 0) throw new Error('no node_modules in current workspace')
 

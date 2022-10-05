@@ -23,14 +23,13 @@ export const registerPackageJsonCompletions = () => {
                 const root = parseTree(document.getText())!
                 const location = getLocation(document.getText(), offset)
                 const { path } = location
-                const node = findNodeAtLocation(root, path)
                 const jsonCompletingInfo = getJsonCompletingInfo(location, document, position)
                 if (!jsonCompletingInfo) return
                 const { insideStringRange } = jsonCompletingInfo
-                const folder = Utils.joinPath(document.uri, '..')
+                const folderUri = Utils.joinPath(document.uri, '..')
                 if (insideStringRange) {
                     if (location.matches(['name'])) {
-                        const folderName = Utils.basename(folder)
+                        const folderName = Utils.basename(folderUri)
                         return jsonValuesToCompletions([folderName])
                     }
 
@@ -74,7 +73,7 @@ export const registerPackageJsonCompletions = () => {
                             compareString = compareString.replace(/\s$/, '')
                             for (const [key, filesGlob] of Object.entries(pathAutoComplete))
                                 if (compareString === key) {
-                                    const files = await vscode.workspace.findFiles(new vscode.RelativePattern(folder, filesGlob), '**/node_modules/**')
+                                    const files = await vscode.workspace.findFiles(new vscode.RelativePattern(folderUri, filesGlob), '**/node_modules/**')
                                     return files.map(uri => ({
                                         label: Utils.basename(uri),
                                         kind: vscode.CompletionItemKind.File,
@@ -106,12 +105,9 @@ export const registerPackageJsonCompletions = () => {
                             }),
                         )
                     }
-                    //
                 }
 
                 // if (location.matches(['peerDependenciesMeta'])) return jsonValuesToCompletions(['test'])
-
-                // console.log(getLocation(document.getText(), offset).matches(['scripts', '*']))
                 return undefined
             },
         },

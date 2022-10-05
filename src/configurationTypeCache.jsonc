@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: fd6807fee82c0259817e00d5a0a9b619
+// md5hash: 90717a6b6c67a68e25ab99d99671936f
 {
     "type": "object",
     "properties": {
@@ -145,7 +145,6 @@
             "type": "boolean"
         },
         "runBinCommand.searchLocation": {
-            "description": "From where to pick bin commands",
             "default": "allUpToRoot",
             "enum": [
                 "allUpToRoot",

@@ -228,5 +228,14 @@
         "vscode-uri": "^3.0.3",
         "which-pm": "^2.0.0",
         "yamljs": "^0.3.0"
+    },
+    "prettier": {
+        "semi": false,
+        "singleQuote": true,
+        "proseWrap": "never",
+        "tabWidth": 4,
+        "trailingComma": "all",
+        "arrowParens": "avoid",
+        "printWidth": 160
     }
 }

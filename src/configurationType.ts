@@ -152,6 +152,9 @@ export type Configuration = {
     //     "All bin commands from all node_modules from cwd up to root of workspace",
     //     "All bin commands from nearest node_modules"
     // ]
+    /**
+     * @default allUpToRoot
+     */
     'runBinCommand.searchLocation': 'allUpToRoot' | 'nearest'
     // 'editor.suggestPackagesToInstall': { [identifier: string]: boolean }
     /**
