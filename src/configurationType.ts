@@ -44,15 +44,15 @@ export type Configuration = {
     // "default": "parallel"
     // "install.handleMutlirootWorkspaces"?: "disabled" | "parallel" | "serial";
     /**
-     * Create your own sets of package to install at once
+     * Create your own sets of package to install at once. Some kind of snippets for your package manager!
      */
-    'install.packs': { [key: string]: string[] }
+    // 'install.packs': { [key: string]: string[] }
     /**
      * Whether to run package manager install command whenever new workspace is opened to
      * ensure that you have up-to-date deps
      * @default disable
      */
-    'install.runOnOpen': 'always' | 'askIfNeeded' | 'disable' | 'ifNeeded'
+    'install.runOnOpen': 'always' | 'askIfNeeded' | 'disable'
     /**
      * Delay, before package manager invoke. Uses debounce. Relies on #install.watchPackageJson#
      * @default 500
@@ -65,6 +65,7 @@ export type Configuration = {
     'install.watchPackageJson': boolean
     /**
      * Invoke package manager install whenever lockfile is changed (usually after git operations)
+     * @default prompt
      * @enumDescriptions [
             "Don't do anything",
             "Display confirmation prompt to perform packages install",
@@ -73,8 +74,21 @@ export type Configuration = {
      */
     'install.watchPackageLocks': 'disabled' | 'prompt' | 'withoutPrompt'
     /**
+     * Wether to use integrated terminal for package manager commands (e.g. adding packages or `pnpm install`)
+     * @default true
+     */
+    useIntegratedTerminal: boolean
+    /**
+     * By default when command if failed, terminal is showed, however you can opt-in into showing notification instead (benefit: there is retry command button in this case)
+     *
+     * Note: You can always open terminal, in which package manager commands are executed by using `Show Package Manager Terminal` command
+     * @default showTerminal
+     */
+    onPackageManagerCommandFail: 'showTerminal' | 'showNotification'
+    /**
      * All package manager commands are executed from extension host process. Passing all environmental variables from ext host can cause problems that is hard to debug.
      * Note, that this affects all package manager commands for all package managers.
+     * @deprecated Use `useIntegratedTerminal` = true
      * @default include
      */
     packageManagerAllowedEnv: 'include' | 'exclude' | 'disable'

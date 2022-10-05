@@ -1,7 +1,9 @@
-import vscode from 'vscode'
+/* eslint-disable no-async-promise-executor */
+import * as vscode from 'vscode'
 import execa from 'execa'
-import { getExtensionSetting, GracefulCommandError } from 'vscode-framework'
+import { getExtensionId, getExtensionSetting, GracefulCommandError } from 'vscode-framework'
 import { firstExists } from '@zardoy/vscode-utils/build/fs'
+import { equals } from 'rambda'
 import { getPmEnv, pnpmCommand, supportedPackageManagers, SupportedPackageManagersName } from '../core/packageManager'
 
 export const getPrefferedPackageManager = async (cwd: vscode.Uri): Promise<SupportedPackageManagersName> => {
@@ -16,7 +18,7 @@ export const getPrefferedPackageManager = async (cwd: vscode.Uri): Promise<Suppo
         })),
     )
     const leadingPackageManager = getExtensionSetting('leadingPackageManager')
-    if (name) return name
+    if (name) return name as any
     if (leadingPackageManager !== null) return leadingPackageManager
     let pm: SupportedPackageManagersName = 'npm' // will be used last
     // TODO check also version
@@ -59,17 +61,15 @@ export const pmIsInstalledOrThrow = async (pm: SupportedPackageManagersName) => 
     }
 }
 
-export const packageManagerCommand = async ({
-    cwd,
-    command,
-    packages = [],
-    flags = [],
-    // flags,
-    // TODO!
-    // displayCwd = false,
-    // realPackagesCount = packages?.length,
-    forcePm,
-}: {
+class CancelError extends Error {
+    override name = 'CancelError'
+
+    constructor() {
+        super('')
+    }
+}
+
+export const packageManagerCommand = async (_inputArg: {
     cwd: vscode.Uri
     command: 'install' | 'add' | 'remove'
     // displayCwd?: boolean
@@ -84,6 +84,17 @@ export const packageManagerCommand = async ({
     //     dev: boolean
     // }
 }) => {
+    let {
+        cwd,
+        command,
+        packages = [],
+        flags = [],
+        // flags,
+        // TODO!
+        // displayCwd = false,
+        // realPackagesCount = packages?.length,
+        forcePm,
+    } = _inputArg
     const pm = forcePm ?? (await getPrefferedPackageManager(cwd))
     // const getMessage = () => {
     //     let msg = ''
@@ -115,6 +126,17 @@ export const packageManagerCommand = async ({
         return
     }
 
+    // const getFullCommand = () => [execCmd, ...(packages.map(p => `"${p}"`) ?? []), ...flags].join(' ')
+
+    const commandArgs = [execCmd, ...(packages ?? []), ...flags]
+    const commandName = pm
+    try {
+        await handleRunningTask(commandName, commandArgs)
+    } catch (err) {
+        if (err instanceof CancelError) return
+        throw err
+    }
+
     await vscode.window.withProgress(
         {
             location: vscode.ProgressLocation.Notification,
@@ -122,30 +144,142 @@ export const packageManagerCommand = async ({
             cancellable: true,
         },
         async ({ report: reportProgress }, cancellationToken) => {
-            switch (pm) {
-                case 'npm':
-                case 'yarn':
-                    // TODO yarn --json
-                    await execa(pm, [execCmd, ...(packages ?? []), ...flags], {
-                        cwd: cwd.fsPath,
-                        extendEnv: false,
-                        env: getPmEnv(pm) as any,
+            if (getExtensionSetting('useIntegratedTerminal')) {
+                const exitCode = await executeCommandInTerminal(commandName, commandArgs, cwd, {
+                    setTaskExec(taskExec) {
+                        cancellationToken.onCancellationRequested(() => taskExec.terminate())
+                    },
+                })
+                if (getExtensionSetting('onPackageManagerCommandFail') === 'showNotification' && exitCode !== 0)
+                    void vscode.window.showErrorMessage(`${commandName} ${command} failed`, 'Show terminal', 'Retry').then(selectedAction => {
+                        if (selectedAction === 'Show terminal') showPackageManagerTerminal()
+                        else if (selectedAction === 'Retry') void packageManagerCommand(_inputArg)
                     })
-                    break
-                case 'pnpm':
-                    await pnpmCommand({
-                        cwd: cwd.fsPath,
-                        command: execCmd,
-                        cancellationToken,
-                        packages,
-                        reportProgress,
-                        flags: flags as string[],
-                    })
-                    break
+            } else {
+                switch (pm) {
+                    case 'npm':
+                    case 'yarn':
+                        // TODO yarn --json
+                        await execa(commandName, commandArgs, {
+                            cwd: cwd.fsPath,
+                            extendEnv: false,
+                            env: getPmEnv(pm) as any,
+                        })
+                        break
+                    case 'pnpm':
+                        await pnpmCommand({
+                            cwd: cwd.fsPath,
+                            command: execCmd,
+                            cancellationToken,
+                            packages,
+                            reportProgress,
+                            flags: flags as string[],
+                        })
+                        break
 
-                default:
-                    break
+                    default:
+                        break
+                }
             }
         },
     )
+}
+
+interface ReportData {
+    setTaskExec(taskExec: vscode.TaskExecution): void
+    // setMessageOverride
+}
+
+const handleRunningTask = (command: string, args: string[]) => {
+    const ourTaskExec = vscode.tasks.taskExecutions.find(({ task }) => task.source === getExtensionId())
+    if (ourTaskExec) {
+        const exec = ourTaskExec.task.execution as vscode.ShellExecution
+        const absolutelyTheSameTask = exec.command === command && equals(exec.args, args)
+        if (absolutelyTheSameTask) throw new Error('Absolutely the same task is already running in terminal')
+        else
+            return vscode.window.withProgress(
+                { location: vscode.ProgressLocation.Notification, title: `Waiting for previous ${command} task to end`, cancellable: true },
+                async (_, token) => {
+                    token.onCancellationRequested(() => {
+                        throw new CancelError()
+                    })
+                    return new Promise<void>(resolve => {
+                        vscode.tasks.onDidEndTask(({ execution }) => {
+                            if (execution === ourTaskExec) resolve()
+                        })
+                    })
+                },
+            )
+    }
+
+    return undefined
+}
+
+const executeTaskShared = async (
+    data:
+        | 'reveal'
+        | 'close'
+        | {
+              command: string
+              args: string[]
+              cwd: vscode.Uri
+              reportData: ReportData
+          },
+) => {
+    /** non execute action */
+    const isSpecialAction = typeof data === 'string' && data
+    // console.log(isSpecialAction)
+    const title = 'npm the fastest'
+    const task = new vscode.Task(
+        {
+            type: 'shell',
+        },
+        vscode.TaskScope.Workspace,
+        title,
+        getExtensionId(),
+        isSpecialAction
+            ? new vscode.ShellExecution('echo', ['See output above!'])
+            : new vscode.ShellExecution(data.command, data.args, { cwd: data.cwd.fsPath }),
+    )
+
+    const taskExecRevealKind =
+        getExtensionSetting('onPackageManagerCommandFail') === 'showTerminal' ? vscode.TaskRevealKind.Silent : vscode.TaskRevealKind.Never
+    task.presentationOptions.reveal = isSpecialAction === 'reveal' ? vscode.TaskRevealKind.Always : taskExecRevealKind
+    task.presentationOptions.panel = vscode.TaskPanelKind.Shared
+    if (isSpecialAction) {
+        task.presentationOptions.showReuseMessage = false
+        task.presentationOptions.echo = false
+        // //@ts-expect-error Undocumented?
+        // if (isSpecialAction === 'close') task.presentationOptions.close = true
+    } else {
+        task.presentationOptions.echo = true
+        task.presentationOptions.clear = true
+    }
+
+    if (isSpecialAction) void vscode.tasks.executeTask(task)
+    else
+        return new Promise(async resolve => {
+            vscode.tasks.onDidEndTaskProcess(({ execution, exitCode }) => {
+                // eslint-disable-next-line curly
+                if (execution.task === task) {
+                    // if (exitCode === 0) sexecuteTaskShared('close')
+                    resolve(exitCode)
+                }
+            })
+            const taskExec = await vscode.tasks.executeTask(task)
+
+            data.reportData.setTaskExec(taskExec)
+        })
+}
+
+export const executeCommandInTerminal = async (command: string, args: string[], cwd: vscode.Uri, reportData: ReportData) =>
+    executeTaskShared({
+        command,
+        args,
+        cwd,
+        reportData,
+    })
+
+export const showPackageManagerTerminal = () => {
+    void executeTaskShared('reveal')
 }

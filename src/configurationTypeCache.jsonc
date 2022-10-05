@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: 90717a6b6c67a68e25ab99d99671936f
+// md5hash: ce2b5d13ba0a233f3bf4fb92fcfe8fda
 {
     "type": "object",
     "properties": {
@@ -23,24 +23,13 @@
             ],
             "type": "string"
         },
-        "install.packs": {
-            "description": "Create your own sets of package to install at once",
-            "type": "object",
-            "additionalProperties": {
-                "type": "array",
-                "items": {
-                    "type": "string"
-                }
-            }
-        },
         "install.runOnOpen": {
             "description": "Whether to run package manager install command whenever new workspace is opened to\nensure that you have up-to-date deps",
             "default": "disable",
             "enum": [
                 "always",
                 "askIfNeeded",
-                "disable",
-                "ifNeeded"
+                "disable"
             ],
             "type": "string"
         },
@@ -56,10 +45,25 @@
         },
         "install.watchPackageLocks": {
             "description": "Invoke package manager install whenever lockfile is changed (usually after git operations)",
+            "default": "prompt",
             "enum": [
                 "disabled",
                 "prompt",
                 "withoutPrompt"
+            ],
+            "type": "string"
+        },
+        "useIntegratedTerminal": {
+            "description": "Wether to use integrated terminal for package manager commands (e.g. adding packages or `pnpm install`)",
+            "default": true,
+            "type": "boolean"
+        },
+        "onPackageManagerCommandFail": {
+            "description": "By default when command if failed, terminal is showed, however you can opt-in into showing notification instead (benefit: there is retry command button in this case)\n\nNote: You can always open terminal, in which package manager commands are executed by using `Show Package Manager Terminal` command",
+            "default": "showTerminal",
+            "enum": [
+                "showNotification",
+                "showTerminal"
             ],
             "type": "string"
         },
@@ -276,12 +280,12 @@
         "codeAction.resolveBranchName",
         "codeActions.enableLanguages",
         "install.clipboardDetection",
-        "install.packs",
         "install.runOnOpen",
         "install.watchDelay",
         "install.watchPackageJson",
         "install.watchPackageLocks",
         "leadingPackageManager",
+        "onPackageManagerCommandFail",
         "packageJsonIntellisense",
         "packageJsonLinks",
         "packageJsonScriptNameLink",
@@ -296,6 +300,7 @@
         "search.includeDeprecated",
         "search.provder",
         "statusbar.showMainScriptStatus",
+        "useIntegratedTerminal",
         "yarnBerry.workspaceAutoInstall"
     ]
 }

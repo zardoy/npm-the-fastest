@@ -1,10 +1,10 @@
 import vscode from 'vscode'
-import { getExtensionId, getExtensionSettingId, registerActiveDevelopmentCommand, registerAllExtensionCommands } from 'vscode-framework'
+import { registerAllExtensionCommands } from 'vscode-framework'
 import { getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
 import { workspaceOpened } from './autoInstall'
 import { registerCodeActions } from './codeActions'
 import { throwIfNowPackageJson as throwIfNoPackageJson } from './commands-core/packageJson'
-import { packageManagerCommand } from './commands-core/packageManager'
+import { packageManagerCommand, showPackageManagerTerminal } from './commands-core/packageManager'
 import { addPackagesCommand } from './commands/addPackages'
 import { openClosestPackageJson } from './commands/openClosestPackageJson'
 import { registerOpenPackageAtCommands } from './commands/openPackageAt'
@@ -45,6 +45,7 @@ export const activate = () => {
         printEnv: () => {
             console.log(process.env)
         },
+        showPackageManagerTerminal,
     })
 
     registerOpenPackageAtCommands()
