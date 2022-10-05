@@ -1,5 +1,9 @@
 # NPM Rapid Ready
 
+### Help Wanted
+
+This extension has already implemented a lot of great & unique features, but it was always suffering because of lack maintenance support. It still has a lot of ideas be to implemented in the feature, they are all easy to implement and I'd happy to transfer them!
+
 ## Key Features
 
 ### Package Manager Support
