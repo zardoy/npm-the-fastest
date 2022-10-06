@@ -4,7 +4,6 @@ import execa from 'execa'
 import { getExtensionId, getExtensionSetting, GracefulCommandError } from 'vscode-framework'
 import { firstExists } from '@zardoy/vscode-utils/build/fs'
 import { equals } from 'rambda'
-import { Utils } from 'vscode-uri'
 import { getPmEnv, pnpmCommand, supportedPackageManagers, SupportedPackageManagersName } from '../core/packageManager'
 
 export const getPrefferedPackageManager = async (cwd: vscode.Uri): Promise<SupportedPackageManagersName> => {
@@ -62,39 +61,6 @@ export const pmIsInstalledOrThrow = async (pm: SupportedPackageManagersName) => 
     }
 }
 
-const ensurePmFilesIsSaved = async (cwd: vscode.Uri, packageManager: SupportedPackageManagersName, shortCommandName = 'package manager') => {
-    const settingAction = getExtensionSetting('unsavedFileBeforePackageManagerCommand')
-    if (settingAction === 'disable') return
-    const documents = await Promise.allSettled(
-        ['package.json', supportedPackageManagers[packageManager].detectFile]
-            .map(name => vscode.Uri.joinPath(cwd, name))
-            .map(uri => vscode.workspace.openTextDocument(uri)),
-    )
-    const dirtyDocuments = documents
-        .map(doc => (doc.status === 'fulfilled' ? doc.value : undefined!))
-        .filter(Boolean)
-        .filter(document => document.isDirty)
-    if (dirtyDocuments.length > 0) {
-        let performSave: boolean
-        if (settingAction === 'autoSave') {
-            performSave = true
-        } else {
-            const choice = await vscode.window.showWarningMessage(
-                `Save ${dirtyDocuments.map(({ uri }) => Utils.basename(uri)).join(', ')}?`,
-                {
-                    modal: true,
-                    detail: `Executing ${shortCommandName} command would overwrite these files on disk, which would cause conflicts if you save them later.`,
-                },
-                'Save & continue',
-            )
-            if (choice === 'Save & continue') performSave = true
-            else throw new CancelError()
-        }
-
-        if (performSave) for (const dirtyDocument of dirtyDocuments) await dirtyDocument.save()
-    }
-}
-
 class CancelError extends Error {
     override name = 'CancelError'
 
@@ -132,13 +98,6 @@ export const packageManagerCommand = async (_inputArg: {
     const pm = forcePm ?? (await getPrefferedPackageManager(cwd))
     const commandName = pm
     const taskShortTitle = `${commandName} ${subcommand}`
-
-    try {
-        if (subcommand !== 'install') await ensurePmFilesIsSaved(cwd, pm, taskShortTitle)
-    } catch (err) {
-        if (err instanceof CancelError) return
-        throw err
-    }
 
     const getMessage = (): string => {
         let msg = `[${pm}] `

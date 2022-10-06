@@ -1,5 +1,5 @@
 import vscode from 'vscode'
-import { registerAllExtensionCommands } from 'vscode-framework'
+import { registerActiveDevelopmentCommand, registerAllExtensionCommands } from 'vscode-framework'
 import { getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
 import { workspaceOpened } from './autoInstall'
 import { registerCodeActions } from './codeActions'
@@ -56,6 +56,10 @@ export const activate = () => {
     activateStatusbar()
     registerRunOnSave()
     openWorkspacePackageJson()
+
+    registerActiveDevelopmentCommand(async () => {
+        await packageManagerCommand({ cwd: getCurrentWorkspaceRoot().uri, command: 'install' })
+    })
 
     if (vscode.workspace.workspaceFolders?.length === 1) void workspaceOpened(vscode.workspace.workspaceFolders[0]!.uri)
 
