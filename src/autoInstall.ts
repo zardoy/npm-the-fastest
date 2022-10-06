@@ -13,7 +13,6 @@ const allLockfiles = Object.values(supportedPackageManagers).map(({ detectFile }
 export const registerLockfilesWatcher = () => {
     let watcher: vsc.FileSystemWatcher | undefined
     const spawnWatcher = () => {
-        // TODO don't spawn watchers and graceful onDidChangeConfiguration
         watcher = vsc.workspace.createFileSystemWatcher(`**/{${allLockfiles.join(',')}}`, false, false, true)
         const lockfileChangeHandler = (action: 'created' | 'changed') => async (uri: vsc.Uri) => {
             const lockfileName = Utils.basename(uri)
