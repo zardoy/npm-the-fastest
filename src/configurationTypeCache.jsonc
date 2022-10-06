@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: ce2b5d13ba0a233f3bf4fb92fcfe8fda
+// md5hash: 2c631c074f3f6930b08974f634182283
 {
     "type": "object",
     "properties": {
@@ -20,6 +20,16 @@
                 "ask",
                 "auto",
                 "disabled"
+            ],
+            "type": "string"
+        },
+        "unsavedFileBeforePackageManagerCommand": {
+            "description": "What to do with unsaved files like package.json before executing any package manager command",
+            "default": "askToSave",
+            "enum": [
+                "askToSave",
+                "autoSave",
+                "disable"
             ],
             "type": "string"
         },
@@ -300,6 +310,7 @@
         "search.includeDeprecated",
         "search.provder",
         "statusbar.showMainScriptStatus",
+        "unsavedFileBeforePackageManagerCommand",
         "useIntegratedTerminal",
         "yarnBerry.workspaceAutoInstall"
     ]

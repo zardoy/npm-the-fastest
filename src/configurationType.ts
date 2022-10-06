@@ -48,6 +48,11 @@ export type Configuration = {
      */
     // 'install.packs': { [key: string]: string[] }
     /**
+     * What to do with unsaved files like package.json before executing any package manager command
+     * @default askToSave
+     */
+    unsavedFileBeforePackageManagerCommand: 'askToSave' | 'autoSave' | 'disable'
+    /**
      * Whether to run package manager install command whenever new workspace is opened to
      * ensure that you have up-to-date deps
      * @default disable
