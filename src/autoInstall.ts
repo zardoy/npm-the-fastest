@@ -31,7 +31,9 @@ export const workspaceOpened = async (uri: vscode.Uri) => {
     // Check if needed
     const workspaceUri = getCurrentWorkspaceRoot().uri
     const workspacePath = workspaceUri.fsPath
-    if (existsSync(join(workspacePath, 'node_modules')) || !Object.values(supportedPackageManagers).some(({ detectFile }) => existsSync(detectFile))) return
+    if (existsSync(join(workspacePath, 'node_modules'))) return
+    const presentLockfilePm = Object.values(supportedPackageManagers).find(({ detectFile }) => existsSync(join(workspacePath, detectFile)))
+    if (!presentLockfilePm) return
 
     // const state = await npmCheck({
     //     skipUnused: true,
@@ -50,11 +52,12 @@ export const workspaceOpened = async (uri: vscode.Uri) => {
     if (runOnOpen === 'askIfNeeded') {
         const pm = await getPrefferedPackageManager(workspaceUri)
         const response = await vscode.window.showInformationMessage(
-            'No node_modules and lockfile is present',
+            `No node_modules and ${presentLockfilePm.detectFile} is present`,
             `Run ${pm} ${supportedPackageManagers[pm].installCommand}`.trim(),
         )
-        if (response !== 'YES') return
+        if (!response) return
     }
 
+    // ifNeeded
     await packageManagerCommand({ cwd: uri, command: 'install' })
 }

@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: ce2b5d13ba0a233f3bf4fb92fcfe8fda
+// md5hash: dbc2191c785a8876698117d251553607
 {
     "type": "object",
     "properties": {
@@ -25,11 +25,12 @@
         },
         "install.runOnOpen": {
             "description": "Whether to run package manager install command whenever new workspace is opened to\nensure that you have up-to-date deps",
-            "default": "disable",
+            "default": "askIfNeeded",
             "enum": [
                 "always",
                 "askIfNeeded",
-                "disable"
+                "disable",
+                "ifNeeded"
             ],
             "type": "string"
         },

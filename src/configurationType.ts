@@ -50,9 +50,9 @@ export type Configuration = {
     /**
      * Whether to run package manager install command whenever new workspace is opened to
      * ensure that you have up-to-date deps
-     * @default disable
+     * @default askIfNeeded
      */
-    'install.runOnOpen': 'always' | 'askIfNeeded' | 'disable'
+    'install.runOnOpen': 'always' | 'askIfNeeded' | 'disable' | 'ifNeeded'
     /**
      * Delay, before package manager invoke. Uses debounce. Relies on #install.watchPackageJson#
      * @default 500
