@@ -86,7 +86,7 @@ export const packageManagerCommand = async (_inputArg: {
 }) => {
     let {
         cwd,
-        command,
+        command: subcommand,
         packages = [],
         flags = [],
         // flags,
@@ -106,32 +106,33 @@ export const packageManagerCommand = async (_inputArg: {
     // }
     const getMessage = (): string => {
         let msg = `[${pm}] `
-        if (command === 'install') {
+        if (subcommand === 'install') {
             msg += 'Installing workspace dependencies'
             return msg
         }
 
-        msg += command === 'add' ? 'Installing' : 'Removing'
+        msg += subcommand === 'add' ? 'Installing' : 'Removing'
         msg += packages.length > 4 ? ` ${packages.length} packages` : `: ${packages.join(', ')}`
         if (flags.includes('-D')) msg += ' as dev'
         return msg
     }
 
     if (typeof flags === 'string') flags = flags.split(' ')
-    let execCmd = command
-    if (command === 'install') {
-        execCmd = supportedPackageManagers[pm].installCommand as any
+    let execSubcommand = subcommand
+    if (subcommand === 'install') {
+        execSubcommand = supportedPackageManagers[pm].installCommand as any
     } else if (packages.length === 0) {
-        void vscode.window.showWarningMessage(`No packages to ${command} provided`)
+        void vscode.window.showWarningMessage(`No packages to ${subcommand} provided`)
         return
     }
 
     // const getFullCommand = () => [execCmd, ...(packages.map(p => `"${p}"`) ?? []), ...flags].join(' ')
 
-    const commandArgs = [execCmd, ...(packages ?? []), ...flags]
+    const commandArgs = [execSubcommand, ...(packages ?? []), ...flags]
     const commandName = pm
+    const taskShortTitle = `${commandName} ${subcommand}`
     try {
-        await handleRunningTask(commandName, commandArgs)
+        await handleRunningTask(commandName, commandArgs, taskShortTitle)
     } catch (err) {
         if (err instanceof CancelError) return
         throw err
@@ -151,7 +152,7 @@ export const packageManagerCommand = async (_inputArg: {
                     },
                 })
                 if (getExtensionSetting('onPackageManagerCommandFail') === 'showNotification' && exitCode !== 0)
-                    void vscode.window.showErrorMessage(`${commandName} ${command} failed`, 'Show terminal', 'Retry').then(selectedAction => {
+                    void vscode.window.showErrorMessage(`${taskShortTitle} failed`, 'Show terminal', 'Retry').then(selectedAction => {
                         if (selectedAction === 'Show terminal') showPackageManagerTerminal()
                         else if (selectedAction === 'Retry') void packageManagerCommand(_inputArg)
                     })
@@ -169,7 +170,7 @@ export const packageManagerCommand = async (_inputArg: {
                     case 'pnpm':
                         await pnpmCommand({
                             cwd: cwd.fsPath,
-                            command: execCmd,
+                            command: execSubcommand,
                             cancellationToken,
                             packages,
                             reportProgress,
@@ -190,7 +191,7 @@ interface ReportData {
     // setMessageOverride
 }
 
-const handleRunningTask = (command: string, args: string[]) => {
+const handleRunningTask = (command: string, args: string[], shortTitle: string) => {
     const ourTaskExec = vscode.tasks.taskExecutions.find(({ task }) => task.source === getExtensionId())
     if (ourTaskExec) {
         const exec = ourTaskExec.task.execution as vscode.ShellExecution
@@ -198,7 +199,7 @@ const handleRunningTask = (command: string, args: string[]) => {
         if (absolutelyTheSameTask) throw new Error('Absolutely the same task is already running in terminal')
         else
             return vscode.window.withProgress(
-                { location: vscode.ProgressLocation.Notification, title: `Waiting for previous ${command} task to end`, cancellable: true },
+                { location: vscode.ProgressLocation.Notification, title: `${shortTitle}: waiting for previous task to end`, cancellable: true },
                 async (_, token) => {
                     token.onCancellationRequested(() => {
                         throw new CancelError()
