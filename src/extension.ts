@@ -49,13 +49,14 @@ export const activate = () => {
     })
 
     registerOpenPackageAtCommands()
-    registerCodeActions()
+    openWorkspacePackageJson()
+    registerRunOnSave()
     registerClipboardDetection()
+    activateStatusbar()
+
+    registerCodeActions()
     registerPackageJsonCompletions()
     registerPackageJsonLinks()
-    activateStatusbar()
-    registerRunOnSave()
-    openWorkspacePackageJson()
 
     registerActiveDevelopmentCommand(async () => {
         await packageManagerCommand({ cwd: getCurrentWorkspaceRoot().uri, command: 'install' })
