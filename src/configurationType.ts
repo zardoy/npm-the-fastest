@@ -64,15 +64,15 @@ export type Configuration = {
      */
     'install.watchPackageJson': boolean
     /**
-     * Invoke package manager install whenever lockfile is changed (usually after git operations)
-     * @default prompt
+     * What to do on package manager lockfile changes (usually after git operations)
+     * @default promptToInstall
      * @enumDescriptions [
-            "Don't do anything",
-            "Display confirmation prompt to perform packages install",
-            "Perform packages install without any confirmation prompts"
-        ]
+     *   "Don't do anything",
+     *   "Display confirmation prompt to perform packages install",
+     *   "Perform packages install without any confirmation prompts"
+     * ]
      */
-    'install.watchPackageLocks': 'disabled' | 'prompt' | 'withoutPrompt'
+    'install.watchLockfiles': 'disabled' | 'promptToInstall' | 'installWithoutPrompt'
     /**
      * Wether to use integrated terminal for package manager commands (e.g. adding packages or `pnpm install`)
      * @default true

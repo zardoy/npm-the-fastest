@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: dbc2191c785a8876698117d251553607
+// md5hash: 1c646648f7a8e134e9ad34cabba831df
 {
     "type": "object",
     "properties": {
@@ -44,13 +44,18 @@
             "default": true,
             "type": "boolean"
         },
-        "install.watchPackageLocks": {
-            "description": "Invoke package manager install whenever lockfile is changed (usually after git operations)",
-            "default": "prompt",
+        "install.watchLockfiles": {
+            "description": "What to do on package manager lockfile changes (usually after git operations)",
+            "default": "promptToInstall",
+            "enumDescriptions": [
+                "Don't do anything",
+                "Display confirmation prompt to perform packages install",
+                "Perform packages install without any confirmation prompts"
+            ],
             "enum": [
                 "disabled",
-                "prompt",
-                "withoutPrompt"
+                "installWithoutPrompt",
+                "promptToInstall"
             ],
             "type": "string"
         },
@@ -283,8 +288,8 @@
         "install.clipboardDetection",
         "install.runOnOpen",
         "install.watchDelay",
+        "install.watchLockfiles",
         "install.watchPackageJson",
-        "install.watchPackageLocks",
         "leadingPackageManager",
         "onPackageManagerCommandFail",
         "packageJsonIntellisense",

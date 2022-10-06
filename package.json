@@ -174,7 +174,8 @@
         "start": "vscode-framework start",
         "build": "tsc && vscode-framework build",
         "lint": "eslint --ignore-pattern \"src/webview/**\" --ignore-pattern \"src/**/*.d.ts\" --ignore-pattern src/webview.ts \"src/**/*.ts\"",
-        "test": "vitest --globals"
+        "test": "vitest --globals",
+        "postinstall": "patch-package"
     },
     "devDependencies": {
         "@types/fs-extra": "^9.0.13",
@@ -196,6 +197,7 @@
     },
     "dependencies": {
         "@hediet/node-reload": "^0.7.3",
+        "@milahu/patch-package-with-pnpm-support": "^6.4.10",
         "@types/hosted-git-info": "^3.0.2",
         "@types/jsonfile": "^6.0.1",
         "@types/node": "^16.11.22",

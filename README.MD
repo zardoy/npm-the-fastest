@@ -14,6 +14,10 @@
 
 Quickly select & remove packages with `Remove npm Packages` command or code action on import statements.
 
+### Lockfile Watcher
+
+By default, we prompt to run package manager install command on lockfile change (e.g. if `package-lock.json` was changed after git switch). You can either disable this feature or make it run without confirmation with `install.watchLockfiles` setting.
+
 ### Npm Scripts
 
 - Select and start script command: `Run npm Script`

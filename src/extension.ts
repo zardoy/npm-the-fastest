@@ -1,7 +1,7 @@
 import vscode from 'vscode'
 import { registerActiveDevelopmentCommand, registerAllExtensionCommands } from 'vscode-framework'
 import { getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
-import { workspaceOpened } from './autoInstall'
+import { registerLockfilesWatcher, workspaceOpened } from './autoInstall'
 import { registerCodeActions } from './codeActions'
 import { throwIfNowPackageJson as throwIfNoPackageJson } from './commands-core/packageJson'
 import { packageManagerCommand, showPackageManagerTerminal } from './commands-core/packageManager'
@@ -57,6 +57,7 @@ export const activate = () => {
     registerCodeActions()
     registerPackageJsonCompletions()
     registerPackageJsonLinks()
+    registerLockfilesWatcher()
 
     registerActiveDevelopmentCommand(async () => {
         await packageManagerCommand({ cwd: getCurrentWorkspaceRoot().uri, command: 'install' })

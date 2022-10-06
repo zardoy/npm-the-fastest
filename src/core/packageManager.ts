@@ -142,6 +142,8 @@ export const pnpmCommand = async ({
     await pnpm
 }
 
+export const packageManagerInstallUiCommand = (pm: string) => `${pm} ${supportedPackageManagers[pm].installCommand}`.trim()
+
 export const getPmEnv = (pm: SupportedPackageManagersName) => {
     const packageManagerAllowedEnv = getExtensionSetting('packageManagerAllowedEnv')
     if (packageManagerAllowedEnv === 'disable') return process.env

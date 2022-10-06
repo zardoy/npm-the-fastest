@@ -1,30 +1,52 @@
 import { existsSync } from 'fs'
 import { join } from 'path'
-import vscode from 'vscode'
-import { extensionCtx, getExtensionSetting } from 'vscode-framework'
+import * as vsc from 'vscode'
+import { extensionCtx, getExtensionSetting, getExtensionSettingId } from 'vscode-framework'
 // import npmCheck from 'npm-check'
 import { getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
-import { notificationConfirmAction } from '@zardoy/vscode-utils/build/ui'
+import { Utils } from 'vscode-uri'
 import { getPrefferedPackageManager, packageManagerCommand } from './commands-core/packageManager'
-import { supportedPackageManagers } from './core/packageManager'
+import { packageManagerInstallUiCommand, supportedPackageManagers, SupportedPackageManagersName } from './core/packageManager'
 
-export const registerPackageJsonWatcher = () => {
-    // TODO don't spawn watchers and graceful onDidChangeConfiguration
-    for (const [pm, { detectFile }] of Object.entries(supportedPackageManagers)) {
-        const watcher = vscode.workspace.createFileSystemWatcher(`**/${detectFile}`, true, false, true)
-        watcher.onDidChange(async uri => {
-            const action = getExtensionSetting('install.watchPackageLocks')
-            if (action === 'disabled') return
-            if (action === 'prompt') {
-                const result = await notificationConfirmAction(`${detectFile} has changed`, 'Run install')
-                // if (!result) return
-            }
-        })
+const allLockfiles = Object.values(supportedPackageManagers).map(({ detectFile }) => detectFile)
+
+export const registerLockfilesWatcher = () => {
+    let watcher: vsc.FileSystemWatcher | undefined
+    const spawnWatcher = () => {
+        // TODO don't spawn watchers and graceful onDidChangeConfiguration
+        watcher = vsc.workspace.createFileSystemWatcher(`**/{${allLockfiles.join(',')}}`, false, false, true)
+        const lockfileChangeHandler = (action: 'created' | 'changed') => async (uri: vsc.Uri) => {
+            const lockfileName = Utils.basename(uri)
+            const packageManager = Object.entries(supportedPackageManagers).find(([, { detectFile }]) => detectFile === lockfileName)?.[0] as
+                | SupportedPackageManagersName
+                | undefined
+            if (!packageManager) return
+            const response =
+                // eslint-disable-next-line sonarjs/no-duplicate-string
+                getExtensionSetting('install.watchLockfiles') === 'installWithoutPrompt'
+                    ? true
+                    : await vsc.window.showInformationMessage(`${lockfileName} ${action}`, `Run ${packageManagerInstallUiCommand(packageManager)}`)
+            if (!response) return
+            await packageManagerCommand({ cwd: vsc.Uri.joinPath(uri, '..'), command: 'install', forcePm: packageManager })
+        }
+
+        watcher.onDidChange(lockfileChangeHandler('changed'))
+        watcher.onDidCreate(lockfileChangeHandler('created'))
         extensionCtx.subscriptions.push(watcher)
     }
+
+    const updateWatcher = () => {
+        if (getExtensionSetting('install.watchLockfiles') === 'disabled') watcher?.dispose()
+        else if (!watcher) spawnWatcher()
+    }
+
+    vsc.workspace.onDidChangeConfiguration(({ affectsConfiguration }) => {
+        if (affectsConfiguration(getExtensionSettingId('install.watchLockfiles'))) updateWatcher()
+    })
+    updateWatcher()
 }
 
-export const workspaceOpened = async (uri: vscode.Uri) => {
+export const workspaceOpened = async (uri: vsc.Uri) => {
     const runOnOpen = getExtensionSetting('install.runOnOpen')
     if (runOnOpen === 'disable') return
     if (runOnOpen === 'always') await packageManagerCommand({ cwd: uri, command: 'install' })
@@ -32,8 +54,8 @@ export const workspaceOpened = async (uri: vscode.Uri) => {
     const workspaceUri = getCurrentWorkspaceRoot().uri
     const workspacePath = workspaceUri.fsPath
     if (existsSync(join(workspacePath, 'node_modules'))) return
-    const presentLockfilePm = Object.values(supportedPackageManagers).find(({ detectFile }) => existsSync(join(workspacePath, detectFile)))
-    if (!presentLockfilePm) return
+    const presentLockfile = allLockfiles.find(lockfile => existsSync(join(workspacePath, lockfile)))
+    if (!presentLockfile) return
 
     // const state = await npmCheck({
     //     skipUnused: true,
@@ -51,9 +73,9 @@ export const workspaceOpened = async (uri: vscode.Uri) => {
     // }
     if (runOnOpen === 'askIfNeeded') {
         const pm = await getPrefferedPackageManager(workspaceUri)
-        const response = await vscode.window.showInformationMessage(
-            `No node_modules and ${presentLockfilePm.detectFile} is present`,
-            `Run ${pm} ${supportedPackageManagers[pm].installCommand}`.trim(),
+        const response = await vsc.window.showInformationMessage(
+            `No node_modules and ${presentLockfile} is present`,
+            `Run ${packageManagerInstallUiCommand(pm)}`,
         )
         if (!response) return
     }
