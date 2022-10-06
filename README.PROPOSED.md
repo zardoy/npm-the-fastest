@@ -61,22 +61,3 @@ Example:
     "command": "
 }
 ```
-
-## Extension Development Notes
-
-### Terms
-
-- pm-workspace – Package Manager workspaces (npm / yarn / pnpm workspaces)
-
-### `src` Directory Structure
-
-- `src/commands-core` - command-related code
-- `src/core` general code, that can be used outside of vscode
-<!-- TODO: linter don't allow to use vscode module inside src/core -->
-
-## Unrelated Functionality
-
-This functionality can be enabled, however it will be removed.
-
-- TypeScript top-line snippets
-- TypeScript advanced fixes
