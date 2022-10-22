@@ -4,19 +4,39 @@ import { compact } from 'lodash'
 import { getExtensionSetting, getExtensionCommandId } from 'vscode-framework'
 import { packageJsonSelector } from './packageJsonComplete'
 
-const scriptLinksCommandRegex = /((?<START>(^|&&|")\s?((pnpm|yarn|npm) run) )(?<NAME>[\wA-Z\d:-]+))|((?<START2>(^|&&|")\s?(pnpm|yarn) )(?<NAME2>[\wA-Z\d:-]+))/g;
+const scriptLinksCommandRegex = /((?<START>(^|&&|")\s?((pnpm|yarn|npm) run) )(?<NAME>[\wA-Z\d:-]+))|((?<START2>(^|&&|")\s?(pnpm|yarn) )(?<NAME2>[\wA-Z\d:-]+))/g
 
 export const registerPackageJsonLinks = () => {
     vscode.languages.registerDocumentLinkProvider(packageJsonSelector, {
         provideDocumentLinks(document, token) {
             const root = parseTree(document.getText())!
             const scriptsRootNode = findNodeAtLocation(root, ['scripts'])
-            const scriptsNodes = scriptsRootNode?.children
-            const links: vscode.DocumentLink[] = []
+            const getNodeStringStart = (node: Node) => node.offset + 1 // for quote
+
             const nodeObjectMap = (nodes: Node[], type: 'prop' | 'value') => {
                 const indexGetter = type === 'prop' ? 0 : 1
                 return compact(nodes.map(value => value.type === 'property' && value.children![indexGetter]))
             }
+
+            const links: vscode.DocumentLink[] = []
+
+            const dependenciesTags = ['dependencies', 'devDependencies']
+            const linkActions = {
+                key: 'openPackagePackageJson',
+            }
+            for (const dependencyTag of dependenciesTags) {
+                const dependenciesNodes = findNodeAtLocation(root, [dependencyTag])?.children
+                for (const propNode of nodeObjectMap(dependenciesNodes ?? [], 'prop')) {
+                    const startOffset = getNodeStringStart(propNode)
+                    const endOffset = startOffset + propNode.length - 2
+                    links.push({
+                        range: new vscode.Range(document.positionAt(startOffset), document.positionAt(endOffset)),
+                        target: vscode.Uri.parse(`command:${getExtensionCommandId(linkActions.key as any)}?${JSON.stringify(propNode.value)}`),
+                    })
+                }
+            }
+
+            const scriptsNodes = scriptsRootNode?.children
 
             // #region scripts links
             if (getExtensionSetting('packageJsonLinks') && scriptsNodes)
@@ -32,7 +52,6 @@ export const registerPackageJsonLinks = () => {
                         // if (!(scriptRefName in scriptsObject)) continue
                         const targetScriptNode = scriptsNodes.find(node => node.children![0]!.value === scriptRefName)?.children?.[1]
                         if (!targetScriptNode) continue
-                        const getNodeStringStart = (node: Node) => node.offset + 1
                         const startOffset = getNodeStringStart(scriptNode) + match.index + (match.groups!.START || match.groups!.START2!).length
                         const { line: targetScriptLine, character: targetScriptCharacter } = document.positionAt(getNodeStringStart(targetScriptNode))
                         const fragment = `L${targetScriptLine + 1},${targetScriptCharacter + 1}`
