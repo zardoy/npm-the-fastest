@@ -137,7 +137,7 @@ export const pickInstalledDeps = async <M extends boolean>({
     return pickedDeps as any
 }
 
-export const throwIfNowPackageJson = async (uriDir: vscode.Uri, needsWrite: boolean) => {
+export const throwIfNoPackageJson = async (uriDir: vscode.Uri, needsWrite: boolean) => {
     const { fs } = vscode.workspace
     try {
         if (needsWrite && fs.isWritableFileSystem('file') === false)

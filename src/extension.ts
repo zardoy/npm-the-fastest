@@ -1,9 +1,9 @@
 import vscode from 'vscode'
-import { registerActiveDevelopmentCommand, registerAllExtensionCommands } from 'vscode-framework'
+import { registerAllExtensionCommands } from 'vscode-framework'
 import { getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
 import { registerLockfilesWatcher, workspaceOpened } from './autoInstall'
 import { registerCodeActions } from './codeActions'
-import { throwIfNowPackageJson as throwIfNoPackageJson } from './commands-core/packageJson'
+import { throwIfNoPackageJson } from './commands-core/packageJson'
 import { packageManagerCommand, showPackageManagerTerminal } from './commands-core/packageManager'
 import { addPackagesCommand } from './commands/addPackages'
 import { openClosestPackageJson } from './commands/openClosestPackageJson'
@@ -58,10 +58,6 @@ export const activate = () => {
     registerPackageJsonCompletions()
     registerPackageJsonLinks()
     registerLockfilesWatcher()
-
-    registerActiveDevelopmentCommand(async () => {
-        await packageManagerCommand({ cwd: getCurrentWorkspaceRoot().uri, command: 'install' })
-    })
 
     if (vscode.workspace.workspaceFolders?.length === 1) void workspaceOpened(vscode.workspace.workspaceFolders[0]!.uri)
 

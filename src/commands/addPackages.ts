@@ -1,4 +1,4 @@
-import vscode from 'vscode'
+import vscode, { window } from 'vscode'
 import { partition } from 'rambda'
 import { throttle } from 'lodash'
 import { CommandHandler, extensionCtx, getExtensionSetting } from 'vscode-framework'
@@ -6,7 +6,7 @@ import isOnline from 'is-online'
 import { PackageJson } from 'type-fest'
 import { getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
 import { NpmSearchResult, performAlgoliaSearch } from '../core/npmSearch'
-import { readPackageJsonWithMetadata, throwIfNowPackageJson } from '../commands-core/packageJson'
+import { readPackageJsonWithMetadata, throwIfNoPackageJson } from '../commands-core/packageJson'
 import { AlgoliaSearchResultItem } from '../core/algoliaSearchType'
 import { packageManagerCommand } from '../commands-core/packageManager'
 
@@ -44,7 +44,8 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
     // in pm-workspaces: select workspace, root at bottom, : to freeChoice
     // otherwise: freeChoice
     const currentWorkspaceRoot = getCurrentWorkspaceRoot()
-    await throwIfNowPackageJson(currentWorkspaceRoot.uri, true)
+    await throwIfNoPackageJson(currentWorkspaceRoot.uri, true)
+
     const { packageJson } = await readPackageJsonWithMetadata({ type: 'workspacesFirst' })
     type ItemType = vscode.QuickPickItem & {
         itemType?: 'install-action' | 'selectedToInstall'
@@ -54,27 +55,12 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
     }
 
     const quickPick = vscode.window.createQuickPick<ItemType>()
-    const openPackageJsonButton = {
-        iconPath: {
-            dark: vscode.Uri.file(extensionCtx.asAbsolutePath('./assets/dark/go-to-file.svg')),
-            light: vscode.Uri.file(extensionCtx.asAbsolutePath('./assets/light/go-to-file.svg')),
-        },
-        tooltip: 'Open package.json',
-    }
-    quickPick.buttons = [openPackageJsonButton]
     quickPick.title = 'Add packages to the project'
     quickPick.matchOnDescription = true
-    quickPick.onDidTriggerButton(button => {
-        if (button === openPackageJsonButton) {
-            // TODO! handle action
-        }
-    })
 
     const selectedPackages: ItemType[] = []
-    /** Force use cache as got and algoliasearch don't cache */
-    const internalCache = new Map<string, { date: number; data: NpmSearchResult }>() // query-results
-
-    // TODO tab expansion on `
+    /** Force use cache as got & algoliasearch don't cache */
+    const tempCache = new Map<string, { date: number; data: NpmSearchResult }>() // query-results
 
     /** false when no search query */
     const setItems = (searchItems: vscode.QuickPickItem[] | false) => {
@@ -102,21 +88,21 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
     const throttledSearch = throttle(async (query: string) => {
         latestQuery = query
         const results = await (async () => {
-            const cached = internalCache.get(query)
+            const cached = tempCache.get(query)
             if (cached) {
                 if (Date.now() - cached.date < 1000 * 60 * 60 * 24 * 2) {
                     console.log('used cached data')
                     return cached.data
                 }
 
-                internalCache.delete(query)
+                tempCache.delete(query)
             }
 
             console.log(`fetching ${query}`)
             console.time(`fetched ${query}`)
             const results = await performAlgoliaSearch(query)
             console.timeEnd(`fetched ${query}`)
-            internalCache.set(query, { data: results, date: Date.now() })
+            tempCache.set(query, { data: results, date: Date.now() })
             return results
         })()
         if (latestQuery !== query) return
@@ -160,8 +146,9 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
                 // Hide author by default
                 // if (owner) detail += ` $(account) ${owner}`
                 if (selectedPackages.some(({ label }) => label === name)) description = `$(history) ${description}`
-                const depsPick: Array<keyof PackageJson> = ['dependencies', 'devDependencies']
-                const isInstalled = depsPick.some(key => Object.keys(packageJson[key] as Record<string, any>).includes(name))
+
+                const depsCheck: Array<keyof PackageJson> = ['dependencies', 'devDependencies']
+                const isInstalled = depsCheck.some(key => Object.keys(packageJson[key] ?? {}).includes(name))
                 if (isInstalled) description = `$(pass) ${description}`
 
                 return {
@@ -212,7 +199,10 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
         }
 
         quickPick.busy = true
-        await throttledSearch(search)
+        await throttledSearch(search)?.catch(err => {
+            void window.showErrorMessage(`Search error: ${err.message}. See output for more`)
+            console.error(err)
+        })
     })
     quickPick.onDidAccept(async () => {
         const activeItem = quickPick.activeItems[0]
@@ -228,7 +218,7 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
                     packages,
                     flags: [...flags, ...(online ? [] : ['--offline'])],
                 })
-            // `https://cdn.jsdelivr.net/npm/${packageName}/package.json`
+
             const [devDeps, regularDeps] = partition(({ installType }) => installType === 'dev', selectedPackages).map(arr =>
                 arr.map(({ label }) => label),
             ) as [string[], string[]]
