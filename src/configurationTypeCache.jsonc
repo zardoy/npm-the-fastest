@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: 1c646648f7a8e134e9ad34cabba831df
+// md5hash: 871f0089b070a6d5baae9a3725012f2d
 {
     "type": "object",
     "properties": {
@@ -279,12 +279,64 @@
             "description": "Wether to enable links script names to run script",
             "default": false,
             "type": "boolean"
+        },
+        "depsKeyLinkAction": {
+            "description": "Assign the link's action in package.json dependencies objects at dependencies key (name)\nRecommended: `openPackageJson`",
+            "enumDescriptions": [
+                "Do not display link with action",
+                "Reveal package at npmjs.com",
+                "Open package's README.MD at side",
+                "Open package's content at jsdelivr.com",
+                "Open package's repository (e.g. at GitHub)",
+                "Reveal package's folder in explorer area",
+                "Open package's package.json file",
+                "Open Quick Pick to let decide the action"
+            ],
+            "default": "disable",
+            "enum": [
+                "chooseAction",
+                "disable",
+                "openAtJsdelivr",
+                "openOnNpm",
+                "openPackageJson",
+                "openPackageReadmePreview",
+                "openPackageRepository",
+                "revealInExplorer"
+            ],
+            "type": "string"
+        },
+        "depsValueLinkAction": {
+            "description": "Assign the link's action in package.json dependencies objects at dependencies value (version)\nRecommended: `openPackageRepository`",
+            "enumDescriptions": [
+                "Do not display link with action",
+                "Reveal package at npmjs.com",
+                "Open package's README.MD at side",
+                "Open package's content at jsdelivr.com",
+                "Open package's repository (e.g. at GitHub)",
+                "Reveal package's folder in explorer area",
+                "Open package's package.json file",
+                "Open Quick Pick to let decide the action"
+            ],
+            "default": "disable",
+            "enum": [
+                "chooseAction",
+                "disable",
+                "openAtJsdelivr",
+                "openOnNpm",
+                "openPackageJson",
+                "openPackageReadmePreview",
+                "openPackageRepository",
+                "revealInExplorer"
+            ],
+            "type": "string"
         }
     },
     "required": [
         "addPackages.installTypes",
         "codeAction.resolveBranchName",
         "codeActions.enableLanguages",
+        "depsKeyLinkAction",
+        "depsValueLinkAction",
         "install.clipboardDetection",
         "install.runOnOpen",
         "install.watchDelay",

@@ -1,8 +1,9 @@
 import * as vscode from 'vscode'
 import defaultBranch from 'default-branch'
 import { fromUrl } from 'hosted-git-info'
-import { getExtensionCommandId, getExtensionSetting, registerExtensionCommand } from 'vscode-framework'
+import { getExtensionCommandId, getExtensionSetting, registerExtensionCommand, RegularCommands, showQuickPick } from 'vscode-framework'
 import { getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
+import { noCase } from 'change-case'
 import { findUpNodeModules, pickInstalledDeps, readDirPackageJson } from '../commands-core/packageJson'
 import { joinPackageJson, supportedFileSchemes } from '../commands-core/util'
 
@@ -85,16 +86,39 @@ export const registerOpenPackageAtCommands = () => {
 
         await vscode.env.openExternal((repo.browse() + urlPath) as any)
     })
+
     registerExtensionCommand('revealInExplorer', async ({ command: commandId }, module?: string) => {
         if (!module) module = await pickInstalledDeps({ commandId, multiple: false, flatTypes: false })
         if (module === undefined) return
         const moduleUri = await getClosestModulePath(module)
         await vscode.commands.executeCommand('revealInExplorer', moduleUri)
     })
+
     registerExtensionCommand('openPackagePackageJson', async ({ command: commandId }, module?: string) => {
         if (!module) module = await pickInstalledDeps({ commandId, multiple: false, flatTypes: false })
         if (module === undefined) return
         const packageJsonUri = joinPackageJson(await getClosestModulePath(module))
         await vscode.window.showTextDocument(packageJsonUri)
     })
+
+    registerExtensionCommand('openPackageAt', async ({ command: commandId }, module?: string) => {
+        if (!module) module = await pickInstalledDeps({ commandId, multiple: false, flatTypes: false })
+        if (module === undefined) return
+        const actionCommand = await showQuickPick(
+            openAtActions.map(action => ({ label: noCase(action), value: action })),
+            { title: `Select action for ${module} package` },
+        )
+        if (!actionCommand) return
+        await vscode.commands.executeCommand(getExtensionCommandId(actionCommand), module)
+    })
 }
+
+export const openAtActions: Array<keyof RegularCommands> = [
+    'openOnNpm',
+    'openPackageRepository',
+    'revealInExplorer',
+    'openPackagePackageJson',
+    'openPackageReadmePreview',
+    'openAtJsdelivr',
+    'openAtPaka',
+]

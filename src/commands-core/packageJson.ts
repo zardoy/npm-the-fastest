@@ -79,6 +79,9 @@ type PickedDeps = string[] & {
     realDepsCount: number
 }
 
+export const packageJsonAllDependenciesKeys = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']
+export const packageJsonInstallDependenciesKeys = ['dependencies', 'devDependencies', 'optionalDependencies']
+
 export const pickInstalledDeps = async <M extends boolean>({
     commandId,
     multiple,
@@ -91,7 +94,6 @@ export const pickInstalledDeps = async <M extends boolean>({
     flatTypes?
 }): Promise<(M extends true ? PickedDeps : string) | undefined> => {
     if (!packageJson) ({ packageJson } = await readPackageJsonWithMetadata({ type: 'closest', fallback: true }))
-    const depsPick: Array<keyof PackageJson> = ['dependencies', 'devDependencies', 'optionalDependencies']
     const depsIconMap = {
         dependencies: 'package',
         devDependencies: 'tools',
@@ -106,7 +108,7 @@ export const pickInstalledDeps = async <M extends boolean>({
     const packagesWithTypes = [] as string[]
 
     const pickedDeps = (await showQuickPick(
-        depsPick.flatMap(depKey => {
+        packageJsonInstallDependenciesKeys.flatMap(depKey => {
             const deps = (packageJson![depKey] as PackageJson['dependencies']) ?? {}
             return Object.entries(deps)
                 .map(
