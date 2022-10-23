@@ -229,14 +229,14 @@ export type Configuration = {
     packageJsonScriptNameLink: boolean
     /**
      * Assign the link's action in package.json dependencies objects at dependencies key (name)
-     * Recommended: `openPackageJson`
+     * Recommended: `openPackageRepository`
      * @enumDescriptions ["Do not display link with action", "Reveal package at npmjs.com", "Open package's README.MD at side", "Open package's content at jsdelivr.com", "Open package's repository (e.g. at GitHub)", "Reveal package's folder in explorer area", "Open package's package.json file", "Open Quick Pick to let decide the action"]
      * @default disable
      */
     depsKeyLinkAction: PackageLinkAction
     /**
      * Assign the link's action in package.json dependencies objects at dependencies value (version)
-     * Recommended: `openPackageRepository`
+     * Recommended: `openPackageJson`
      * @enumDescriptions ["Do not display link with action", "Reveal package at npmjs.com", "Open package's README.MD at side", "Open package's content at jsdelivr.com", "Open package's repository (e.g. at GitHub)", "Reveal package's folder in explorer area", "Open package's package.json file", "Open Quick Pick to let decide the action"]
      * @default disable
      */
