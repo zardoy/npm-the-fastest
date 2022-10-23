@@ -22,6 +22,18 @@ type RunOnSaveRule = {
     killPrev: boolean
 }
 
+type PackageLinkAction =
+    | 'disable'
+    | 'openOnNpm'
+    | 'openPackageReadmePreview'
+    | 'openAtJsdelivr'
+    | 'openPackageRepository'
+    | 'revealInExplorer'
+    | 'openPackageJson'
+    | 'chooseAction'
+// always keep in sync:
+// @enumDescriptions ["Do not display link with action", "Reveal package at npmjs.com", "Open package's README.MD at side", "Open package's content at jsdelivr.com", "Open package's repository (e.g. at GitHub)", "Reveal package's folder in explorer area", "Open package's package.json file", "Open Quick Pick to let decide the action"]
+
 export type Configuration = {
     // TOOD describe difference between builtin setting
     /**
@@ -215,6 +227,20 @@ export type Configuration = {
      * @default false
      */
     packageJsonScriptNameLink: boolean
+    /**
+     * Assign the link's action in package.json dependencies objects at dependencies key (name)
+     * Recommended: `openPackageJson`
+     * @enumDescriptions ["Do not display link with action", "Reveal package at npmjs.com", "Open package's README.MD at side", "Open package's content at jsdelivr.com", "Open package's repository (e.g. at GitHub)", "Reveal package's folder in explorer area", "Open package's package.json file", "Open Quick Pick to let decide the action"]
+     * @default disable
+     */
+    depsKeyLinkAction: PackageLinkAction
+    /**
+     * Assign the link's action in package.json dependencies objects at dependencies value (version)
+     * Recommended: `openPackageRepository`
+     * @enumDescriptions ["Do not display link with action", "Reveal package at npmjs.com", "Open package's README.MD at side", "Open package's content at jsdelivr.com", "Open package's repository (e.g. at GitHub)", "Reveal package's folder in explorer area", "Open package's package.json file", "Open Quick Pick to let decide the action"]
+     * @default disable
+     */
+    depsValueLinkAction: PackageLinkAction
     /** @default true */
     // enableTerminalLinkProvider: boolean
 }
