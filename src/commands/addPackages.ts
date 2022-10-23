@@ -1,7 +1,7 @@
-import vscode, { window } from 'vscode'
+import * as vscode from 'vscode'
 import { partition } from 'rambda'
 import { throttle } from 'lodash'
-import { CommandHandler, extensionCtx, getExtensionSetting } from 'vscode-framework'
+import { CommandHandler, getExtensionSetting } from 'vscode-framework'
 import isOnline from 'is-online'
 import { PackageJson } from 'type-fest'
 import { getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
@@ -200,7 +200,7 @@ export const installPackages = async (location: 'closest' | 'workspace') => {
 
         quickPick.busy = true
         await throttledSearch(search)?.catch(err => {
-            void window.showErrorMessage(`Search error: ${err.message}. See output for more`)
+            void vscode.window.showErrorMessage(`Search error: ${err.message}. See output for more`)
             console.error(err)
         })
     })
