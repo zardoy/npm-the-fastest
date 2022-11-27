@@ -78,7 +78,6 @@ export const registerLockfilesWatcher = () => {
 
     // init git api
     // it is always inited as don't affect perf
-    // TODO remove this GIT api usage and switch to watching over .git/HEAD file, as it would be much faster on windows
     ;(async () => {
         const gitExtension = vsc.extensions.getExtension('vscode.git')
         if (!gitExtension) return
