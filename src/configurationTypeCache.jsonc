@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: 871f0089b070a6d5baae9a3725012f2d
+// md5hash: 1a8fd22664d69a99cdbfe3ca8a5510ed
 {
     "type": "object",
     "properties": {
@@ -34,16 +34,6 @@
             ],
             "type": "string"
         },
-        "install.watchDelay": {
-            "description": "Delay, before package manager invoke. Uses debounce. Relies on #install.watchPackageJson#",
-            "default": 500,
-            "type": "number"
-        },
-        "install.watchPackageJson": {
-            "description": "Invoke package maanger install whenever you change dependencies in package.json (within VSCode only)",
-            "default": true,
-            "type": "boolean"
-        },
         "install.watchLockfiles": {
             "description": "What to do on package manager lockfile changes (usually after git operations)",
             "default": "promptToInstall",
@@ -58,6 +48,11 @@
                 "promptToInstall"
             ],
             "type": "string"
+        },
+        "install.watchLockfilesGitCheckouts": {
+            "description": "Wether to propose (or perform) packages isntallation only after detected git checkouts\nWhen enabled, `watchLockfiles` feature won't be available in non-git workspaces",
+            "default": true,
+            "type": "boolean"
         },
         "useIntegratedTerminal": {
             "description": "Wether to use integrated terminal for package manager commands (e.g. adding packages or `pnpm install`)",
@@ -281,7 +276,7 @@
             "type": "boolean"
         },
         "depsKeyLinkAction": {
-            "description": "Assign the link's action in package.json dependencies objects at dependencies key (name)\nRecommended: `openPackageJson`",
+            "description": "Assign the link's action in package.json dependencies objects at dependencies key (name)\nRecommended: `openPackageRepository`",
             "enumDescriptions": [
                 "Do not display link with action",
                 "Reveal package at npmjs.com",
@@ -306,7 +301,7 @@
             "type": "string"
         },
         "depsValueLinkAction": {
-            "description": "Assign the link's action in package.json dependencies objects at dependencies value (version)\nRecommended: `openPackageRepository`",
+            "description": "Assign the link's action in package.json dependencies objects at dependencies value (version)\nRecommended: `openPackageJson`",
             "enumDescriptions": [
                 "Do not display link with action",
                 "Reveal package at npmjs.com",
@@ -339,9 +334,8 @@
         "depsValueLinkAction",
         "install.clipboardDetection",
         "install.runOnOpen",
-        "install.watchDelay",
         "install.watchLockfiles",
-        "install.watchPackageJson",
+        "install.watchLockfilesGitCheckouts",
         "leadingPackageManager",
         "onPackageManagerCommandFail",
         "packageJsonIntellisense",

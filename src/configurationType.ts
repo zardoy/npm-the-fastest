@@ -69,12 +69,12 @@ export type Configuration = {
      * Delay, before package manager invoke. Uses debounce. Relies on #install.watchPackageJson#
      * @default 500
      */
-    'install.watchDelay': number
+    // 'install.watchDelay': number
     /**
      * Invoke package maanger install whenever you change dependencies in package.json (within VSCode only)
      * @default true
      */
-    'install.watchPackageJson': boolean
+    // 'install.watchPackageJson': boolean
     /**
      * What to do on package manager lockfile changes (usually after git operations)
      * @default promptToInstall
@@ -85,6 +85,12 @@ export type Configuration = {
      * ]
      */
     'install.watchLockfiles': 'disabled' | 'promptToInstall' | 'installWithoutPrompt'
+    /**
+     * Wether to propose (or perform) packages isntallation only after detected git checkouts
+     * When enabled, `watchLockfiles` feature won't be available in non-git workspaces
+     * @default true
+     */
+    'install.watchLockfilesGitCheckouts': boolean
     /**
      * Wether to use integrated terminal for package manager commands (e.g. adding packages or `pnpm install`)
      * @default true
