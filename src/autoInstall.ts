@@ -45,12 +45,15 @@ export const registerLockfilesWatcher = () => {
         const lockfileChangeHandler = (action: 'created' | 'changed') => async (uri: vsc.Uri) => {
             if (getExtensionSetting('install.watchLockfilesGitCheckouts')) {
                 recentLockfileChanges ??= []
+                let finalCallback: (() => void) | undefined
                 if (!Array.isArray(recentLockfileChanges)) {
-                    recentLockfileChanges()
+                    finalCallback = recentLockfileChanges
                     recentLockfileChanges = []
                 }
 
                 recentLockfileChanges.push({ action, uri })
+                // do it in next loop when all (probably) lockfileChangeHandler callback are called
+                setTimeout(() => finalCallback?.())
                 setTimeout(() => {
                     recentLockfileChanges = null
                     // vscode git is slow
@@ -100,7 +103,12 @@ export const registerLockfilesWatcher = () => {
             if (commit === newCommit) return
             commit = newCommit
 
-            if (recentLockfileChanges && !Array.isArray(recentLockfileChanges)) recentLockfileChanges(true)
+            if (recentLockfileChanges && !Array.isArray(recentLockfileChanges)) {
+                // on some random checkouts on windows, repo.state.onDidChange gets called twice,
+                // so we cancel old and bind new
+                recentLockfileChanges(true)
+                recentLockfileChanges = null
+            }
             // eslint-disable-next-line curly
             if (recentLockfileChanges === null) {
                 await new Promise<void>((resolve, reject) => {
