@@ -109,6 +109,7 @@ export const registerLockfilesWatcher = () => {
                 recentLockfileChanges(true)
                 recentLockfileChanges = null
             }
+
             // eslint-disable-next-line curly
             if (recentLockfileChanges === null) {
                 await new Promise<void>((resolve, reject) => {
