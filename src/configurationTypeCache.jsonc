@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: 1a8fd22664d69a99cdbfe3ca8a5510ed
+// md5hash: b133959f2da203c7532b20a88fa054bf
 {
     "type": "object",
     "properties": {
@@ -243,22 +243,22 @@
                     "killPrev": {
                         "description": "Kill previous command execution @default true",
                         "type": "boolean"
+                    },
+                    "silent": {
+                        "default": false,
+                        "type": "boolean"
                     }
                 },
                 "required": [
                     "command",
-                    "killPrev",
                     "relativePathGlob"
                 ]
             }
         },
-        "runOnSave.runOnAutoSave": {
-            "description": "It won't run on after delay auto save type anyway",
+        "runOnSaveAfterFocusOut": {
+            "description": "Wether to run `runOnSave` rules after save on focus out. I disabled after delay to not be annoying anyway",
             "default": false,
-            "type": "string",
-            "enum": [
-                ""
-            ]
+            "type": "boolean"
         },
         "packageJsonIntellisense": {
             "description": "Wether to enable completions in package.json files",
@@ -344,7 +344,7 @@
         "packageManagerAllowedEnv",
         "runBinCommand.searchLocation",
         "runOnSave",
-        "runOnSave.runOnAutoSave",
+        "runOnSaveAfterFocusOut",
         "scripts.mainScripts",
         "scripts.matchContents",
         "scripts.restartDelay",
