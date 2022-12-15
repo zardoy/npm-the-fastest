@@ -19,7 +19,11 @@ type RunOnSaveRule = {
     /** Only when `semverRange` is specified */
     // noInstalledWarning?: boolean
     /** Kill previous command execution @default true */
-    killPrev: boolean
+    killPrev?: boolean
+    /**
+     * @default false
+     */
+    silent?: boolean
 }
 
 type PackageLinkAction =
@@ -213,10 +217,10 @@ export type Configuration = {
     'codeAction.resolveBranchName': boolean
     runOnSave: RunOnSaveRule[]
     /**
-     * It won't run on after delay auto save type anyway
+     * Wether to run `runOnSave` rules after save on focus out. I disabled after delay to not be annoying anyway
      * @default false
      */
-    'runOnSave.runOnAutoSave': ''
+    runOnSaveAfterFocusOut: boolean
     /**
      * Wether to enable completions in package.json files
      * @default true

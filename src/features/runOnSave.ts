@@ -14,7 +14,7 @@ export const registerRunOnSave = () => {
         if (runOnSave.length === 0) return
         disposable = vscode.workspace.onWillSaveTextDocument(async ({ document, reason }) => {
             if (reason === vscode.TextDocumentSaveReason.AfterDelay) return
-            if (!getExtensionSetting('runOnSave.runOnAutoSave') && reason === vscode.TextDocumentSaveReason.FocusOut) return
+            if (!getExtensionSetting('runOnSaveAfterFocusOut') && reason === vscode.TextDocumentSaveReason.FocusOut) return
             const currentWorkspacePath = vscode.workspace.getWorkspaceFolder(document.uri)
             if (!currentWorkspacePath) return
             const packageJsonPath = runOnSave.some(({ deps }) => deps && deps.length > 0) ? await findUpPackageJson(document.uri) : undefined
@@ -35,29 +35,35 @@ export const registerRunOnSave = () => {
                 }
 
                 console.log('running runOnSave command:', rule.command)
-                await vscode.window.withProgress(
-                    { location: vscode.ProgressLocation.Notification, cancellable: true, title: `Running ${rule.command}` },
-                    async (_, token) => {
-                        const cwd = (() => {
-                            // eslint-disable-next-line default-case
-                            switch (rule.cwd ?? 'file') {
-                                case 'file':
-                                    return dirname(document.uri.fsPath)
-                                case 'packageJson':
-                                    return packageJsonPath?.fsPath ?? dirname(document.uri.fsPath)
-                                case 'workspace':
-                                    return currentWorkspacePath.uri.fsPath
-                            }
-                        })()
-                        const [command, ...args] = rule.command.split(' ')
-                        const exec = execa(command!, args, { cwd })
-                        token.onCancellationRequested(() => exec.cancel())
-                        // TODO! also output output
-                        await exec.catch(error => {
-                            console.error(error.message)
-                        })
-                    },
-                )
+                const asyncFunction = async (token?: vscode.CancellationToken) => {
+                    const cwd = (() => {
+                        // eslint-disable-next-line default-case
+                        switch (rule.cwd ?? 'file') {
+                            case 'file':
+                                return dirname(document.uri.fsPath)
+                            case 'packageJson':
+                                return packageJsonPath?.fsPath ?? dirname(document.uri.fsPath)
+                            case 'workspace':
+                                return currentWorkspacePath.uri.fsPath
+                        }
+                    })()
+                    const [command, ...args] = rule.command.split(' ')
+                    const exec = execa(command!, args, { cwd })
+                    if (token) token.onCancellationRequested(() => exec.cancel())
+                    // TODO! also output output
+                    await exec.catch(error => {
+                        console.error(error.message)
+                    })
+                }
+
+                if (rule.silent) await asyncFunction()
+                else
+                    await vscode.window.withProgress(
+                        { location: vscode.ProgressLocation.Notification, cancellable: true, title: `Running ${rule.command}` },
+                        async (_, token) => {
+                            await asyncFunction(token)
+                        },
+                    )
             }
         })
     }
