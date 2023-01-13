@@ -212,7 +212,7 @@ export type Configuration = {
     'yarnBerry.workspaceAutoInstall': boolean
     /**
      * Disable if action open repository takes a lot of time, in this case it would use `master` branch in url
-     * @default true
+     * @default false
      */
     'codeAction.resolveBranchName': boolean
     runOnSave: RunOnSaveRule[]

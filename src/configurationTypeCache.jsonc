@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: b133959f2da203c7532b20a88fa054bf
+// md5hash: a615e5beebf47dae76bfdc05804435e9
 {
     "type": "object",
     "properties": {
@@ -191,7 +191,7 @@
         },
         "codeAction.resolveBranchName": {
             "description": "Disable if action open repository takes a lot of time, in this case it would use `master` branch in url",
-            "default": true,
+            "default": false,
             "type": "boolean"
         },
         "runOnSave": {
