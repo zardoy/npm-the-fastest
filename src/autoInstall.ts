@@ -96,9 +96,8 @@ export const registerLockfilesWatcher = () => {
         })
         const repo = git.repositories[0]
         if (!repo) return
-        let { commit } = repo.state.HEAD
+        let { commit } = repo.state.HEAD ?? {}
         repo.state.onDidChange(async () => {
-            // eslint-disable-next-line unicorn/consistent-destructuring
             const newCommit = repo.state.HEAD.commit
             if (commit === newCommit) return
             commit = newCommit
