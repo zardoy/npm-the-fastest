@@ -99,6 +99,11 @@ export const registerLockfilesWatcher = () => {
         let { commit } = repo.state.HEAD ?? {}
         repo.state.onDidChange(async () => {
             const newCommit = repo.state.HEAD.commit
+            if (commit === undefined) {
+                commit = newCommit
+                return
+            }
+
             if (commit === newCommit) return
             commit = newCommit
 
