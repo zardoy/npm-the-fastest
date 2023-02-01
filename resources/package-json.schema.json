@@ -61,13 +61,17 @@
             "properties": {
                 "overrides": {
                     "type": "object",
+                    "markdownDescription": "Override dependencies. Examples: `\"quux\": \"npm:@myorg/quux@^1.0.0\", \"bar@^2.1.0\": \"3.0.0\", \"qar@1>zoo\": \"2\"`",
                     "additionalProperties": {
                         "type": "string"
                     }
                 },
                 "packageExtensions": {
                     "type": "object",
-                    "description": "Patch package.json of dependencies"
+                    "description": "Patch package.json of dependencies",
+                    "additionalProperties": {
+                        "type": "object"
+                    }
                 },
                 "peerDependencyRules": {
                     "type": "object",
@@ -112,6 +116,38 @@
                 "patchedDependencies": {
                     "type": "object",
                     "description": "This field is added/updated automatically when you run pnpm patch-commit. It is a dictionary where the key should be the package name and exact version"
+                },
+                "allowNonAppliedPatches": {
+                    "description": "When true, installation won't fail if some of the patches from the patchedDependencies field were not applied.",
+                    "type": "boolean"
+                },
+                "updateConfig": {
+                    "type": "object",
+                    "properties": {
+                        "ignoreDependencies": {
+                            "type": "array",
+                            "description": "From v7.13.0 Sometimes you can't update a dependency. For instance, the latest version of the dependency started to use ESM but your project is not yet in ESM. Annoyingly, such a package will be always printed out by the pnpm outdated command and updated, when running pnpm update --latest. However, you may list packages that you don't want to upgrade in the ignoreDependencies field:",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "auditConfig": {
+                    "ignoreCves": {
+                        "type": "array",
+                        "description": "From v7.15.0 A list of CVE IDs that will be ignored by the pnpm audit command.",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "requiredScripts": {
+                    "description": "From v7.19.0 Scripts listed in this array will be required in each project of the worksapce. Otherwise, pnpm -r run <script name> will fail.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         }
