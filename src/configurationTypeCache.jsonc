@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: a615e5beebf47dae76bfdc05804435e9
+// md5hash: 727c6dc098ff2d974cc6d2d008fa6827
 {
     "type": "object",
     "properties": {
@@ -97,7 +97,12 @@
             }
         },
         "scripts.matchContents": {
-            "description": "Whether to enable searching by script contents in quickpick",
+            "description": "Whether to enable searching by script contents (description) in quickpick",
+            "default": false,
+            "type": "boolean"
+        },
+        "runNpmScript.showRunningOnTop": {
+            "description": "Wether to always show running scripts on top",
             "default": false,
             "type": "boolean"
         },
@@ -182,11 +187,6 @@
         },
         "statusbar.showMainScriptStatus": {
             "default": true,
-            "type": "boolean"
-        },
-        "yarnBerry.workspaceAutoInstall": {
-            "description": "Applies only if project uses yarn 2 or greater and #openWorkspaceAutoInstall# is withoutPrompt. In this case project script, instead of your system-wide package manager will be used",
-            "default": false,
             "type": "boolean"
         },
         "codeAction.resolveBranchName": {
@@ -343,6 +343,7 @@
         "packageJsonScriptNameLink",
         "packageManagerAllowedEnv",
         "runBinCommand.searchLocation",
+        "runNpmScript.showRunningOnTop",
         "runOnSave",
         "runOnSaveAfterFocusOut",
         "scripts.mainScripts",
@@ -352,7 +353,6 @@
         "search.includeDeprecated",
         "search.provder",
         "statusbar.showMainScriptStatus",
-        "useIntegratedTerminal",
-        "yarnBerry.workspaceAutoInstall"
+        "useIntegratedTerminal"
     ]
 }

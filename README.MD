@@ -35,8 +35,6 @@ By default, we prompt to run package manager install command on lockfile change 
 - `Tasks: Show Running Tasks` - Reveals panel with running tasks
 - `Tasks: Rerun Last Task` - Useful to bind to some shortcut
 
-Note, that not all setting (such as `install.watchPackageLocks`) are implemented for now.
-
 ## Open At
 
 There are commands to quickly select and open package on specific resource, such as its repository or its readme right within VSCode. Just go explore command by clicking contributes tab in VSCode!

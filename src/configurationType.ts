@@ -139,10 +139,15 @@ export type Configuration = {
      */
     'scripts.mainScripts': string[]
     /**
-     * Whether to enable searching by script contents in quickpick
+     * Whether to enable searching by script contents (description) in quickpick
      * @default false
      */
     'scripts.matchContents': boolean
+    /**
+     * Wether to always show running scripts on top
+     * @default false
+     */
+    'runNpmScript.showRunningOnTop': boolean
     /**
      * This affects `runScript` and `runMainScript` commands. From where pick scripts
      * @default closest
@@ -206,10 +211,6 @@ export type Configuration = {
     'codeActions.enableLanguages': string[]
     /** @default true */
     'statusbar.showMainScriptStatus': boolean
-    /** Applies only if project uses yarn 2 or greater and #openWorkspaceAutoInstall# is withoutPrompt. In this case project script, instead of your system-wide package manager will be used
-     * @default false
-     */
-    'yarnBerry.workspaceAutoInstall': boolean
     /**
      * Disable if action open repository takes a lot of time, in this case it would use `master` branch in url
      * @default false
