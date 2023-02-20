@@ -9,9 +9,17 @@ import { joinPackageJson } from '../commands-core/util'
 
 const recentlyTouchedScripts: string[] = []
 
-export const startNpmScript = async (_, scriptArgs?: string /*  | [scriptName: string, action?: boolean | 'focus' | 'kill', forceAction?: boolean] */) => {
+type LaunchScriptArgs = {
+    // cwd?: vscode.Uri
+    name: string
+    /* action: string */
+} /*  | [scriptName: string, action?: boolean | 'focus' | 'kill', forceAction?: boolean] */
+
+export const startNpmScript = async (_, scriptArgs?: string | LaunchScriptArgs) => {
     // const name = await vscode.window.showErrorMessage('No `scripts` defined in package.json', 'Open package.json')
-    const [argScriptName, scriptAction, forceAction] = typeof scriptArgs === 'string' ? [scriptArgs] : scriptArgs ?? []
+    let argScriptName: string
+    if (scriptArgs) argScriptName = typeof scriptArgs === 'string' ? scriptArgs : scriptArgs.name
+
     await launchNpmTask(async ({ packageJson, dir }) => {
         if (argScriptName) return argScriptName
         const scriptNamespaceIcon = {
