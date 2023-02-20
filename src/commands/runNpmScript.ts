@@ -15,7 +15,7 @@ type LaunchScriptArgs = {
     /* action: string */
 } /*  | [scriptName: string, action?: boolean | 'focus' | 'kill', forceAction?: boolean] */
 
-export const startNpmScript = async (_, scriptArgs?: string | LaunchScriptArgs) => {
+export const runNpmScript = async (_, scriptArgs?: string | LaunchScriptArgs) => {
     // const name = await vscode.window.showErrorMessage('No `scripts` defined in package.json', 'Open package.json')
     let argScriptName: string
     if (scriptArgs) argScriptName = typeof scriptArgs === 'string' ? scriptArgs : scriptArgs.name

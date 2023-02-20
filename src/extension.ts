@@ -12,7 +12,7 @@ import { pnpmOfflineInstall } from './commands/pnpmOfflineInstall'
 import { removePackages } from './commands/removePackages'
 import { runBinCommand } from './commands/runBinCommand'
 import { startMainNpmScript } from './commands/startMainNpmScript'
-import { startNpmScript } from './commands/startNpmScript'
+import { runNpmScript } from './commands/runNpmScript'
 import { registerClipboardDetection } from './core/clipboardDetection'
 import { activateStatusbar } from './features/statusbar'
 import { registerPackageJsonCompletions } from './packageJsonComplete'
@@ -40,7 +40,7 @@ export const activate = () => {
             await packageManagerCommand({ cwd: getCurrentWorkspaceRoot().uri, command: 'install' })
         },
         startSpecialCommand,
-        runNpmScript: startNpmScript,
+        runNpmScript,
         runMainNpmScript: startMainNpmScript,
         printEnv: () => {
             console.log(process.env)
