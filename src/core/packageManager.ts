@@ -50,7 +50,7 @@ export const pnpmCommand = async ({
     cancellationToken,
     flags = [],
 }: {
-    command: 'remove' | 'add' | 'install'
+    command: 'remove' | 'add' | 'install' | 'link'
     packages?: string[]
     flags?: string[]
     cwd: string

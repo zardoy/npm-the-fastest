@@ -33,7 +33,6 @@ export const registerCodeActions = () => {
                 // TODO also detect remaps (paths) from tsconfig.json
                 if (builtinModules.includes(moduleName) || moduleName.startsWith('./')) return
                 if (pos.character < moduleNameIndex!) {
-                    console.log('pos')
                     return
                 }
 

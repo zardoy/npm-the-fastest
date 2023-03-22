@@ -71,7 +71,7 @@ class CancelError extends Error {
 
 export const packageManagerCommand = async (_inputArg: {
     cwd: vscode.Uri
-    command: 'install' | 'add' | 'remove'
+    command: 'install' | 'add' | 'remove' | 'link'
     // displayCwd?: boolean
     // realPackagesCount?: number
     flags?: string[] | string
@@ -106,7 +106,17 @@ export const packageManagerCommand = async (_inputArg: {
             return msg
         }
 
-        msg += subcommand === 'add' ? 'Installing' : 'Removing'
+        switch (subcommand) {
+            case 'add':
+                msg += 'Installing'
+                break
+            case 'remove':
+                msg += 'Removing'
+                break
+            case 'link':
+                msg += 'Linking'
+                break
+        }
         msg += packages.length > 4 ? ` ${packages.length} packages` : `: ${packages.join(', ')}`
         if (flags.includes('-D')) msg += ' as dev'
         return msg
@@ -116,7 +126,7 @@ export const packageManagerCommand = async (_inputArg: {
     let execSubcommand = subcommand
     if (subcommand === 'install') {
         execSubcommand = supportedPackageManagers[pm].installCommand as any
-    } else if (packages.length === 0) {
+    } else if (packages.length === 0 && subcommand !== 'link') {
         void vscode.window.showWarningMessage(`No packages to ${subcommand} provided`)
         return
     }

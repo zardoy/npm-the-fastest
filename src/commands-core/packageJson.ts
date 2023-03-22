@@ -30,7 +30,21 @@ export const readPackageJsonWithMetadata = async ({ type, fallback = false }: { 
     return { packageJson: await readDirPackageJson(cwd), dir: cwd, workspaceFolder }
 }
 
-export const readDirPackageJson = async (cwd: vscode.Uri) => JSON.parse(String(await vscode.workspace.fs.readFile(joinPackageJson(cwd)))) as PackageJson
+export const readDirPackageJson = async (cwd: vscode.Uri) => {
+    const file = await vscode.workspace.fs.readFile(joinPackageJson(cwd))
+    return JSON.parse(String(file)) as PackageJson
+}
+
+export const readDirPackageJsonVersion = async (cwd: vscode.Uri, notInstalledMessage = 'Not installed'): Promise<string> => {
+    try {
+        const { version } = await readDirPackageJson(cwd)
+        return version ?? '?'
+    } catch (err) {
+        if (err.message?.includes('in JSON')) return 'Invalid JSON'
+        // TODO handle only fs error
+        return notInstalledMessage
+    }
+}
 
 // TODO-implement find-up for vscode ? or use fs
 /**
@@ -64,6 +78,24 @@ export const findUpPackageJson = async <T extends boolean = false>(
     }
 }
 
+/**
+ * @returns dirs with package.json
+ */
+export const findUpMultiplePackageJson = async (uri: vscode.Uri) => {
+    const { uri: workspaceUri } = getCurrentWorkspaceRoot()
+    const packageJsons: vscode.Uri[] = []
+    let currentUri = vscode.Uri.joinPath(uri, '..')
+    while (true) {
+        if (await fsExists(joinPackageJson(currentUri), true)) packageJsons.push(currentUri)
+        if (currentUri.path === workspaceUri.path) {
+            console.debug('find package.json: reached workspace boundary')
+            return packageJsons
+        }
+
+        currentUri = vscode.Uri.joinPath(currentUri, '..')
+    }
+}
+
 export const findUpNodeModules = async (dirUri: vscode.Uri): Promise<vscode.Uri> => {
     let currentUri = dirUri
     while (true) {
@@ -93,7 +125,15 @@ export const pickInstalledDeps = async <M extends boolean>({
     packageJson?: PackageJson
     flatTypes?
 }): Promise<(M extends true ? PickedDeps : string) | undefined> => {
-    if (!packageJson) ({ packageJson } = await readPackageJsonWithMetadata({ type: 'closest', fallback: true }))
+    let packageJsons = packageJson ? [packageJson] : undefined
+    if (!packageJsons)
+        if (vscode.window.activeTextEditor?.viewColumn === undefined) {
+            packageJsons = [(await readPackageJsonWithMetadata({ type: 'workspacesFirst' })).packageJson]
+        } else {
+            const packageJsonDirs = await findUpMultiplePackageJson(vscode.window.activeTextEditor.document.uri)
+            packageJsons = await Promise.all(packageJsonDirs.map(async dir => readDirPackageJson(dir)))
+        }
+
     const depsIconMap = {
         dependencies: 'package',
         devDependencies: 'tools',
@@ -101,33 +141,36 @@ export const pickInstalledDeps = async <M extends boolean>({
     }
 
     const AT_TYPES = '@types/'
-    const hasTypesPackage = (pkg: string) => Object.keys(packageJson!.dependencies ?? {}).includes(pkg.slice(AT_TYPES.length))
+    const hasTypesPackage = (pkg: string, pkgJsonIndex: number) =>
+        Object.keys(packageJsons![pkgJsonIndex]!.dependencies ?? {}).includes(pkg.slice(AT_TYPES.length))
 
     // TODO produce warning dialog when package a in dev/optional deps and @types/a in deps
 
     const packagesWithTypes = [] as string[]
 
     const pickedDeps = (await showQuickPick(
-        packageJsonInstallDependenciesKeys.flatMap(depKey => {
-            const deps = (packageJson![depKey] as PackageJson['dependencies']) ?? {}
-            return Object.entries(deps)
-                .map(
-                    // ts error below: pkgJson possibly is undefined
-                    ([pkg, version]): VSCodeQuickPickItem => {
-                        if (flatTypes && pkg.startsWith(AT_TYPES) && depKey === 'devDependencies' && hasTypesPackage(pkg)) {
-                            packagesWithTypes.push(pkg.slice(AT_TYPES.length))
-                            return undefined!
-                        }
+        packageJsons.flatMap((json, jsonIndex) =>
+            packageJsonInstallDependenciesKeys.flatMap(depKey => {
+                const deps = (json[depKey] as PackageJson['dependencies']) ?? {}
+                return Object.entries(deps)
+                    .map(
+                        // ts error below: pkgJson possibly is undefined
+                        ([pkg, version]): VSCodeQuickPickItem => {
+                            if (flatTypes && pkg.startsWith(AT_TYPES) && depKey === 'devDependencies' && hasTypesPackage(pkg, jsonIndex)) {
+                                packagesWithTypes.push(pkg.slice(AT_TYPES.length))
+                                return undefined!
+                            }
 
-                        return {
-                            label: `$(${depsIconMap[depKey]}) ${pkg}`,
-                            value: pkg,
-                            description: version,
-                        }
-                    },
-                )
-                .filter(Boolean)
-        }),
+                            return {
+                                label: `$(${depsIconMap[depKey]}) ${pkg}`,
+                                value: pkg,
+                                description: version,
+                            }
+                        },
+                    )
+                    .filter(Boolean)
+            }),
+        ),
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         { canPickMany: multiple as boolean, title: noCase(commandId), ignoreFocusOut: true },
     )) as PickedDeps | string

@@ -100,6 +100,10 @@
             {
                 "command": "openPackageAt",
                 "title": "Open Package At"
+            },
+            {
+                "command": "linkPackage",
+                "title": "Link Package"
             }
         ],
         "menus": {

@@ -20,6 +20,7 @@ import { startSpecialCommand } from './commands/startSpecialCommand'
 import { registerRunOnSave } from './features/runOnSave'
 import openWorkspacePackageJson from './commands/openWorkspacePackageJson'
 import { registerPackageJsonLinks } from './packageJsonLinks'
+import { registerLinkPackage } from './commands/linkPackage'
 
 // TODO command for package diff
 
@@ -49,6 +50,7 @@ export const activate = () => {
     })
 
     registerOpenPackageAtCommands()
+    registerLinkPackage()
     openWorkspacePackageJson()
     registerRunOnSave()
     registerClipboardDetection()
