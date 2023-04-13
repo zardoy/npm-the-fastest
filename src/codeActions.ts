@@ -4,6 +4,10 @@ import { getExtensionCommandId, getExtensionSetting, getExtensionSettingId } fro
 import { readPackageJsonWithMetadata } from './commands-core/packageJson'
 import { AddPackagesArg } from './commands/addPackages'
 
+const regexs = [/ from (['"].*['"])/, /import\((['"].*['"])\)/, /require(?:\.resolve)?\((['"].*['"])\)/]
+
+const cdnLikeSitesPatterns = ['https://cdn.skypack.dev/', 'https://cdn.jsdelivr.net/npm/']
+
 export const registerCodeActions = () => {
     // TODo refactor with helper
     const registerCodeActionsInner = () =>
@@ -14,26 +18,17 @@ export const registerCodeActions = () => {
                     const problem = diagnostics[0]
                     const hasMissingImport = problem && problem.source === 'ts' && problem.code === 2307
                     const hasMissingTypes = problem && problem.source === 'ts' && problem.code === 7016
-                    // TODO also check end
-                    const pos = range.start
-                    const lineText = document.lineAt(pos.line).text
-                    // TODO support skypack imports e.g. https://cdn.skypack.dev/canvas-confetti
-                    const regexs = [/(import .*)(['"].*['"])/, /(} from )(['"].*['"])/]
-                    let moduleNameIndex: number | undefined
                     let moduleName: string | undefined
                     for (const regex of regexs) {
-                        const result = regex.exec(lineText)
-                        if (!result) continue
-                        moduleNameIndex = result[1]!.length
-                        moduleName = getModuleName(result[2]!.slice(1, -1))
+                        const regexRange = document.getWordRangeAtPosition(range.start, regex)
+                        if (!regexRange || range.end.isAfter(regexRange.end)) continue
+                        const result = regex.exec(document.getText(regexRange))!
+                        moduleName = getModuleName(result[1]!.slice(1, -1))
                         break
                     }
 
                     if (!moduleName) return
-
-                    // TODO also detect remaps (paths) from tsconfig.json
                     if (builtinModules.includes(moduleName) || moduleName.startsWith('./')) return
-                    if (pos.character < moduleNameIndex!) return
 
                     const codeActions: vscode.CodeAction[] = []
                     // TODO check for existence
@@ -111,7 +106,6 @@ export const registerCodeActions = () => {
                     }
 
                     return codeActions
-                    // vscode.window.showTextDocument(document)
                 },
             },
             {
@@ -129,4 +123,18 @@ export const registerCodeActions = () => {
     })
 }
 
-const getModuleName = (importPath: string) => /^(@[a-z\d-~][a-z\d-._~]*\/)?[a-z\d-~][a-z\d-._~]*/.exec(importPath)?.[0]
+const getModuleName = (importPath: string) => {
+    if (importPath.startsWith('http'))
+        for (const cdnLikeSitesPattern of cdnLikeSitesPatterns)
+            if (importPath.startsWith(cdnLikeSitesPattern)) {
+                importPath = importPath.slice(cdnLikeSitesPattern.length, findStringIndex(importPath, '/', cdnLikeSitesPattern.length))
+                break
+            }
+
+    return /^(@[a-z\d-~][a-z\d-._~]*\/)?[a-z\d-~][a-z\d-._~]*/.exec(importPath)?.[0]
+}
+
+const findStringIndex = (str: string, needle: string, offset = 0) => {
+    const idx = str.indexOf(needle, offset)
+    return idx === -1 ? undefined : idx
+}
