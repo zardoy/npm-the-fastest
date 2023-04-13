@@ -1,7 +1,6 @@
 import * as vscode from 'vscode'
 import { parseTree, findNodeAtLocation } from 'jsonc-parser'
 import { getExtensionSetting, VSCodeQuickPickItem } from 'vscode-framework'
-import { move } from 'rambda'
 import { showQuickPick } from '@zardoy/vscode-utils/build/quickPick'
 import delay from 'delay'
 import { launchNpmTask } from '../commands-core/npmScripts'

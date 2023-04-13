@@ -17,7 +17,7 @@ const detectAndAssignProblemMatcher = (task: vscode.Task, scriptContent: string)
  * @returns false, if action needs to be stopped
  */
 export const launchNpmTask = async (getNpmScript: (params: PromiseType<ReturnType<typeof readPackageJsonWithMetadata>>) => Promise<string | undefined>) => {
-    const { packageJson, workspaceFolder, dir: workspacePath } = await readPackageJsonWithMetadata({ type: 'workspacesFirst' })
+    const { packageJson, workspaceFolder, dir: workspaceUri } = await readPackageJsonWithMetadata({ type: 'workspacesFirst' })
     if (!packageJson.scripts) {
         // TODO command title
         // TODO change to define `start` script
@@ -28,7 +28,7 @@ export const launchNpmTask = async (getNpmScript: (params: PromiseType<ReturnTyp
     }
 
     const packageManager = 'pnpm'
-    const npmScript = await getNpmScript({ packageJson, workspaceFolder, dir: workspacePath })
+    const npmScript = await getNpmScript({ packageJson, workspaceFolder, dir: workspaceUri })
     if (npmScript === undefined) return
 
     const task = new vscode.Task(
@@ -42,7 +42,7 @@ export const launchNpmTask = async (getNpmScript: (params: PromiseType<ReturnTyp
         workspaceFolder!,
         npmScript,
         'npm',
-        new vscode.ShellExecution(packageManager, ['run', npmScript], { cwd: workspacePath.fsPath }),
+        new vscode.ShellExecution(packageManager, ['run', npmScript], { cwd: workspaceUri.fsPath }),
     )
     detectAndAssignProblemMatcher(task, packageJson.scripts[npmScript]!)
 

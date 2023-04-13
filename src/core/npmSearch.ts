@@ -39,7 +39,7 @@ export const performAlgoliaSearch = async (search: string): Promise<NpmSearchRes
         'owner',
         'types',
     ])
-    const results = await index.search<Pick<AlgoliaSearchResultItem, typeof attributesToRetrieve[number]>>(search, {
+    const results = await index.search<Pick<AlgoliaSearchResultItem, (typeof attributesToRetrieve)[number]>>(search, {
         hitsPerPage: 20,
         page: 0,
         attributesToHighlight: ['name', 'description', 'keywords'],
