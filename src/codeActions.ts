@@ -14,6 +14,7 @@ export const registerCodeActions = () => {
         vscode.languages.registerCodeActionsProvider(
             getExtensionSetting('codeActions.enableLanguages').map(language => ({ language, scheme: 'file' })),
             {
+                // eslint-disable-next-line complexity
                 async provideCodeActions(document, range, { diagnostics }) {
                     const problem = diagnostics[0]
                     const hasMissingImport = problem && problem.source === 'ts' && problem.code === 2307
@@ -31,50 +32,56 @@ export const registerCodeActions = () => {
                     if (builtinModules.includes(moduleName) || moduleName.startsWith('./')) return
 
                     const codeActions: vscode.CodeAction[] = []
-                    // TODO check for existence
-                    codeActions.push(
-                        ...(hasMissingImport
-                            ? []
-                            : [
-                                  {
-                                      title: 'Open README to side',
-                                      command: {
-                                          command: getExtensionCommandId('openPackageReadmePreview'),
-                                          // TODO investigate on titles
-                                          title: '',
-                                          arguments: [moduleName],
-                                      },
-                                      kind: vscode.CodeActionKind.Empty,
-                                  },
-                                  {
-                                      title: 'Open Repository',
-                                      command: {
-                                          command: getExtensionCommandId('openPackageRepository'),
-                                          title: '',
-                                          arguments: [moduleName],
-                                      },
-                                      kind: vscode.CodeActionKind.Empty,
-                                  },
-                              ]),
-                        {
-                            title: 'Open on NPM',
-                            command: {
-                                command: getExtensionCommandId('openOnNpm'),
-                                title: '',
-                                arguments: [moduleName],
+                    if (hasMissingImport) {
+                        const { packageJson = {} } = await readPackageJsonWithMetadata({ type: 'closest' }).catch(() => ({}))
+                        let foundType
+                        for (const depType of ['dependencies', 'devDependencies', 'optionalDependencies'])
+                            if (moduleName in packageJson[depType] ?? {}) {
+                                foundType = depType
+                                break
+                            }
+
+                        // TODO-low check for existence
+                        codeActions.push(
+                            {
+                                title: 'Open README to side',
+                                command: {
+                                    command: getExtensionCommandId('openPackageReadmePreview'),
+                                    title: '',
+                                    arguments: [moduleName],
+                                },
+                                kind: vscode.CodeActionKind.Empty,
                             },
-                            kind: vscode.CodeActionKind.Empty,
-                        },
-                        {
-                            title: 'Remove with PNPM',
-                            command: {
-                                command: getExtensionCommandId('removePackages'),
-                                title: '',
-                                arguments: [[moduleName]],
+                            {
+                                title: 'Open Repository',
+                                command: {
+                                    command: getExtensionCommandId('openPackageRepository'),
+                                    title: '',
+                                    arguments: [moduleName],
+                                },
+                                kind: vscode.CodeActionKind.Empty,
                             },
-                            kind: vscode.CodeActionKind.Empty,
-                        },
-                    )
+                            {
+                                title: 'Open on NPM',
+                                command: {
+                                    command: getExtensionCommandId('openOnNpm'),
+                                    title: '',
+                                    arguments: [moduleName],
+                                },
+                                kind: vscode.CodeActionKind.Empty,
+                            },
+                            {
+                                // todo use multiple find up packageJson and disable this code action if not found
+                                title: `Remove ${foundType ? `from ${foundType}` : 'module'}`,
+                                command: {
+                                    command: getExtensionCommandId('removePackages'),
+                                    title: '',
+                                    arguments: [[moduleName]],
+                                },
+                                kind: vscode.CodeActionKind.Empty,
+                            },
+                        )
+                    }
 
                     if (hasMissingImport || hasMissingTypes) {
                         const addModuleFix = (module: string, type: 'dependency' | 'devDependency', isPreferred = true) => {

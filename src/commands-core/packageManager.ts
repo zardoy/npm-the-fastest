@@ -106,6 +106,7 @@ export const packageManagerCommand = async (_inputArg: {
             return msg
         }
 
+        // eslint-disable-next-line default-case
         switch (subcommand) {
             case 'add':
                 msg += 'Installing'
@@ -117,6 +118,7 @@ export const packageManagerCommand = async (_inputArg: {
                 msg += 'Linking'
                 break
         }
+
         msg += packages.length > 4 ? ` ${packages.length} packages` : `: ${packages.join(', ')}`
         if (flags.includes('-D')) msg += ' as dev'
         return msg
