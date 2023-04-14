@@ -33,8 +33,8 @@ export const registerCodeActions = () => {
 
                     const codeActions: vscode.CodeAction[] = []
                     if (hasMissingImport) {
-                        const { packageJson = {} } = await readPackageJsonWithMetadata({ type: 'closest' }).catch(() => ({}))
-                        let foundType
+                        const { packageJson = {} } = await readPackageJsonWithMetadata({ type: 'closest' }).catch(() => ({} as never))
+                        let foundType: string | undefined
                         for (const depType of ['dependencies', 'devDependencies', 'optionalDependencies'])
                             if (moduleName in packageJson[depType] ?? {}) {
                                 foundType = depType
