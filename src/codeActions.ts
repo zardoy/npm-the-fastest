@@ -31,8 +31,18 @@ export const registerCodeActions = () => {
                     if (!moduleName) return
                     if (builtinModules.includes(moduleName) || moduleName.startsWith('./')) return
 
-                    const codeActions: vscode.CodeAction[] = []
-                    if (hasMissingImport) {
+                    const codeActions: vscode.CodeAction[] = [
+                        {
+                            title: 'Open on NPM',
+                            command: {
+                                command: getExtensionCommandId('openOnNpm'),
+                                title: '',
+                                arguments: [moduleName],
+                            },
+                            kind: vscode.CodeActionKind.Empty,
+                        },
+                    ]
+                    if (!hasMissingImport) {
                         const { packageJson = {} } = await readPackageJsonWithMetadata({ type: 'closest' }).catch(() => ({} as never))
                         let foundType: string | undefined
                         for (const depType of ['dependencies', 'devDependencies', 'optionalDependencies'])
@@ -42,7 +52,7 @@ export const registerCodeActions = () => {
                             }
 
                         // TODO-low check for existence
-                        codeActions.push(
+                        codeActions.unshift(
                             {
                                 title: 'Open README to side',
                                 command: {
@@ -61,26 +71,17 @@ export const registerCodeActions = () => {
                                 },
                                 kind: vscode.CodeActionKind.Empty,
                             },
-                            {
-                                title: 'Open on NPM',
-                                command: {
-                                    command: getExtensionCommandId('openOnNpm'),
-                                    title: '',
-                                    arguments: [moduleName],
-                                },
-                                kind: vscode.CodeActionKind.Empty,
-                            },
-                            {
-                                // todo use multiple find up packageJson and disable this code action if not found
-                                title: `Remove ${foundType ? `from ${foundType}` : 'module'}`,
-                                command: {
-                                    command: getExtensionCommandId('removePackages'),
-                                    title: '',
-                                    arguments: [[moduleName]],
-                                },
-                                kind: vscode.CodeActionKind.Empty,
-                            },
                         )
+                        codeActions.push({
+                            // todo use multiple find up packageJson and disable this code action if not found
+                            title: `Remove ${foundType ? `from ${foundType}` : 'module'}`,
+                            command: {
+                                command: getExtensionCommandId('removePackages'),
+                                title: '',
+                                arguments: [[moduleName]],
+                            },
+                            kind: vscode.CodeActionKind.Empty,
+                        })
                     }
 
                     if (hasMissingImport || hasMissingTypes) {

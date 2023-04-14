@@ -8,7 +8,7 @@ import { joinPackageJson, supportedFileSchemes } from '../commands-core/util'
 import { getPackageRepositoryUrl } from './npmOpenRepository'
 
 /** get module dir URI from closest node_modules */
-const getClosestModulePath = async (module: string, path = '') => {
+export const getClosestModulePath = async (module: string, path = '') => {
     // TODO reuse readPackageJsonWithMetadata resolution logic
     const nodeModulesUri = await (async () => {
         const editor = vscode.window.activeTextEditor
