@@ -5,7 +5,8 @@
             "ESNext",
             "WebWorker"
         ],
-        "noEmit": true
+        "noEmit": true,
+        "noImplicitReturns": false
     },
     "include": [
         "src"
