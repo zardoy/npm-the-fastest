@@ -221,6 +221,7 @@ const handleRunningTask = (command: string, args: string[], shortTitle: string) 
     return undefined
 }
 
+//@ts-expect-error
 const executeTaskShared = async (
     data:
         | 'reveal'

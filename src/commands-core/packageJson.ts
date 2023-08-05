@@ -2,7 +2,7 @@
 import { posix } from 'path'
 import * as vscode from 'vscode'
 import { PackageJson } from 'type-fest'
-import { showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
+import { getExtensionSetting, showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
 import { noCase } from 'change-case'
 import { fsExists, getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
 import { joinPackageJson, supportedFileSchemes } from './util'
@@ -192,5 +192,24 @@ export const throwIfNoPackageJson = async (uriDir: vscode.Uri, needsWrite: boole
     } catch {
         // TODO suggest to init one
         throw new Error('No package.json found. Run `init` first')
+    }
+}
+
+export const showPackageJson = async (uri: vscode.Uri, isDir = true) => {
+    if (isDir) uri = joinPackageJson(uri)
+    if (uri.scheme === 'file' && getExtensionSetting('useNoJsonDiagnosticsWorkaround')) {
+        await vscode.commands.executeCommand('workbench.action.quickOpen', uri.fsPath)
+        await new Promise(resolve => {
+            setTimeout(resolve, 25)
+        })
+        await new Promise<void>(resolve => {
+            const { dispose } = vscode.window.onDidChangeActiveTextEditor(() => {
+                resolve()
+                dispose()
+            })
+            void vscode.commands.executeCommand('workbench.action.acceptSelectedQuickOpenItem')
+        })
+    } else {
+        await vscode.window.showTextDocument(uri)
     }
 }

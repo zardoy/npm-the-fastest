@@ -254,4 +254,6 @@ export type Configuration = {
     depsValueLinkAction: PackageLinkAction
     /** @default true */
     // enableTerminalLinkProvider: boolean
+    /** @default true */
+    useNoJsonDiagnosticsWorkaround: boolean
 }

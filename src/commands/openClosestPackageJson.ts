@@ -1,6 +1,6 @@
 import vscode from 'vscode'
 import { fsExists } from '@zardoy/vscode-utils/build/fs'
-import { findUpPackageJson } from '../commands-core/packageJson'
+import { findUpPackageJson, showPackageJson } from '../commands-core/packageJson'
 import { joinPackageJson, supportedFileSchemes } from '../commands-core/util'
 
 export const openClosestPackageJson = async () => {
@@ -13,16 +13,16 @@ export const openClosestPackageJson = async () => {
         if (!firstWorkspace) return
         const uriToOpen = joinPackageJson(firstWorkspace.uri)
         if (!(await fsExists(uriToOpen, true))) return
-        await vscode.window.showTextDocument(uriToOpen)
+        await showPackageJson(uriToOpen, false)
         return
     }
 
-    const closestPackageJson = await findUpPackageJson(uri)
-    if (closestPackageJson === undefined) {
+    const closestPackageJsonDir = await findUpPackageJson(uri)
+    if (closestPackageJsonDir === undefined) {
         await vscode.window.showWarningMessage('No closest package.json found')
         return
     }
 
-    await vscode.window.showTextDocument(joinPackageJson(closestPackageJson))
+    await showPackageJson(closestPackageJsonDir)
     return undefined
 }

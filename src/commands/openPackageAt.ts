@@ -3,8 +3,8 @@ import defaultBranch from 'default-branch'
 import { getExtensionCommandId, getExtensionSetting, registerExtensionCommand, RegularCommands, showQuickPick } from 'vscode-framework'
 import { getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
 import { noCase } from 'change-case'
-import { findUpNodeModules, pickInstalledDeps, readDirPackageJson } from '../commands-core/packageJson'
-import { joinPackageJson, supportedFileSchemes } from '../commands-core/util'
+import { findUpNodeModules, pickInstalledDeps, readDirPackageJson, showPackageJson } from '../commands-core/packageJson'
+import { supportedFileSchemes } from '../commands-core/util'
 import { getPackageRepositoryUrl } from './npmOpenRepository'
 
 /** get module dir URI from closest node_modules */
@@ -93,8 +93,8 @@ export const registerOpenPackageAtCommands = () => {
     registerExtensionCommand('openPackagePackageJson', async ({ command: commandId }, module?: string) => {
         if (!module) module = await pickInstalledDeps({ commandId, multiple: false, flatTypes: false })
         if (module === undefined) return
-        const packageJsonUri = joinPackageJson(await getClosestModulePath(module))
-        await vscode.window.showTextDocument(packageJsonUri)
+        const packageJsonUriDir = await getClosestModulePath(module)
+        await showPackageJson(packageJsonUriDir)
     })
 
     registerExtensionCommand('openPackageAt', async ({ command: commandId }, module?: string) => {

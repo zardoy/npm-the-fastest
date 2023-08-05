@@ -1,5 +1,5 @@
 import vscode from 'vscode'
-import { readPackageJsonWithMetadata } from './packageJson'
+import { readPackageJsonWithMetadata, showPackageJson } from './packageJson'
 
 type PromiseType<T> = T extends Promise<infer U> ? U : never
 
@@ -22,7 +22,7 @@ export const launchNpmTask = async (getNpmScript: (params: PromiseType<ReturnTyp
         // TODO command title
         // TODO change to define `start` script
         const action = await vscode.window.showErrorMessage('No `scripts` defined in package.json', 'Open package.json')
-        // if (action) vscode.workspace.openTextDocument(vscode.Uri.file(join(workspacePath, 'package.json')))
+        if (action) await showPackageJson(workspaceUri)
 
         return
     }

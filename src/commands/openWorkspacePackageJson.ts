@@ -1,11 +1,9 @@
-import * as vscode from 'vscode'
 import { getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
 import { registerExtensionCommand } from 'vscode-framework'
-import { joinPackageJson } from '../commands-core/util'
+import { showPackageJson } from '../commands-core/packageJson'
 
 export default () => {
     registerExtensionCommand('openWorkspacePackageJson', async () => {
-        const currentWorkspace = getCurrentWorkspaceRoot()
-        await vscode.window.showTextDocument(joinPackageJson(currentWorkspace.uri))
+        await showPackageJson(getCurrentWorkspaceRoot().uri)
     })
 }

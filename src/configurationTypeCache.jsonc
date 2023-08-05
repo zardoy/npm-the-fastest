@@ -1,5 +1,5 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: 727c6dc098ff2d974cc6d2d008fa6827
+// md5hash: 4a565685fba6c6f1922f0623441870fc
 {
     "type": "object",
     "properties": {
@@ -324,6 +324,10 @@
                 "revealInExplorer"
             ],
             "type": "string"
+        },
+        "useNoJsonDiagnosticsWorkaround": {
+            "default": true,
+            "type": "boolean"
         }
     },
     "required": [
@@ -353,6 +357,7 @@
         "search.includeDeprecated",
         "search.provder",
         "statusbar.showMainScriptStatus",
-        "useIntegratedTerminal"
+        "useIntegratedTerminal",
+        "useNoJsonDiagnosticsWorkaround"
     ]
 }

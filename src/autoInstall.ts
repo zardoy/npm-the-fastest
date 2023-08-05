@@ -130,7 +130,7 @@ export const registerLockfilesWatcher = () => {
                 }).catch(() => null)
             }
 
-            for (const { action, uri } of recentLockfileChanges as any[]) void handleLockfileChangeUI(action, uri)
+            for (const { action, uri } of recentLockfileChanges ?? []) void handleLockfileChangeUI(action, uri)
         })
     })()
 }
