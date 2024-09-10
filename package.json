@@ -104,6 +104,10 @@
             {
                 "command": "linkPackage",
                 "title": "Link Package"
+            },
+            {
+                "command": "updatePackages",
+                "title": "Update Packages"
             }
         ],
         "menus": {

@@ -32,6 +32,10 @@ export const supportedPackageManagers = makeSupportedPackageManagers({
         detectFile: 'package-lock.json',
         installCommand: 'install',
     },
+    bun: {
+        detectFile: 'bun.lockb',
+        installCommand: 'install',
+    },
 })
 export type SupportedPackageManagersName = keyof typeof supportedPackageManagers
 

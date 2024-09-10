@@ -8,7 +8,8 @@ import { packageJsonSelector } from './packageJsonComplete'
 import { packageJsonAllDependenciesKeys } from './commands-core/packageJson'
 import { Configuration } from './configurationType'
 
-const scriptLinksCommandRegex = /((?<START>(^|&&|")\s?((pnpm|yarn|npm) run) )(?<NAME>[\wA-Z\d:-]+))|((?<START2>(^|&&|")\s?(pnpm|yarn) )(?<NAME2>[\wA-Z\d:-]+))/g
+const scriptLinksCommandRegex =
+    /((?<START>(^|&&|")\s?((pnpm|yarn|npm|bun) run) )(?<NAME>[\wA-Z\d:-]+))|((?<START2>(^|&&|")\s?(pnpm|yarn|bun|run-p|run-s|npm-run-all|concurrently) )(?<NAME2>[\wA-Z\d:-]+))/g
 
 // eslint-disable-next-line arrow-body-style
 const registerPackageJsonLinksProvider = () => {

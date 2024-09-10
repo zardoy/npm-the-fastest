@@ -43,7 +43,7 @@ There are commands to quickly select and open package on specific resource, such
 
 > PM – Package Manager.
 
-By default, when project has no lockfile the first installed PM from your system will be used: `pnpm`, `yarn` or `npm`
+By default, when project has no lockfile the first installed PM from your system will be used: `pnpm`, `yarn`, `bun` or `npm`
 
 Note that, `npm.packageManager` setting (when not `auto`) always takes precedence and forces to use specific PM in all cases.
 

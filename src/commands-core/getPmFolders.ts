@@ -32,6 +32,7 @@ export const getPmFolders = async () => {
             if (y.packages) return { patterns: y.packages }
             return undefined
         },
+        bun: getYarnWorkspaces,
     }
     /** encoded URIs */
     const moduleFolders = new Set<string>()

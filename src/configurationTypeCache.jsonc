@@ -4,12 +4,13 @@
     "type": "object",
     "properties": {
         "leadingPackageManager": {
-            "description": "Your main package manager that leads your projects\nUsed when no lockfile is detected\nBy default (when null) first installed is picked: pnpm, yarn, npm",
+            "description": "Your main package manager that leads your projects\nUsed when no lockfile is detected\nBy default (when null) first installed is picked.",
             "default": null,
             "enum": [
                 "npm",
                 "pnpm",
-                "yarn"
+                "yarn",
+                "bun"
             ],
             "type": "string"
         },
