@@ -5,6 +5,7 @@ import { PackageJson } from 'type-fest'
 import { getExtensionSetting, showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
 import { noCase } from 'change-case'
 import { fsExists, getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
+import { Utils } from 'vscode-uri'
 import { joinPackageJson, supportedFileSchemes } from './util'
 
 // TODO remove workspacesFirst
@@ -126,9 +127,12 @@ export const pickInstalledDeps = async <M extends boolean>({
     flatTypes?
 }): Promise<(M extends true ? PickedDeps : string) | undefined> => {
     let packageJsons = packageJson ? [packageJson] : undefined
+    let cwd: vscode.Uri | undefined
     if (!packageJsons)
         if (vscode.window.activeTextEditor?.viewColumn === undefined) {
-            packageJsons = [(await readPackageJsonWithMetadata({ type: 'workspacesFirst' })).packageJson]
+            const workspacePackageJson = await readPackageJsonWithMetadata({ type: 'workspacesFirst' })
+            cwd = workspacePackageJson.dir
+            packageJsons = [workspacePackageJson.packageJson]
         } else {
             const packageJsonDirs = await findUpMultiplePackageJson(vscode.window.activeTextEditor.document.uri)
             packageJsons = await Promise.all(packageJsonDirs.map(async dir => readDirPackageJson(dir)))
@@ -148,29 +152,45 @@ export const pickInstalledDeps = async <M extends boolean>({
 
     const packagesWithTypes = [] as string[]
 
-    const pickedDeps = (await showQuickPick(
-        packageJsons.flatMap((json, jsonIndex) =>
-            packageJsonInstallDependenciesKeys.flatMap(depKey => {
-                const deps = (json[depKey] as PackageJson['dependencies']) ?? {}
-                return Object.entries(deps)
-                    .map(
-                        // ts error below: pkgJson possibly is undefined
-                        ([pkg, version]): VSCodeQuickPickItem => {
-                            if (flatTypes && pkg.startsWith(AT_TYPES) && depKey === 'devDependencies' && hasTypesPackage(pkg, jsonIndex)) {
-                                packagesWithTypes.push(pkg.slice(AT_TYPES.length))
-                                return undefined!
-                            }
+    const collectedDeps = packageJsons.flatMap((json, jsonIndex) =>
+        packageJsonInstallDependenciesKeys.flatMap(depKey => {
+            const deps = (json[depKey] as PackageJson['dependencies']) ?? {}
+            return Object.entries(deps)
+                .map(
+                    // ts error below: pkgJson possibly is undefined
+                    ([pkg, version]): VSCodeQuickPickItem => {
+                        if (flatTypes && pkg.startsWith(AT_TYPES) && depKey === 'devDependencies' && hasTypesPackage(pkg, jsonIndex)) {
+                            packagesWithTypes.push(pkg.slice(AT_TYPES.length))
+                            return undefined!
+                        }
 
-                            return {
-                                label: `$(${depsIconMap[depKey]}) ${pkg}`,
-                                value: pkg,
-                                description: version,
-                            }
-                        },
-                    )
-                    .filter(Boolean)
-            }),
-        ),
+                        return {
+                            label: `$(${depsIconMap[depKey]}) ${pkg}`,
+                            value: pkg,
+                            description: version,
+                        }
+                    },
+                )
+                .filter(Boolean)
+        }),
+    )
+    try {
+        if (cwd) {
+            const dir = await vscode.workspace.fs.readDirectory(Utils.joinPath(cwd, 'node_modules'))
+            collectedDeps.push(
+                ...dir
+                    // eslint-disable-next-line no-bitwise
+                    .filter(([, type]) => type & vscode.FileType.Directory)
+                    .map(([name]) => ({
+                        label: name,
+                        value: name,
+                    })),
+            )
+        }
+    } catch {}
+
+    const pickedDeps = (await showQuickPick(
+        collectedDeps,
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         { canPickMany: multiple as boolean, title: noCase(commandId), ignoreFocusOut: true },
     )) as PickedDeps | string

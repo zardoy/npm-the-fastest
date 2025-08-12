@@ -3,6 +3,7 @@ import { posix } from 'path'
 import vscode from 'vscode'
 import { findUp, findUpMultiple } from 'find-up'
 import { getExtensionSetting, showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
+import { getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
 
 const { join } = posix
 
@@ -30,8 +31,7 @@ export const runBinCommand = async () => {
 
 export const getBinCommands = async () => {
     const _docUri = vscode.window.activeTextEditor?.document.uri
-    if (!_docUri) return []
-    const folderUri = vscode.Uri.joinPath(_docUri, '..')
+    const folderUri = _docUri ? vscode.Uri.joinPath(_docUri, '..') : getCurrentWorkspaceRoot()
     const workspaceUri = vscode.workspace.workspaceFolders?.[0]!.uri
     const isFileInWorkspace = !workspaceUri || folderUri.toString().startsWith(workspaceUri.toString())
 

@@ -33,7 +33,7 @@ export const supportedPackageManagers = makeSupportedPackageManagers({
         installCommand: 'install',
     },
     bun: {
-        detectFile: 'bun.lockb',
+        detectFile: 'bun.lock', // lockb is legacy format
         installCommand: 'install',
     },
 })

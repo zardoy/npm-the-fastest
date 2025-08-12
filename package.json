@@ -249,6 +249,11 @@
         "which-pm": "^2.0.0",
         "yamljs": "^0.3.0"
     },
+    "release": {
+        "preset": {
+            "publishMarketplace": false
+        }
+    },
     "prettier": {
         "semi": false,
         "singleQuote": true,

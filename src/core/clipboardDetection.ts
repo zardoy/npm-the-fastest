@@ -19,9 +19,9 @@ export const registerClipboardDetection = () => {
 
         // TODO
         const cwd = getCurrentWorkspaceRoot()
-        const prefferedPm = await getPrefferedPackageManager(cwd.uri)
+        const preferredPm = await getPrefferedPackageManager(cwd.uri)
         // as devDeps
-        if (!(await notificationConfirmAction(`Install packages from clipboard: ${result.packages.join(', ')}`, `Install using ${prefferedPm}`))) return
+        if (!(await notificationConfirmAction(`Install packages from clipboard: ${result.packages.join(', ')}`, `Install using ${preferredPm}`))) return
         // TODO ensure progress
         await packageManagerCommand({
             cwd: cwd.uri,
