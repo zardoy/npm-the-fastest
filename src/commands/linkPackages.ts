@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 import { getCurrentWorkspaceRoot } from '@zardoy/vscode-utils/build/fs'
-import { getExtensionSetting, registerExtensionCommand, showQuickPick, VSCodeQuickPickItem } from 'vscode-framework'
+import { showQuickPick } from '@zardoy/vscode-utils/build/quickPick'
+import { getExtensionSetting, registerExtensionCommand, VSCodeQuickPickItem } from 'vscode-framework'
 import { Utils } from 'vscode-uri'
 import { packageJsonInstallDependenciesKeys, readDirPackageJson } from '../commands-core/packageJson'
 import { getPrefferedPackageManager, packageManagerCommand } from '../commands-core/packageManager'
@@ -53,19 +54,31 @@ export const registerLinkPackages = () => {
                     description: candidate.dirPath,
                     value: candidate,
                     picked: isLinked(candidate.name, candidate.dirPath),
+                    buttons: [
+                        {
+                            tooltip: 'Open Workspace Folder',
+                            iconPath: new vscode.ThemeIcon('folder-library'),
+                        },
+                    ],
                 }),
             )
             .sort((a, b) => Number(b.picked) - Number(a.picked) || a.label.localeCompare(b.label))
 
         type CandidateData = { name: string; dirPath: string; dirUri: vscode.Uri }
-        const selected = await vscode.window.showQuickPick(items, {
+        const selected = await showQuickPick(items, {
             title: `Link packages using ${pm}`,
             canPickMany: true,
             matchOnDescription: true,
+            onDidTriggerItemButton(button) {
+                // eslint-disable-next-line curly
+                if (button.button.tooltip === 'Open Workspace Folder') {
+                    void vscode.commands.executeCommand('vscode.openFolder', button.item.value.dirUri, { forceNewWindow: true })
+                }
+            },
         })
         if (selected === undefined) return
 
-        const selectedNames = new Set(selected.map(s => s.label))
+        const selectedNames = new Set(selected.map(s => s.name))
 
         // determine operations based on current overrides
         const toRemove = new Set(candidates.filter(c => !selectedNames.has(c.name) && overrides?.[c.name]?.startsWith('file:')).map(c => c.name))

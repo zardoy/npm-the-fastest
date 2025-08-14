@@ -27,8 +27,8 @@ importers:
         specifier: ^0.0.9
         version: 0.0.9
       '@zardoy/vscode-utils':
-        specifier: ^0.0.48
-        version: 0.0.48(@types/vscode@1.64.0)(esbuild@0.15.10)(jsonc-parser@3.0.0)(vscode-framework@0.0.18(@types/vscode@1.64.0)(typescript@4.8.4))
+        specifier: ^0.0.52
+        version: 0.0.52(@types/vscode@1.64.0)(esbuild@0.15.10)(jsonc-parser@3.0.0)(vscode-framework@0.0.18(@types/vscode@1.64.0)(typescript@4.8.4))
       algoliasearch:
         specifier: ^4.14.2
         version: 4.14.2
@@ -704,8 +704,8 @@ packages:
     resolution: {integrity: sha512-c7UJ3UC3yXXAYvZe23AFTGI1Nqes/TXvKMVnEYk/ikKF7v8d5rvuwz6dw5cTlDgz3Vpub725MIWsIloVKAPSmQ==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
-  '@zardoy/vscode-utils@0.0.48':
-    resolution: {integrity: sha512-jtW1QhkiZVp534vm3wufFB87S4wj2MOV3JqjLL56qhSqlHbuDZhZ4SsQrs6m9OSNqj3fz7qMpQmWyG0+gw6MDQ==}
+  '@zardoy/vscode-utils@0.0.52':
+    resolution: {integrity: sha512-e+HvIdzALhuFtnub6jzNARge78GPnYuW/+b1jMO0p7A/LjjYCPhFIPjhj/1tf5SHtpbiy06mDb6z8HpGGUhFpg==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
     hasBin: true
     peerDependencies:
@@ -5098,7 +5098,7 @@ snapshots:
       rambda: 6.9.0
       type-fest: 2.18.0
 
-  '@zardoy/vscode-utils@0.0.48(@types/vscode@1.64.0)(esbuild@0.15.10)(jsonc-parser@3.0.0)(vscode-framework@0.0.18(@types/vscode@1.64.0)(typescript@4.8.4))':
+  '@zardoy/vscode-utils@0.0.52(@types/vscode@1.64.0)(esbuild@0.15.10)(jsonc-parser@3.0.0)(vscode-framework@0.0.18(@types/vscode@1.64.0)(typescript@4.8.4))':
     dependencies:
       '@types/vscode': 1.64.0
       '@zardoy/utils': 0.0.4
