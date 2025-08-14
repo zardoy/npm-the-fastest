@@ -179,7 +179,7 @@ export const packageManagerCommand = async (_inputArg: {
                             cancellationToken,
                             packages,
                             reportProgress,
-                            flags: flags as string[],
+                            flags,
                         })
                         break
 

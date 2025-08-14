@@ -146,7 +146,7 @@ export const pickInstalledDeps = async <M extends boolean>({
 
     const AT_TYPES = '@types/'
     const hasTypesPackage = (pkg: string, pkgJsonIndex: number) =>
-        Object.keys(packageJsons![pkgJsonIndex]!.dependencies ?? {}).includes(pkg.slice(AT_TYPES.length))
+        Object.keys(packageJsons[pkgJsonIndex]!.dependencies ?? {}).includes(pkg.slice(AT_TYPES.length))
 
     // TODO produce warning dialog when package a in dev/optional deps and @types/a in deps
 
