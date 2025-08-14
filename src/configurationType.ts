@@ -46,7 +46,7 @@ export type Configuration = {
      * By default (when null) first installed is picked: pnpm, yarn, npm
      * @default null
      * */
-    leadingPackageManager: 'pnpm' | 'yarn' | 'npm' | null
+    leadingPackageManager: 'pnpm' | 'yarn' | 'npm' | 'bun' | null
     /**
      * What to do on clipboard detection for copied command to install packages
      * @default ask
@@ -256,4 +256,8 @@ export type Configuration = {
     // enableTerminalLinkProvider: boolean
     /** @default true */
     useNoJsonDiagnosticsWorkaround: boolean
+    /**
+     * @default true
+     */
+    'linkCommand.runInstall': boolean
 }

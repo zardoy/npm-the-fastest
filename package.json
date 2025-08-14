@@ -108,6 +108,10 @@
             {
                 "command": "updatePackages",
                 "title": "Update Packages"
+            },
+            {
+                "command": "linkPackages",
+                "title": "Link Packages (pnpm overrides)"
             }
         ],
         "menus": {
@@ -262,5 +266,6 @@
         "trailingComma": "all",
         "arrowParens": "avoid",
         "printWidth": 160
-    }
+    },
+    "packageManager": "pnpm@10.14.0"
 }

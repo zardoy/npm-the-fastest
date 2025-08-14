@@ -1,16 +1,16 @@
 // GENERATED. DON'T EDIT MANUALLY
-// md5hash: 4a565685fba6c6f1922f0623441870fc
+// md5hash: 9e2055807d09dfdfff849f2de4f78a40
 {
     "type": "object",
     "properties": {
         "leadingPackageManager": {
-            "description": "Your main package manager that leads your projects\nUsed when no lockfile is detected\nBy default (when null) first installed is picked.",
+            "description": "Your main package manager that leads your projects\nUsed when no lockfile is detected\nBy default (when null) first installed is picked: pnpm, yarn, npm",
             "default": null,
             "enum": [
+                "bun",
                 "npm",
                 "pnpm",
-                "yarn",
-                "bun"
+                "yarn"
             ],
             "type": "string"
         },
@@ -329,6 +329,10 @@
         "useNoJsonDiagnosticsWorkaround": {
             "default": true,
             "type": "boolean"
+        },
+        "linkCommand.runInstall": {
+            "default": true,
+            "type": "boolean"
         }
     },
     "required": [
@@ -342,6 +346,7 @@
         "install.watchLockfiles",
         "install.watchLockfilesGitCheckouts",
         "leadingPackageManager",
+        "linkCommand.runInstall",
         "onPackageManagerCommandFail",
         "packageJsonIntellisense",
         "packageJsonLinks",

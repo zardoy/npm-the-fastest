@@ -21,6 +21,7 @@ import { registerRunOnSave } from './features/runOnSave'
 import openWorkspacePackageJson from './commands/openWorkspacePackageJson'
 import { registerPackageJsonLinks } from './packageJsonLinks'
 import { registerLinkPackage } from './commands/linkPackage'
+import { registerLinkPackages } from './commands/linkPackages'
 
 // TODO command for package diff
 
@@ -51,6 +52,7 @@ export const activate = () => {
 
     registerOpenPackageAtCommands()
     registerLinkPackage()
+    registerLinkPackages()
     openWorkspacePackageJson()
     registerRunOnSave()
     registerClipboardDetection()
