@@ -31,7 +31,7 @@ export const runBinCommand = async () => {
 
 export const getBinCommands = async () => {
     const _docUri = vscode.window.activeTextEditor?.document.uri
-    const folderUri = _docUri ? vscode.Uri.joinPath(_docUri, '..') : getCurrentWorkspaceRoot()
+    const folderUri = _docUri ? vscode.Uri.joinPath(_docUri, '..') : getCurrentWorkspaceRoot()?.uri
     const workspaceUri = vscode.workspace.workspaceFolders?.[0]!.uri
     const isFileInWorkspace = !workspaceUri || folderUri.toString().startsWith(workspaceUri.toString())
 
