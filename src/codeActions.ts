@@ -46,7 +46,7 @@ export const registerCodeActions = () => {
                         const { packageJson = {} } = await readPackageJsonWithMetadata({ type: 'closest' }).catch(() => ({} as never))
                         let foundType: string | undefined
                         for (const depType of ['dependencies', 'devDependencies', 'optionalDependencies'])
-                            if (moduleName in packageJson[depType] ?? {}) {
+                            if (moduleName in (packageJson[depType] ?? {})) {
                                 foundType = depType
                                 break
                             }
