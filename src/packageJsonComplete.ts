@@ -1,4 +1,3 @@
-/* eslint-disable no-bitwise */
 /* eslint-disable max-depth */
 import * as vscode from 'vscode'
 import { parseTree, getLocation, findNodeAtLocation, getNodeValue, Node } from 'jsonc-parser'
