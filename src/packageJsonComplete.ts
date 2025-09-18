@@ -6,7 +6,6 @@ import { getExtensionCommandId, getExtensionSetting, VSCodeQuickPickItem } from 
 import { getJsonCompletingInfo, jsonPathEquals, jsonValuesToCompletions } from '@zardoy/vscode-utils/build/jsonCompletions'
 import { niceLookingCompletion } from '@zardoy/vscode-utils/build/completions'
 import { Utils } from 'vscode-uri'
-import picomatch from 'picomatch/posix'
 import { compact } from '@zardoy/utils'
 import { getBinCommands, runBinCommand } from './commands/runBinCommand'
 
@@ -34,11 +33,11 @@ export const registerPackageJsonCompletions = () => {
                     }
 
                     // general purpose
-                    if (location.matches(['icon'])) {
-                        const value = (getNodeValue(findNodeAtLocation(root, path)!) as string).slice(0, offset - document.offsetAt(insideStringRange.start))
-                        // const string = document.getText(insideStringRange)
-                        return listFilesCompletions(document, value, insideStringRange, '*.{jpg,jpeg,png,svg}')
-                    }
+                    // if (location.matches(['icon'])) {
+                    //     const value = (getNodeValue(findNodeAtLocation(root, path)!) as string).slice(0, offset - document.offsetAt(insideStringRange.start))
+                    //     // const string = document.getText(insideStringRange)
+                    //     return listFilesCompletions(document, value, insideStringRange, '*.{jpg,jpeg,png,svg}')
+                    // }п
 
                     if (location.matches(['scripts', '*'])) {
                         const node = findNodeAtLocation(root, path)!
@@ -117,22 +116,22 @@ export const registerPackageJsonCompletions = () => {
     )
 }
 
-const listFilesCompletions = async (baseDocument: vscode.TextDocument, stringContents: string, completionRange: vscode.Range, glob = '*') => {
-    const folderPath = stringContents.split('/').slice(0, -1).join('/')
-    const filesList = await vscode.workspace.fs.readDirectory(Utils.joinPath(baseDocument.uri, '..', folderPath))
-    const isMatch = picomatch(glob)
-    return filesList
-        .map(([name, type]): vscode.CompletionItem => {
-            if (type & vscode.FileType.File && !isMatch(name)) return undefined!
-            return {
-                label: name,
-                kind: type & vscode.FileType.File ? vscode.CompletionItemKind.File : vscode.CompletionItemKind.Folder,
-                detail: name,
-                range: completionRange,
-            }
-        })
-        .filter(Boolean)
-}
+// const listFilesCompletions = async (baseDocument: vscode.TextDocument, stringContents: string, completionRange: vscode.Range, glob = '*') => {
+//     const folderPath = stringContents.split('/').slice(0, -1).join('/')
+//     const filesList = await vscode.workspace.fs.readDirectory(Utils.joinPath(baseDocument.uri, '..', folderPath))
+//     const isMatch = picomatch(glob)
+//     return filesList
+//         .map(([name, type]): vscode.CompletionItem => {
+//             if (type & vscode.FileType.File && !isMatch(name)) return undefined!
+//             return {
+//                 label: name,
+//                 kind: type & vscode.FileType.File ? vscode.CompletionItemKind.File : vscode.CompletionItemKind.Folder,
+//                 detail: name,
+//                 range: completionRange,
+//             }
+//         })
+//         .filter(Boolean)
+// }
 
 const parseScriptCommand = (contents: string) => {}
 

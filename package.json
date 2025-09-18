@@ -187,7 +187,7 @@
         "corepack"
     ],
     "scripts": {
-        "start": "vscode-framework start",
+        "start": "vscode-framework start --skip-launching",
         "build": "tsc && vscode-framework build",
         "lint": "eslint --ignore-pattern \"src/webview/**\" --ignore-pattern \"src/**/*.d.ts\" --ignore-pattern src/webview.ts \"src/**/*.ts\"",
         "test": "echo tests skipped for now",

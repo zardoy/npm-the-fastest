@@ -1,5 +1,6 @@
 import vscode from 'vscode'
 import { readPackageJsonWithMetadata, showPackageJson } from './packageJson'
+import { getPrefferedPackageManager } from './packageManager'
 
 type PromiseType<T> = T extends Promise<infer U> ? U : never
 
@@ -27,7 +28,7 @@ export const launchNpmTask = async (getNpmScript: (params: PromiseType<ReturnTyp
         return
     }
 
-    const packageManager = 'pnpm'
+    const packageManager = await getPrefferedPackageManager(workspaceUri)
     const npmScript = await getNpmScript({ packageJson, workspaceFolder, dir: workspaceUri })
     if (npmScript === undefined) return
 
